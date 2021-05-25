@@ -1,13 +1,19 @@
 local Job = require "plenary.job"
+local filetype = require "plenary.filetype"
 
 local pickers = require "telescope.pickers"
 local finders = require "telescope.finders"
 
+local actions = require "telescope.actions"
+local action_set = require "telescope.actions.set"
+local action_state = require "telescope.actions.state"
+
 local conf = require("telescope.config").values
 local Previewer = require "telescope.previewers.previewer"
-local putils = require "telescope.previewers.utils"
+local p_utils = require "telescope.previewers.utils"
 
 local git = require "sg.git"
+local worktree = require "sg.worktree"
 
 local once = require("sg.utils").once
 
@@ -30,18 +36,24 @@ M.default_url_str = function(cwd)
 end
 
 M.test = function(cwd, input)
-  local result = vim.fn.json_decode(table.concat(Job
-    :new({
-      "src",
-      "search",
-      "-json",
-      string.format("%s %s", M.default_url_str(cwd), input),
-      env = {
-        SRC_ACCESS_TOKEN = get_access_token(),
-        SRC_ENDPOINT = get_endpoint(),
-      },
-    })
-    :sync(), ""))
+  local j = Job:new {
+    "/home/tjdevries/.local/bin/src",
+    "search",
+    "-json",
+    string.format("%s %s", M.default_url_str(cwd), input),
+    env = {
+      SRC_ACCESS_TOKEN = get_access_token(),
+      SRC_ENDPOINT = get_endpoint(),
+    },
+  }
+
+  local output = j:sync()
+
+  -- local bufnr = 190
+  -- vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, output)
+  -- if true then return end
+
+  local result = vim.fn.json_decode(table.concat(output, ""))
 
   M.result_to_telescope(result)
 end
@@ -76,6 +88,8 @@ M.result_to_telescope = function(result)
     for _, line_match in ipairs(match.lineMatches) do
       table.insert(entries, {
         path = match.file.path,
+        commit = match.file.commit.oid,
+        url = match.file.url,
         lineNumber = line_match.lineNumber,
       })
     end
@@ -89,12 +103,12 @@ M.result_to_telescope = function(result)
         local line = line_map[e.path][e.lineNumber + 1]
         return {
           value = e,
-          display = line,
+          -- display = string.format("%s : %s", e.commit, line),
+          display = e.path .. ": " .. line,
           ordinal = line,
         }
       end,
     },
-
     sorter = conf.generic_sorter {},
     previewer = Previewer:new {
       preview_fn = function(_, entry, status)
@@ -103,14 +117,25 @@ M.result_to_telescope = function(result)
         vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, line_map[entry.value.path])
         vim.api.nvim_win_set_cursor(preview_win, { entry.value.lineNumber, 0 })
 
-        putils.highlighter(bufnr, "c")
+        p_utils.highlighter(bufnr, filetype.detect(entry.value.path))
         vim.api.nvim_buf_add_highlight(bufnr, 0, "Visual", entry.value.lineNumber, 0, -1)
       end,
     },
+
+    attach_mappings = function(prompt_bufnr, map)
+      action_set.edit:replace(function(e)
+        P(action_state.get_selected_entry())
+        actions.close(prompt_bufnr)
+      end)
+
+      return true
+    end,
   }):find()
 end
 
 -- M.lens()
-M.test(nil, "nlua_stricmp")
+M.test("~/plugins/telescope-sourcegraph.nvim", "function")
+
+-- .cache/sg_telescope/<url>/<commit>/<path>
 
 return M

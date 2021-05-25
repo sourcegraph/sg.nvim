@@ -17,4 +17,10 @@ git.default_remote_url = function(cwd)
   }
 end
 
+-- Creates new worktree at that commit w/ that commit info
+-- git worktree add 04097305904e48788eeb911ddf0f5f131ad66845 04097305904e48788eeb911ddf0f5f131ad66845
+
+local url = git.default_remote_url():gsub("https://", ""):gsub("/", "__")
+print(url)
+
 return git
