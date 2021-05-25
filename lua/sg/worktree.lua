@@ -15,11 +15,13 @@ worktree.repo_path = function(remote_url)
   local bare = Path:new(worktree._base, worktree.transform_remote(remote_url))
 
   if not bare:exists() then
+    -- TODO: This takes a long time on some things...
     local clone = Job:new { "git", "clone", "--bare", remote_url, bare:absolute() }
+    clone:sync(40000)
 
-    clone:sync()
     if clone.code ~= 0 then
       log.warn("Failed to sync", clone)
+      error(string.format("... %s %s", remote_url, bare:absolute()))
     end
   else
     log.debug("repo_path exists:", bare:absolute())

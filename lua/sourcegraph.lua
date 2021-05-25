@@ -33,17 +33,40 @@ end
 
 local M = {}
 
-M.default_url_str = function(cwd)
-  return (string.gsub(git.default_remote_url(cwd), "https://", ""))
+local format_options = function(opts)
+  local terms = {}
+  for k, v in pairs(opts) do
+    if type(k) ~= "number" then
+      table.insert(terms, string.format("%s:%s", k, v))
+    end
+  end
+
+  for _, v in ipairs(opts) do
+    table.insert(terms, v)
+  end
+
+  return table.concat(terms, " ")
 end
 
 M.test = function(cwd, input)
-  local remote = M.default_url_str(cwd)
+  local remote = git.default_remote_url(cwd)
+
+  local repo = remote:gsub("https://", "")
+  -- local rev = "04097305904e48788eeb911ddf0f5f131ad66845"
+  -- local rev = "88e68e8c698e1990da685dfe806a978c4ddcf76c"
+  local rev = "facca2a6e81cdbaa86d13c101f2f6adad5f2f59f"
+
+  local options = {
+    input,
+    rev = rev,
+    repo = repo,
+  }
+
   local j = Job:new {
     "/home/tjdevries/.local/bin/src",
     "search",
     "-json",
-    string.format("repo:^%s$ %s", remote, input),
+    format_options(options),
     env = {
       SRC_ACCESS_TOKEN = get_access_token(),
       SRC_ENDPOINT = get_endpoint(),
@@ -52,31 +75,15 @@ M.test = function(cwd, input)
 
   local output = j:sync()
 
-  -- local bufnr = 190
-  -- vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, output)
-  -- if true then return end
+  -- vim.api.nvim_buf_set_lines(248, 0, -1, false, output)
+  -- if true then
+  --   return
+  -- end
 
   local result = vim.fn.json_decode(table.concat(output, ""))
 
   M.result_to_telescope(remote, result)
 end
-
--- M.lens = function()
---   local result = vim.fn.json_decode(table.concat(Job
---     :new({
---       "src",
---       "search",
---       "-json",
---       "repo:^github.com/neovim/neovim$ " .. vim.fn.input "Function Name > ",
---       env = {
---         SRC_ACCESS_TOKEN = get_access_token(),
---         SRC_ENDPOINT = get_endpoint(),
---       },
---     })
---     :sync(), ""))
-
---   M.result_to_telescope(result)
--- end
 
 M.result_to_telescope = function(remote_url, result)
   if not result.Results then
@@ -145,6 +152,7 @@ M.result_to_telescope = function(remote_url, result)
 end
 
 -- M.lens()
+-- M.test("~/sourcegraph/sourcegraph", "projectResult{...} patternType:structural")
 M.test("~/plugins/telescope-sourcegraph.nvim", "function")
 
 -- .cache/sg_telescope/<url>/<commit>/<path>
