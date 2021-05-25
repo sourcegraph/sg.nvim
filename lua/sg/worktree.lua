@@ -28,6 +28,13 @@ worktree.repo_path = function(remote_url)
   return bare
 end
 
+worktree.fetch = function(remote_url)
+  local bare = Path:new(worktree._base, worktree.transform_remote(remote_url))
+  local fetch = Job:new { "git", "fetch", "--all", cwd = bare:absolute() }
+  local output = fetch:sync()
+  log.info("fetched:", output, fetch:stderr_result())
+end
+
 worktree.commit_path = function(remote_url, commit_hash)
   local bare = worktree.repo_path(remote_url)
   local commit_path = Path:new(bare, commit_hash)
@@ -36,7 +43,13 @@ worktree.commit_path = function(remote_url, commit_hash)
     log.info("... Checking out commit", commit_hash)
     local add = Job:new { "git", "worktree", "add", commit_hash, commit_hash, cwd = bare:absolute() }
     local output = add:sync()
-    log.info("... Result:", table.concat(output, " | "))
+
+    if not commit_path:exists() then
+      worktree.fetch(remote_url)
+      add:sync()
+    end
+
+    assert(commit_path:exists(), "Failed to create path")
   else
     log.debug("tree already added: ", commit_hash)
   end
@@ -52,9 +65,10 @@ worktree.edit = function(remote_url, commit_hash, path)
   log.info("Exists   ?", file_path:exists())
 
   vim.cmd([[vnew ]] .. file_path:absolute())
-end
 
--- worktree.repo_path(require("sg.git").default_remote_url())
-worktree.edit(require("sg.git").default_remote_url(), "04097305904e48788eeb911ddf0f5f131ad66845", "lua/sourcegraph.lua")
+  -- TODO:
+  -- set options for readonly
+  -- set local working directory
+end
 
 return worktree

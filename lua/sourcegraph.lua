@@ -1,3 +1,5 @@
+RELOAD "sg"
+
 local Job = require "plenary.job"
 local filetype = require "plenary.filetype"
 
@@ -32,15 +34,16 @@ end
 local M = {}
 
 M.default_url_str = function(cwd)
-  return string.format("repo:^%s$", string.gsub(git.default_remote_url(cwd), "https://", ""))
+  return (string.gsub(git.default_remote_url(cwd), "https://", ""))
 end
 
 M.test = function(cwd, input)
+  local remote = M.default_url_str(cwd)
   local j = Job:new {
     "/home/tjdevries/.local/bin/src",
     "search",
     "-json",
-    string.format("%s %s", M.default_url_str(cwd), input),
+    string.format("repo:^%s$ %s", remote, input),
     env = {
       SRC_ACCESS_TOKEN = get_access_token(),
       SRC_ENDPOINT = get_endpoint(),
@@ -55,27 +58,27 @@ M.test = function(cwd, input)
 
   local result = vim.fn.json_decode(table.concat(output, ""))
 
-  M.result_to_telescope(result)
+  M.result_to_telescope(remote, result)
 end
 
-M.lens = function()
-  local result = vim.fn.json_decode(table.concat(Job
-    :new({
-      "src",
-      "search",
-      "-json",
-      "repo:^github.com/neovim/neovim$ " .. vim.fn.input "Function Name > ",
-      env = {
-        SRC_ACCESS_TOKEN = get_access_token(),
-        SRC_ENDPOINT = get_endpoint(),
-      },
-    })
-    :sync(), ""))
+-- M.lens = function()
+--   local result = vim.fn.json_decode(table.concat(Job
+--     :new({
+--       "src",
+--       "search",
+--       "-json",
+--       "repo:^github.com/neovim/neovim$ " .. vim.fn.input "Function Name > ",
+--       env = {
+--         SRC_ACCESS_TOKEN = get_access_token(),
+--         SRC_ENDPOINT = get_endpoint(),
+--       },
+--     })
+--     :sync(), ""))
 
-  M.result_to_telescope(result)
-end
+--   M.result_to_telescope(result)
+-- end
 
-M.result_to_telescope = function(result)
+M.result_to_telescope = function(remote_url, result)
   if not result.Results then
     return
   end
@@ -124,8 +127,16 @@ M.result_to_telescope = function(result)
 
     attach_mappings = function(prompt_bufnr, map)
       action_set.edit:replace(function(e)
-        P(action_state.get_selected_entry())
+        local entry = action_state.get_selected_entry()
         actions.close(prompt_bufnr)
+
+        -- print(remote_url)
+        -- print(entry.value.commit)
+        -- print(entry.value.path)
+
+        vim.schedule(function()
+          worktree.edit(remote_url, entry.value.commit, entry.value.path)
+        end)
       end)
 
       return true
