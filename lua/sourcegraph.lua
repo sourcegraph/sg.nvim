@@ -33,7 +33,7 @@ end
 
 local M = {}
 
-local format_options = function(opts)
+local format_query = function(opts)
   local terms = {}
   for k, v in pairs(opts) do
     if type(k) ~= "number" then
@@ -48,26 +48,39 @@ local format_options = function(opts)
   return table.concat(terms, " ")
 end
 
-M.run = function(cwd, input)
-  local remote = git.default_remote_url(cwd)
+M.run = function(opts)
+  opts = opts or {}
 
-  local repo = remote:gsub("https://", "")
+  if not opts.cwd then
+    opts.cwd = vim.loop.cwd()
+  end
+
+  if not opts.remote then
+    opts.remote = git.default_remote_url(opts.cwd)
+  end
+
+  if not opts.repo then
+    opts.repo = opts.remote:gsub("https://", "")
+  end
+
   -- local rev = "04097305904e48788eeb911ddf0f5f131ad66845"
   -- local rev = "88e68e8c698e1990da685dfe806a978c4ddcf76c"
   -- local rev = "facca2a6e81cdbaa86d13c101f2f6adad5f2f59f"
-  local rev = nil
+  -- local rev = nil
 
-  local options = {
-    input,
-    rev = rev,
-    repo = repo,
+  local query = {
+    rev = opts.rev,
+    repo = opts.repo,
   }
+  for k, v in ipairs(opts) do
+    query[k] = v
+  end
 
   local j = Job:new {
-    "/home/tjdevries/.local/bin/src",
+    vim.fn.exepath "src",
     "search",
     "-json",
-    format_options(options),
+    format_query(query),
     env = {
       SRC_ACCESS_TOKEN = get_access_token(),
       SRC_ENDPOINT = get_endpoint(),
@@ -83,7 +96,7 @@ M.run = function(cwd, input)
 
   local result = vim.fn.json_decode(table.concat(output, ""))
 
-  M.result_to_telescope(remote, result)
+  M.result_to_telescope(opts.remote, result)
 end
 
 M.result_to_telescope = function(remote_url, result)
@@ -168,7 +181,6 @@ end
 -- M.test("~/sourcegraph/sourcegraph", "projectResult{...} patternType:structural")
 -- M.test("~/plugins/telescope-sourcegraph.nvim", "function")
 -- M.run("~/sourcegraph/sourcegraph", "Query file:go")
-
--- .cache/sg_telescope/<url>/<commit>/<path>
+-- M.run { "Query", "file:go", cwd = "~/sourcegraph/about/" }
 
 return M
