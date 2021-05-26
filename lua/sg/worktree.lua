@@ -59,18 +59,13 @@ worktree.commit_path = function(remote_url, commit_hash)
   return commit_path
 end
 
-worktree.edit = function(remote_url, commit_hash, path)
+worktree.setup_for_edit = function(remote_url, commit_hash, path)
   local commit_path = worktree.commit_path(remote_url, commit_hash)
   local file_path = Path:new(commit_path, path)
 
-  log.info("File Path:", file_path:absolute())
-  log.info("Exists   ?", file_path:exists())
-
-  vim.cmd([[vnew ]] .. file_path:absolute())
-
   -- TODO:
-  -- set options for readonly
   -- set local working directory
+  return file_path:absolute()
 end
 
 return worktree

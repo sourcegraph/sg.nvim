@@ -48,13 +48,14 @@ local format_options = function(opts)
   return table.concat(terms, " ")
 end
 
-M.test = function(cwd, input)
+M.run = function(cwd, input)
   local remote = git.default_remote_url(cwd)
 
   local repo = remote:gsub("https://", "")
   -- local rev = "04097305904e48788eeb911ddf0f5f131ad66845"
   -- local rev = "88e68e8c698e1990da685dfe806a978c4ddcf76c"
-  local rev = "facca2a6e81cdbaa86d13c101f2f6adad5f2f59f"
+  -- local rev = "facca2a6e81cdbaa86d13c101f2f6adad5f2f59f"
+  local rev = nil
 
   local options = {
     input,
@@ -100,7 +101,9 @@ M.result_to_telescope = function(remote_url, result)
         path = match.file.path,
         commit = match.file.commit.oid,
         url = match.file.url,
-        lineNumber = line_match.lineNumber,
+
+        lnum = line_match.lineNumber,
+        col = line_match.offsetAndLengths[1][1] + 1,
       })
     end
   end
@@ -110,12 +113,16 @@ M.result_to_telescope = function(remote_url, result)
     finder = finders.new_table {
       results = entries,
       entry_maker = function(e)
-        local line = line_map[e.path][e.lineNumber + 1]
+        local line = line_map[e.path][e.lnum + 1]
         return {
           value = e,
           -- display = string.format("%s : %s", e.commit, line),
-          display = e.path .. ": " .. line,
+          display = e.path .. ": " .. (line or ""),
           ordinal = line,
+
+          -- Location information
+          lnum = e.lnum + 1,
+          col = e.col,
         }
       end,
     },
@@ -125,26 +132,32 @@ M.result_to_telescope = function(remote_url, result)
         local preview_win = status.preview_win
         local bufnr = vim.api.nvim_win_get_buf(preview_win)
         vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, line_map[entry.value.path])
-        vim.api.nvim_win_set_cursor(preview_win, { entry.value.lineNumber, 0 })
+        vim.api.nvim_win_set_cursor(preview_win, { entry.value.lnum, 0 })
 
         p_utils.highlighter(bufnr, filetype.detect(entry.value.path))
-        vim.api.nvim_buf_add_highlight(bufnr, 0, "Visual", entry.value.lineNumber, 0, -1)
+        vim.api.nvim_buf_add_highlight(bufnr, 0, "Visual", entry.value.lnum, 0, -1)
       end,
     },
 
-    attach_mappings = function(prompt_bufnr, map)
-      action_set.edit:replace(function(e)
-        local entry = action_state.get_selected_entry()
-        actions.close(prompt_bufnr)
+    attach_mappings = function(_, map)
+      action_set.select:enhance {
+        -- TODO: This is a bit of a weird hack to make it seem like we knew this file location ahead of time.
+        pre = function(prompt_bufnr, command)
+          local edit_type = action_state.select_key_to_edit_key(command)
+          local entry = action_state.get_selected_entry()
 
-        -- print(remote_url)
-        -- print(entry.value.commit)
-        -- print(entry.value.path)
+          entry.path = worktree.setup_for_edit(remote_url, entry.value.commit, entry.value.path)
+          entry.filename = entry.path
+        end,
 
-        vim.schedule(function()
-          worktree.edit(remote_url, entry.value.commit, entry.value.path)
-        end)
-      end)
+        post = function()
+          local bufnr = vim.api.nvim_get_current_buf()
+
+          vim.bo[bufnr].readonly = true
+          -- todo: local working directory
+          -- todo: statusline update?
+        end,
+      }
 
       return true
     end,
@@ -153,7 +166,8 @@ end
 
 -- M.lens()
 -- M.test("~/sourcegraph/sourcegraph", "projectResult{...} patternType:structural")
-M.test("~/plugins/telescope-sourcegraph.nvim", "function")
+-- M.test("~/plugins/telescope-sourcegraph.nvim", "function")
+-- M.run("~/sourcegraph/sourcegraph", "Query file:go")
 
 -- .cache/sg_telescope/<url>/<commit>/<path>
 
