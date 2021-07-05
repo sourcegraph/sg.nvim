@@ -59,6 +59,8 @@ M.run = function(opts)
     opts.remote = git.default_remote_url(opts.cwd)
   end
 
+  -- print("Remote:", opts.remote)
+
   if not opts.repo then
     opts.repo = opts.remote:gsub("https://", "")
   end
@@ -87,7 +89,7 @@ M.run = function(opts)
     },
   }
 
-  local output = j:sync()
+  local output = j:sync(10000)
 
   -- vim.api.nvim_buf_set_lines(248, 0, -1, false, output)
   -- if true then
@@ -106,7 +108,12 @@ M.result_to_telescope = function(remote_url, result)
 
   local entries = {}
   local line_map = {}
-  for _, match in ipairs(result.Results) do
+
+  local add_match = function(match)
+    if not match.file then
+      return
+    end
+
     line_map[match.file.path] = vim.split(match.file.content, "\n")
 
     for _, line_match in ipairs(match.lineMatches) do
@@ -121,7 +128,12 @@ M.result_to_telescope = function(remote_url, result)
     end
   end
 
+  for _, match in ipairs(result.Results) do
+    add_match(match)
+  end
+
   pickers.new({}, {
+    -- shorten_path = true,
     prompt_title = "Sourcegraph (WIP)",
     finder = finders.new_table {
       results = entries,
@@ -145,7 +157,10 @@ M.result_to_telescope = function(remote_url, result)
         local preview_win = status.preview_win
         local bufnr = vim.api.nvim_win_get_buf(preview_win)
         vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, line_map[entry.value.path])
-        vim.api.nvim_win_set_cursor(preview_win, { entry.value.lnum, 0 })
+
+        if not pcall(vim.api.nvim_win_set_cursor, preview_win, { entry.value.lnum, 0 }) then
+          return
+        end
 
         p_utils.highlighter(bufnr, filetype.detect(entry.value.path))
         vim.api.nvim_buf_add_highlight(bufnr, 0, "Visual", entry.value.lnum, 0, -1)
@@ -181,6 +196,6 @@ end
 -- M.test("~/sourcegraph/sourcegraph", "projectResult{...} patternType:structural")
 -- M.test("~/plugins/telescope-sourcegraph.nvim", "function")
 -- M.run("~/sourcegraph/sourcegraph", "Query file:go")
--- M.run { "Query", "file:go", cwd = "~/sourcegraph/about/" }
+-- M.run { "Query", "file:go", cwd = "~/sourcegraph/sourcegraph/" }
 
 return M
