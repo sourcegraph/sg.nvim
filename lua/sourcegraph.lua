@@ -82,6 +82,7 @@ M.run = function(opts)
     vim.fn.exepath "src",
     "search",
     "-json",
+    -- "-stream",
     format_query(query),
     env = {
       SRC_ACCESS_TOKEN = get_access_token(),
@@ -90,6 +91,10 @@ M.run = function(opts)
   }
 
   local output = j:sync(10000)
+  -- P(output)
+  -- if true then
+  --   return
+  -- end
 
   -- vim.api.nvim_buf_set_lines(248, 0, -1, false, output)
   -- if true then

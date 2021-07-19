@@ -3,8 +3,8 @@
 
 R("sourcegraph").run {
   -- Just search for the string
-  "LSIF|lsif",
+  "RunDocker",
 
   -- Search all of sourcegraph's repos
-  remote = "https://github.com/sourcegraph/",
+  remote = "https://github.com/sourcegraph/sourcegraph",
 }
