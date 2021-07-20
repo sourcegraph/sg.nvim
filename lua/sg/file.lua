@@ -1,15 +1,7 @@
 local Job = require "plenary.job"
 
 local once = require("sg.utils").once
-local src_cli = vim.fn.exepath "src"
-
-local get_access_token = once(function()
-  return os.getenv "SRC_ACCESS_TOKEN"
-end)
-
-local get_endpoint = once(function()
-  return os.getenv "SRC_ENDPOINT"
-end)
+local cli = require "sg.cli"
 
 local file = {}
 
@@ -24,18 +16,7 @@ file.read = function(remote, hash, path)
     print(query)
   end)
 
-  local j = Job:new {
-    src_cli,
-    "search",
-    "-json",
-    query,
-    env = {
-      SRC_ACCESS_TOKEN = get_access_token(),
-      SRC_ENDPOINT = get_endpoint(),
-    },
-  }
-
-  local output = vim.fn.json_decode((j:sync()))
+  local output = cli.search(query)
   if not output.Results then
     error("no results: " .. vim.inspect(output))
   end

@@ -28,5 +28,14 @@ describe("sg.bufread", function()
       eq(29, deconstructed.line)
       eq(2, deconstructed.col)
     end)
+
+    it("should handle paths with - in it", function()
+      local deconstructed =
+        bufread._deconstruct_path "https://sourcegraph.com/github.com/sourcegraph/sourcegraph@main/-/blob/cmd/repo-updater/repoupdater/server.go"
+
+      eq("github.com/sourcegraph/sourcegraph", deconstructed.url)
+      eq("main", deconstructed.commit)
+      eq("cmd/repo-updater/repoupdater/server.go", deconstructed.filepath)
+    end)
   end)
 end)

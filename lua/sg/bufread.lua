@@ -11,9 +11,11 @@ end
 local M = {}
 
 -- TODO: I don't know how to turn off this https://* stuff and not make netrw users mad
-vim.cmd [[
-  autocmd! Network BufReadCmd  https://*
+pcall(vim.cmd, [[
+  autocmd! Network BufReadCmd https://*
+]])
 
+vim.cmd [[
   augroup Sourcegraph
     au!
     autocmd BufReadCmd sg://* lua R("sg.bufread").edit(vim.fn.expand("<amatch>"))
@@ -39,7 +41,9 @@ local deconstruct_path = function(original)
     commit = string.gsub(commit, "/", "")
   end
 
-  local path_and_args = string.sub(split_path[2], 2)
+  table.remove(split_path, 1)
+  local path_and_args = string.sub(table.concat(split_path, "-"), 2)
+  -- change ^/tree/ -> blob or just remove it straight up
   path_and_args = string.gsub(path_and_args, "^/blob/", "/")
   path_and_args = string.gsub(path_and_args, "^blob/", "")
 
@@ -72,9 +76,11 @@ local construct_path = function(url, commit, filepath)
 
   local commit_str = ""
   if commit then
+    -- change this to just first five of commit hash if it's all hash like
     commit_str = string.format("@%s", commit)
   end
 
+  -- shorten github.com/ -> gh/
   return string.format("sg://%s%s/-/%s", url, commit_str, filepath)
 end
 
@@ -108,6 +114,7 @@ M.edit = function(path)
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
     vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
 
+    vim.cmd [[doautocmd BufRead]]
     vim.api.nvim_buf_set_option(bufnr, "filetype", filetype.detect(filepath))
   end
 
