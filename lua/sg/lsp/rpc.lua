@@ -48,6 +48,10 @@ end
 
 function M.read_message()
   local line = io.read "*l"
+  if not line then
+    return false, "no line"
+  end
+
   local length = line:lower():match "content%-length:%s*(%d+)"
   return json_decode(io.read(2 + length):sub(2))
 end

@@ -1,7 +1,8 @@
 local Job = require "plenary.job"
 
-local once = require("sg.utils").once
 local cli = require "sg.cli"
+local log = require "sg.log"
+local once = require("sg.utils").once
 
 local file = {}
 
@@ -12,9 +13,7 @@ file.read = function(remote, hash, path)
   end
   query = query .. string.format(" file:^%s$", path)
 
-  vim.schedule(function()
-    print(query)
-  end)
+  log.info("query:", query)
 
   local output = cli.search(query)
   if not output.Results then

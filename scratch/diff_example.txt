@@ -1,0 +1,6 @@
+https://sourcegraph.com/github.com/neovim/neovim/-/
+    compare/
+        192adfe99f33778a85e11fbfdceb37f347a3d235
+        ...
+        41844333c1b527ebf061d2e0d149ea5b33356cf2
+    ?utm_source=chrome-extension&visible=8#diff-ad0ef1c29cd9a27364b4790113d48a2f

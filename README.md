@@ -4,6 +4,10 @@
 
 You can see it "in action" (doesn't do as much as I'd like at the moment) [here](https://youtu.be/iCdsD6MiLQs)
 
+If you want to test it (and recognize there will be breaking changes) you will need to install:
+
+- github.com/sourcegraph/src-cli
+
 ## TODO:
 
 (still have a few more ideas floating in my head)
