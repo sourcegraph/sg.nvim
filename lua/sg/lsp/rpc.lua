@@ -49,7 +49,8 @@ end
 function M.read_message()
   local line = io.read "*l"
   if not line then
-    return false, "no line"
+    Shutdown = true
+    return true, nil
   end
 
   local length = line:lower():match "content%-length:%s*(%d+)"
