@@ -13,8 +13,7 @@ configs.sg = {
         return nil
       end
 
-      log.info("Successfully connected to:", fname)
-
+      log.trace("Successfully connected to:", fname)
       return "/"
     end,
     log_level = vim.lsp.protocol.MessageType.Log,
@@ -23,7 +22,6 @@ configs.sg = {
 
 local M = {}
 
--- io.stderr:setvbuf("no")
 Shutdown = Shutdown or false
 
 M.start = function()
@@ -33,10 +31,6 @@ M.start = function()
     while not Shutdown do
       -- header
       local err, data = rpc.read_message()
-
-      -- if _G.Config.debugMode then
-      --   reload_all()
-      -- end
 
       if data == nil then
         if err == "eof" then
@@ -75,6 +69,36 @@ M.start = function()
 end
 
 M.setup = function(opts)
+  -- TODO: Need to figure out how to ask for the files concurrently.
+  -- Otherwise it's gonna take forever to resolve all of them if you've
+  -- got a lot of files.
+  -- opts.handlers = vim.tbl_deep_extend("force", {
+  --   ["textDocument/references"] = function()
+  --     print "Yo, references"
+  --   end,
+  -- }, opts.handlers or {})
+
+  local passed_init = opts.on_init
+  opts.on_init = function(client, ...)
+    if passed_init then
+      passed_init(client, ...)
+    end
+
+    local request_sync = client.request_sync
+    client.request_sync = function(method, params, timeout_ms, bufnr)
+      return request_sync(method, params, timeout_ms, bufnr)
+    end
+
+    local request = client.request
+    client.request = function(method, params, handler, bufnr)
+      if method == "textDocument/references" then
+        -- TODO: This will be what we need to do to make the stuff go faster here.
+      end
+
+      return request(method, params, handler, bufnr)
+    end
+  end
+
   require("lspconfig").sg.setup(opts)
 end
 

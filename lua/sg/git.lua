@@ -1,5 +1,8 @@
 local Job = require "plenary.job"
 
+local cli = require "sg.cli"
+local log = require "sg.log"
+
 local git = {}
 
 local get_single_line = function(t)
@@ -17,10 +20,43 @@ git.default_remote_url = function(cwd)
   }
 end
 
--- Creates new worktree at that commit w/ that commit info
--- git worktree add 04097305904e48788eeb911ddf0f5f131ad66845 04097305904e48788eeb911ddf0f5f131ad66845
+local CommitGraphQL = [[
+query ($repository: String!, $rev: String!) {
+  repository(name: $repository) {
+    commit(rev: $rev) {
+      oid
+    }
+  }
+}
+]]
 
-local url = git.default_remote_url():gsub("https://", ""):gsub("/", "__")
-print(url)
+git.resolve_commit_hash = function(repository, rev)
+  -- TODO: I don't know if this is a bad hack... but I'd like to skip
+  -- the request if possible...
+  --
+  -- who has 40 character length branch names?
+  -- if #rev == 40 then
+  --   return rev
+  -- end
+
+  local output = cli.api(CommitGraphQL, {
+    repository = repository,
+    rev = rev,
+  })
+
+  log.trace("resolve commit hash:", output)
+
+  local keypath = { "data", "repository", "commit", "oid" }
+  local data = output
+  for _, key in ipairs(keypath) do
+    if not data then
+      error "something went wrong"
+    end
+
+    data = data[key]
+  end
+
+  return data
+end
 
 return git

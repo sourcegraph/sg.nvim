@@ -1,22 +1,21 @@
-# telescope-sourcegraph.nvim
+# sg.nvim
 
-(This repo is mostly vaporware at the moment. I'm exploring how to integrate sourcegraph within neovim via telescope)
+sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com into Neovim.
 
-Most up-to-date demo: [YouTube](https://www.youtube.com/watch?v=RCyBnAx-4Q4)
+## Implemented Features:
 
-You can see it "in action" (doesn't do as much as I'd like at the moment) [here](https://youtu.be/iCdsD6MiLQs)
+- Reading files by pasting sourcegraph.com links into nvim
+  - Will currently cache the files locally so that the next time you read them it will be fast.
+- Jump-to-definition using builtin LSP + src-cli (documentation pending)
+- References using builtin LSP + src-cli (documentation pending)
 
-If you want to test it (and recognize there will be breaking changes) you will need to install:
 
-- github.com/sourcegraph/src-cli
+## Demos:
 
-## TODO:
+- Demo v2: [YouTube](https://www.youtube.com/watch?v=RCyBnAx-4Q4)
+- Demo v1: [YouTube](https://youtu.be/iCdsD6MiLQs)
 
-(still have a few more ideas floating in my head)
+## Installation
 
-- `async_lib` v2 in plenary
-- `async_lib` jobs in plenary
-
-Optional:
-
-- combine with telescope `git_commits`, etc.
+Don't install it yet. I will fix up a few things and then write installation
+and setup instructions (including how to connect builtin LSP to this).
