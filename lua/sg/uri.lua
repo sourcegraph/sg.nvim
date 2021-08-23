@@ -84,7 +84,7 @@ function URI:new(text)
   local raw = text
   text = trim_protocol_prefixes(text)
 
-  local split_path = vim.split(text, "-")
+  local split_path = vim.split(text, "/-/", true)
 
   local remote_with_commit = table.remove(split_path, 1)
   local remote, commit = unpack(vim.split(remote_with_commit, "@"))
@@ -92,7 +92,7 @@ function URI:new(text)
   remote = normalize_remote(remote)
   commit = normalize_commit(commit)
 
-  local path_and_args = string.sub(table.concat(split_path, "-"), 2)
+  local path_and_args = table.concat(split_path, "/-/")
   local filepath, args = unpack(vim.split(path_and_args, "?", true))
 
   filepath = normalize_filepath(filepath)
