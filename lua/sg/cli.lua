@@ -18,6 +18,7 @@ local M = {}
 M.search_async = function(query, opts)
   opts = opts or {}
 
+  log.trace("search request:", "query", query)
   local j = Job:new {
     src_cli,
     "search",
@@ -50,13 +51,16 @@ end
 M.api_async = function(request, vars, opts)
   opts = opts or {}
 
+  local encoded_vars = vim.fn.json_encode(vars or {})
+
+  log.trace("api request:", "query", request, "vars", encoded_vars)
   local j = Job:new {
     src_cli,
     "api",
     "-query",
     request,
     "-vars",
-    vim.fn.json_encode(vars or {}),
+    encoded_vars,
 
     env = {
       SRC_ACCESS_TOKEN = opts.access_token or get_access_token(),

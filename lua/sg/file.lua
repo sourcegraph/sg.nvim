@@ -51,15 +51,16 @@ file.ensure_cache = function(remote, hash, path)
 
   local query = file._make_query(remote, hash, path)
   local search = cli.search_async(query, {
-    on_exit = function(self, ...)
-      local output = self:result()
+    on_exit = vim.schedule_wrap(function(self, ...)
+      local output = vim.fn.json_decode(self:result())
       local first = output.Results[1]
       if not first or not first.file then
         error "Failed to get stuff here. TODO"
       end
 
-      print(first.file.content)
-    end,
+      log.trace("ensure_cache:", remote, hash, path)
+      file._write_cache(remote, hash, path, first.file.content)
+    end),
   })
 
   return search
