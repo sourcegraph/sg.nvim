@@ -55,9 +55,16 @@ M.api = function(request, vars, opts)
 
   local output = j:sync()
   log.trace("api output:", output)
-  log.trace("from request:", request)
 
-  return vim.fn.json_decode(output)
+  output = vim.fn.json_decode(output)
+  if output.errors and #output.errors > 0 then
+    error(string.format("Error handling request. Got: %s", vim.inspect(output.errors)))
+  end
+
+  log.trace("from request:", request)
+  log.trace("with vars:", vars)
+
+  return output
 end
 
 return M

@@ -89,10 +89,26 @@ M.setup = function(opts)
       return request_sync(method, params, timeout_ms, bufnr)
     end
 
+    -- OK, here's the deal chat.
+    -- We're going to override the REQUEST and HANDLER for references when we're inside of the sg.nvim client
+    -- We want to do this so that we can get all the names of the files that we are going to open. Then we're going
+    -- to open them in parallel and wait for them all to complete.
+    --
+    -- If we don't do this, we request all the results synchronously, and it's quite painful for when you have several
+    -- files that these references go between.
+    --
+    -- Type Kappa in chat if you are following along.
     local request = client.request
     client.request = function(method, params, handler, bufnr)
       if method == "textDocument/references" then
-        -- TODO: This will be what we need to do to make the stuff go faster here.
+        print "Yo, we requestin this right now"
+
+        local original_handler = handler
+        handler = function(err, method, result, ...)
+          P(result)
+
+          return nil
+        end
       end
 
       return request(method, params, handler, bufnr)

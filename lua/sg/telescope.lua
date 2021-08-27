@@ -59,4 +59,13 @@ telescope.sg_previewer = defaulter(function(opts)
   }
 end, {})
 
+telescope.sg_references = function(opts)
+  opts = opts or {}
+
+  require("telescope.builtin").lsp_references {
+    previewer = telescope.sg_previewer.new(opts),
+    layout_strategy = "vertical",
+  }
+end
+
 return telescope

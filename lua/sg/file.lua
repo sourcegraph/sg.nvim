@@ -7,6 +7,7 @@ local log = require "sg.log"
 local once = require("sg.utils").once
 
 local cache_location = vim.fn.stdpath "cache"
+local checked_base = false
 
 local make_filename = function(remote, hash, path)
   remote = string.gsub(remote, "/", "_")
@@ -15,6 +16,12 @@ local make_filename = function(remote, hash, path)
 end
 
 local get_cached_path = function(remote, hash, path)
+  local base = Path:new(cache_location, "sg")
+  if not checked_base and not base:exists() then
+    base:mkdir()
+  end
+
+  checked_base = true
   return Path:new(cache_location, "sg", make_filename(remote, hash, path))
 end
 
@@ -33,10 +40,6 @@ file._read_cache = function(remote, hash, path)
 end
 
 file.read = function(remote, hash, path)
-  -- TODO: Decide if we should do this conversion even earlier.
-  -- Could make things a lot simpler thinking about how this works.
-  hash = git.resolve_commit_hash(remote, hash)
-
   local content = nil
   if not file._has_cache(remote, hash, path) then
     log.info "Requesting file..."

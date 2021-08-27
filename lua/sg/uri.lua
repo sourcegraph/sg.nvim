@@ -29,12 +29,16 @@ local normalize_remote = function(remote)
   return remote
 end
 
-local normalize_commit = function(commit)
-  -- TODO: if it's an incomplete hash, we can ask for matching hashes somehow?
+local normalize_commit = function(remote, commit, resolver)
+  resolver = resolver or function(c)
+    return require("sg.git").resolve_commit_hash(remote, c)
+  end
 
   if commit then
     commit = string.gsub(commit, "/", "")
   end
+
+  commit = resolver(commit)
 
   return commit
 end
@@ -80,7 +84,9 @@ end
 -- sg://github.com/neovim/neovim/-/src/nvim/autocmd.c
 -- sg://gh/neovim/neovim/-/src/nvim/autocmd.c
 ---@return URI
-function URI:new(text)
+function URI:new(text, opts)
+  opts = opts or {}
+
   local raw = text
   text = trim_protocol_prefixes(text)
 
@@ -90,7 +96,7 @@ function URI:new(text)
   local remote, commit = unpack(vim.split(remote_with_commit, "@"))
 
   remote = normalize_remote(remote)
-  commit = normalize_commit(commit)
+  commit = normalize_commit(remote, commit, opts.resolver)
 
   local path_and_args = table.concat(split_path, "/-/")
   local filepath, args = unpack(vim.split(path_and_args, "?", true))
@@ -125,9 +131,9 @@ local bufname_remote = function(remote)
   return remote
 end
 
-local bufname_commit = function(commit)
+local bufname_commit = function(remote, commit, resolver)
   if commit then
-    commit = normalize_commit(commit)
+    commit = normalize_commit(remote, commit, resolver)
 
     -- TODO: Check that this matches w/ a commit hash, not a branch name
     -- TODO: Make sure this is not an ambiguous commit hash
@@ -140,7 +146,9 @@ local bufname_filepath = normalize_filepath
 
 function URI._construct_bufname(remote, commit, filepath)
   remote = bufname_remote(remote)
-  commit = bufname_commit(commit)
+  commit = bufname_commit(remote, commit, function(c)
+    return c
+  end)
   filepath = bufname_filepath(filepath)
 
   local commit_str = ""

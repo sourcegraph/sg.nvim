@@ -19,3 +19,28 @@ sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com 
 
 Don't install it yet. I will fix up a few things and then write installation
 and setup instructions (including how to connect builtin LSP to this).
+
+### Installation
+
+Ok, so I said don't install it but you are welcome to try it out, it just probably won't work for you yet.
+
+Requirements:
+- [src-cli](https://github.com/sourcegraph/src-cli)
+- [plenary.nvim](https://github.com/nvim-lua/plenary.nvim)
+
+Setup:
+
+```lua
+-- Setup the LSP server to attach when you edit an sg:// buffer
+require("sg.lsp").setup {
+  ... -- whatever you normally pass to your LSP configuration. on_attach, etc.
+}
+```
+
+`sg.nvim` will automatically add protocols for handling
+`https://sourcegraph.com/*` links.
+
+You should be able to paste in a link like:
+- https://sourcegraph.com/github.com/sourcegraph/sourcegraph/-/blob/internal/conf/reposource/jvm_packages.go?L50:6
+
+and have that just open up the file. You can try out different patterns and tell me what stuff doesn't work.

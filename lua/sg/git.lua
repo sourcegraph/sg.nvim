@@ -41,7 +41,7 @@ git.resolve_commit_hash = function(repository, rev)
 
   local output = cli.api(CommitGraphQL, {
     repository = repository,
-    rev = rev,
+    rev = rev or "HEAD",
   })
 
   log.trace("resolve commit hash:", output)
@@ -50,7 +50,7 @@ git.resolve_commit_hash = function(repository, rev)
   local data = output
   for _, key in ipairs(keypath) do
     if not data then
-      error "something went wrong"
+      error(string.format("something went wrong: %s -> %s", key, data, vim.inspect(output)))
     end
 
     data = data[key]

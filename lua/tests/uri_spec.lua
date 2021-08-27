@@ -2,6 +2,14 @@ local URI = require "sg.uri"
 
 local eq = assert.are.same
 
+local new_uri = function(c)
+  return URI:new(c, {
+    resolver = function(commit)
+      return commit
+    end,
+  })
+end
+
 describe("URI", function()
   describe(":new()", function()
     describe("no commit", function()
@@ -24,7 +32,7 @@ describe("URI", function()
 
       for _, c in ipairs(cases) do
         it(string.format("should handle case: '%s'", c), function()
-          local uri = URI:new(c)
+          local uri = new_uri(c)
           for k, v in pairs(expected) do
             eq(v, uri[k], k)
           end
@@ -46,7 +54,7 @@ describe("URI", function()
 
       for _, c in ipairs(cases) do
         it(string.format("should handle case: '%s'", c), function()
-          local uri = URI:new(c)
+          local uri = new_uri(c)
           for k, v in pairs(expected) do
             eq(v, uri[k], k)
           end
@@ -80,7 +88,7 @@ describe("URI", function()
 
   describe("deconstruct_path", function()
     it("should parse line numbers", function()
-      local deconstructed = URI:new "sg://github.com/sourcegraph/sourcegraph@main/-/blob/dev/sg/rfc.go?L29:2"
+      local deconstructed = new_uri "sg://github.com/sourcegraph/sourcegraph@main/-/blob/dev/sg/rfc.go?L29:2"
 
       eq("github.com/sourcegraph/sourcegraph", deconstructed.remote)
       eq("main", deconstructed.commit)
@@ -93,7 +101,7 @@ describe("URI", function()
 
     it("should handle paths with - in it", function()
       local deconstructed =
-        URI:new "https://sourcegraph.com/github.com/sourcegraph/sourcegraph@main/-/blob/cmd/repo-updater/repoupdater/server.go"
+        new_uri "https://sourcegraph.com/github.com/sourcegraph/sourcegraph@main/-/blob/cmd/repo-updater/repoupdater/server.go"
 
       eq("github.com/sourcegraph/sourcegraph", deconstructed.remote)
       eq("main", deconstructed.commit)
@@ -102,7 +110,7 @@ describe("URI", function()
 
     it("should handle paths with no blob", function()
       local deconstructed =
-        URI:new "https://sourcegraph.com/github.com/sourcegraph/sourcegraph@main/-/cmd/repo-updater/repoupdater/server.go"
+        new_uri "https://sourcegraph.com/github.com/sourcegraph/sourcegraph@main/-/cmd/repo-updater/repoupdater/server.go"
 
       eq("github.com/sourcegraph/sourcegraph", deconstructed.remote)
       eq("main", deconstructed.commit)
@@ -111,7 +119,7 @@ describe("URI", function()
 
     it("should work here again", function()
       local deconstructed =
-        URI:new "sg://github.com/sourcegraph/sourcegraph@61148fb0761d2b74badd3886d3221e817b4f1eb8/-/lib/codeintel/lsif/protocol/element.go"
+        new_uri "sg://github.com/sourcegraph/sourcegraph@61148fb0761d2b74badd3886d3221e817b4f1eb8/-/lib/codeintel/lsif/protocol/element.go"
 
       eq("lib/codeintel/lsif/protocol/element.go", deconstructed.filepath)
     end)
