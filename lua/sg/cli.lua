@@ -79,6 +79,7 @@ M.api = function(request, vars, opts)
 
   local output = j:result()
   log.trace("api output:", output)
+  log.trace("for sebl:", j)
 
   output = vim.fn.json_decode(output)
   if output.errors and #output.errors > 0 then
