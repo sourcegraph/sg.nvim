@@ -26,6 +26,9 @@ M.search_async = function(query, opts)
     query,
 
     env = {
+      HOME = vim.env.HOME,
+      USER = vim.env.USER,
+
       SRC_ACCESS_TOKEN = opts.access_token or get_access_token(),
       SRC_ENDPOINT = opts.endpoint or get_endpoint(),
     },
@@ -63,6 +66,9 @@ M.api_async = function(request, vars, opts)
     encoded_vars,
 
     env = {
+      HOME = vim.env.HOME,
+      USER = vim.env.USER,
+
       SRC_ACCESS_TOKEN = opts.access_token or get_access_token(),
       SRC_ENDPOINT = opts.endpoint or get_endpoint(),
     },
