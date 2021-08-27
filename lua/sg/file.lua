@@ -45,6 +45,7 @@ end
 
 file.ensure_cache = function(remote, hash, path)
   if file._has_cache(remote, hash, path) then
+    log.trace("File already cached:", remote, hash, path)
     return
   end
 
@@ -52,8 +53,12 @@ file.ensure_cache = function(remote, hash, path)
   local search = cli.search_async(query, {
     on_exit = function(self, ...)
       local output = self:result()
+      local first = output.Results[1]
+      if not first or not first.file then
+        error "Failed to get stuff here. TODO"
+      end
 
-      print(output)
+      print(first.file.content)
     end,
   })
 

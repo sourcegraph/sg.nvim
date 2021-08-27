@@ -1,3 +1,5 @@
+local log = require "sg.log"
+
 ---@class URI
 ---@field remote string: The remote that this file points to
 ---@field commit string: The commit hash or tag name
@@ -30,9 +32,13 @@ local normalize_remote = function(remote)
 end
 
 local normalize_commit = function(remote, commit, resolver)
-  resolver = resolver or function(c)
-    return require("sg.git").resolve_commit_hash(remote, c)
-  end
+  resolver = resolver
+    or function(c)
+      log.trace("Resolving new commit hash for:", remote, c)
+      c = require("sg.git").resolve_commit_hash(remote, c)
+      log.trace("--> ", c)
+      return c
+    end
 
   if commit then
     commit = string.gsub(commit, "/", "")
@@ -85,6 +91,8 @@ end
 -- sg://gh/neovim/neovim/-/src/nvim/autocmd.c
 ---@return URI
 function URI:new(text, opts)
+  log.trace("Creating URI for ", text)
+
   opts = opts or {}
 
   local raw = text
@@ -105,6 +113,7 @@ function URI:new(text, opts)
 
   local line, col = normalize_args(args)
 
+  log.trace("URI:new() =", remote, commit, filepath, line, col)
   return setmetatable({
     _raw = raw,
 
