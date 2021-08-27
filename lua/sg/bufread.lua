@@ -3,13 +3,6 @@ local filetype = require "plenary.filetype"
 local log = require "sg.log"
 local URI = require "sg.uri"
 
-local SP = function(...)
-  local args = { ... }
-  vim.schedule(function()
-    P(unpack(args))
-  end)
-end
-
 local M = {}
 
 -- TODO: I don't know how to turn off this https://* stuff and not make netrw users mad
@@ -23,8 +16,8 @@ pcall(
 vim.cmd [[
   augroup Sourcegraph
     au!
-    autocmd BufReadCmd sg://* lua R("sg.bufread").edit(vim.fn.expand("<amatch>"))
-    autocmd BufReadCmd https://sourcegraph.com/* lua R("sg.bufread").edit(vim.fn.expand("<amatch>"))
+    autocmd BufReadCmd sg://* lua (R or require)("sg.bufread").edit(vim.fn.expand("<amatch>"))
+    autocmd BufReadCmd https://sourcegraph.com/* lua (R or require)("sg.bufread").edit(vim.fn.expand("<amatch>"))
   augroup END
 ]]
 
