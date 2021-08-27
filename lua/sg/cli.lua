@@ -15,7 +15,7 @@ end)
 
 local M = {}
 
-M.search = function(query, opts)
+M.search_async = function(query, opts)
   opts = opts or {}
 
   local j = Job:new {
@@ -28,15 +28,26 @@ M.search = function(query, opts)
       SRC_ACCESS_TOKEN = opts.access_token or get_access_token(),
       SRC_ENDPOINT = opts.endpoint or get_endpoint(),
     },
+
+    on_exit = opts.on_exit,
   }
 
-  local output = j:sync()
+  j:start()
+
+  return j
+end
+
+M.search = function(query, opts)
+  local j = M.search_async(query, opts)
+  j:wait()
+
+  local output = j:result()
   log.trace("search output:", output)
 
   return vim.fn.json_decode(output)
 end
 
-M.api = function(request, vars, opts)
+M.api_async = function(request, vars, opts)
   opts = opts or {}
 
   local j = Job:new {
@@ -53,7 +64,16 @@ M.api = function(request, vars, opts)
     },
   }
 
-  local output = j:sync()
+  j:start()
+
+  return j
+end
+
+M.api = function(request, vars, opts)
+  local j = M.api_async(request, vars, opts)
+  j:wait()
+
+  local output = j:result()
   log.trace("api output:", output)
 
   output = vim.fn.json_decode(output)

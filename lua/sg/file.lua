@@ -39,17 +39,38 @@ file._read_cache = function(remote, hash, path)
   return get_cached_path(remote, hash, path):read()
 end
 
+file._make_query = function(remote, hash, path)
+  return string.format("repo:^%s$@%s file:^%s$", remote, hash, path)
+end
+
+file.ensure_cache = function(remote, hash, path)
+  if file._has_cache(remote, hash, path) then
+    return
+  end
+
+  local query = file._make_query(remote, hash, path)
+  local search = cli.search_async(query, {
+    on_exit = function(self, ...)
+      local output = self:result()
+
+      print(output)
+    end,
+  })
+
+  return search
+end
+
 file.read = function(remote, hash, path)
+  assert(remote, "Must have a remote")
+  assert(hash, "Must have a hash")
+  assert(path, "Must have a path")
+
   local content = nil
   if not file._has_cache(remote, hash, path) then
-    log.info "Requesting file..."
-    local query = string.format("repo:^%s$", remote)
-    if hash then
-      query = query .. string.format("@%s", hash)
-    end
-    query = query .. string.format(" file:^%s$", path)
+    log.info("Requesting file: ", path)
+    local query = file._make_query(remote, hash, path)
 
-    log.info("query:", query)
+    log.debug("file.read query:", query)
 
     local output = cli.search(query)
     if not output.Results then
@@ -68,7 +89,7 @@ file.read = function(remote, hash, path)
     content = first.file.content
     file._write_cache(remote, hash, path, content)
   else
-    log.info "Reading file..."
+    log.info("Reading file from disk:", path)
     content = file._read_cache(remote, hash, path)
   end
 

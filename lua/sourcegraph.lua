@@ -1,5 +1,3 @@
-RELOAD "sg"
-
 local Job = require "plenary.job"
 local filetype = require "plenary.filetype"
 

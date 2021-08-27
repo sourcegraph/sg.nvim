@@ -97,7 +97,14 @@ M.setup = function(opts)
     -- If we don't do this, we request all the results synchronously, and it's quite painful for when you have several
     -- files that these references go between.
     --
-    -- Type Kappa in chat if you are following along.
+    -- OK, part 2:
+    -- When we request the references from sourcegraph, we get a list of a ton of stuff back.
+    -- This list has a bunch of URIs, each of a different file from sourcegraph.com
+    -- What we do NOT want to do is sequentially and synchronously ask for what each of those files are.
+    --  Instead, let's get all the file names, ask for each of the files concurrently, and then process the results when
+    --  we're done.
+    --
+    --  That will happen where I put -- HERE
     local request = client.request
     client.request = function(method, params, handler, bufnr)
       if method == "textDocument/references" then
@@ -105,7 +112,36 @@ M.setup = function(opts)
 
         local original_handler = handler
         handler = function(err, method, result, ...)
-          P(result)
+          -- HERE
+
+          -- result:
+          --    { {
+          --     range = {
+          --       end = {
+          --         character = 108,
+          --         line = 99
+          --       },
+          --       start = {
+          --         character = 93,
+          --         line = 99
+          --       }
+          --     },
+          --     uri = "sg://gh/sourcegraph/sourcegraph@a759ad79/-/internal/extsvc/jvmpackages/coursier/coursier.go"
+          --   }, ... }
+
+          -- {
+          --   ["sg://gh/sourcegraph/sourcegraph@a759ad79/-/cmd/gitserver/server/vcs_syncer_jvm_packages.go"] = true,
+          --   ["sg://gh/sourcegraph/sourcegraph@a759ad79/-/internal/conf/reposource/jvm_packages.go"] = true,
+          --   ["sg://gh/sourcegraph/sourcegraph@a759ad79/-/internal/conf/reposource/jvm_packages_test.go"] = true,
+          --   ["sg://gh/sourcegraph/sourcegraph@a759ad79/-/internal/extsvc/jvmpackages/coursier/coursier.go"] = true,
+          --   ["sg://gh/sourcegraph/sourcegraph@a759ad79/-/internal/repos/jvm_packages.go"] = true
+          -- }
+          local uris = {}
+          for _, location in ipairs(result) do
+            uris[location.uri] = true
+          end
+
+          P(uris)
 
           return nil
         end

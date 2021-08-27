@@ -30,7 +30,6 @@ M.edit = function(path)
 
   local normalized_bufname = uri:bufname()
   local existing_bufnr = vim.fn.bufnr(normalized_bufname)
-  log.debug "existing check..."
   if existing_bufnr ~= -1 and bufnr ~= existing_bufnr then
     log.debug("... Already exists", existing_bufnr, normalized_bufname)
     vim.api.nvim_win_set_buf(0, existing_bufnr)
