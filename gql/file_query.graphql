@@ -1,0 +1,11 @@
+query FileQuery($name: String!, $rev: String!, $path: String!) {
+  repository(name: $name) {
+    commit(rev: $rev) {
+      file(path: $path) {
+        __typename
+        content
+      }
+    }
+  }
+}
+

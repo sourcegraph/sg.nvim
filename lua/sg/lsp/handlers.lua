@@ -1,10 +1,9 @@
-local bufread = require "sg.bufread"
 local cli = require "sg.cli"
+local lib = require "libsg_nvim"
 local log = require "sg.log"
 local rpc = require "sg.lsp.rpc"
 local transform = require "sg.lsp.transform"
 local utils = require "sg.utils"
-local URI = require "sg.uri"
 
 local protocol = vim.lsp.protocol
 
@@ -154,7 +153,7 @@ query ($repository: String!, $revision: String!, $path: String!, $line: Int!, $c
 --   position: Position
 -- }
 methods["textDocument/definition"] = function(params, id)
-  local uri = URI:new(params.textDocument.uri)
+  local uri = lib.get_remote_file(params.textDocument.uri)
 
   local repository = uri.remote
   local rev = uri.commit
@@ -416,9 +415,13 @@ methods["textDocument/references"] = function(params, id)
   end
 
   if type(lsif_results) == "table" and #lsif_results >= 1 then
-    return rpc.respond(id, nil, vim.tbl_map(function(node)
-      return transform.node_to_location(node)
-    end, lsif_results))
+    return rpc.respond(
+      id,
+      nil,
+      vim.tbl_map(function(node)
+        return transform.node_to_location(node)
+      end, lsif_results)
+    )
   end
 
   -- TODO: Handle search based references as well
@@ -496,7 +499,6 @@ methods["shutdown"] = function()
   end)
 end
 
-methods["initizlied"] = function()
-end
+methods["initizlied"] = function() end
 
 return methods

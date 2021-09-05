@@ -1,11 +1,10 @@
-local bufread = require "sg.bufread"
-local URI = require "sg.uri"
+local lib = require "libsg_nvim"
 
 local transform = {}
 
 transform.node_to_location = function(node)
   return {
-    uri = URI:new(node.url):bufname(),
+    uri = lib.get_remote_file(node.url):bufname(),
     range = vim.deepcopy(node.range),
   }
 end
