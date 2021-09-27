@@ -1,0 +1,7 @@
+query CommitQuery($name: String!, $rev: String!) {
+  repository(name: $name) {
+    commit(rev: $rev) {
+      oid
+    }
+  }
+}

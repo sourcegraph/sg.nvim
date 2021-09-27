@@ -1,7 +1,7 @@
-local file = require "sg.file"
 local filetype = require "plenary.filetype"
 local log = require "sg.log"
-local URI = require "sg.uri"
+
+local lib = require "libsg_nvim"
 
 local M = {}
 
@@ -24,37 +24,32 @@ vim.cmd [[
 M.edit = function(path)
   log.info("BufReadCmd: ", path)
 
-  local uri = URI:new(path)
-
+  local remote_file = lib.get_remote_file(path)
   local bufnr = vim.api.nvim_get_current_buf()
 
-  local normalized_bufname = uri:bufname()
+  local normalized_bufname = remote_file:bufname()
   local existing_bufnr = vim.fn.bufnr(normalized_bufname)
   if existing_bufnr ~= -1 and bufnr ~= existing_bufnr then
     log.debug("... Already exists", existing_bufnr, normalized_bufname)
     vim.api.nvim_win_set_buf(0, existing_bufnr)
     vim.api.nvim_buf_delete(bufnr, { force = true })
   else
-    log.debug "... Make a new one"
+    log.info "... Make a new one"
     if path ~= normalized_bufname then
       vim.api.nvim_buf_set_name(bufnr, normalized_bufname)
     end
 
-    local remote = uri.remote
-    local commit = uri.commit
-    local filepath = uri.filepath
-
-    local contents = file.read(remote, commit, filepath)
+    local contents = remote_file:read()
     vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
     vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
 
     vim.cmd [[doautocmd BufRead]]
-    vim.api.nvim_buf_set_option(bufnr, "filetype", filetype.detect(filepath))
+    vim.api.nvim_buf_set_option(bufnr, "filetype", filetype.detect(remote_file.path))
   end
 
-  if uri.line then
-    pcall(vim.api.nvim_win_set_cursor, 0, { uri.line, uri.col or 0 })
+  if remote_file.line then
+    pcall(vim.api.nvim_win_set_cursor, 0, { remote_file.line, remote_file.col or 0 })
   end
 end
 
