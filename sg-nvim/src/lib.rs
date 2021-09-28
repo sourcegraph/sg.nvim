@@ -67,6 +67,8 @@ fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
     lua.create_function(|lua, param| get_remote_file_content(lua, param))?,
   )?;
 
+  exports.set("showing_prime", true)?;
+
   // TODO: Understand this at some point would be good.
   exports.set(
     "docs",

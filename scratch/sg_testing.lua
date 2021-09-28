@@ -1,7 +1,16 @@
 local lib = R "libsg_nvim"
 
-local commit = lib.get_remote_hash("github.com/neovim/neovim", "HEAD")
-local y = lib.get_remote_file_contents("github.com/neovim/neovim", commit, "README.md")
+local commit = lib.get_remote_hash("github.com/neovim/neovim", "HEAD~8")
+print("Commit:", commit)
+if not commit or string.find(commit, "failed") then
+  return
+end
+
+local y = lib.get_remote_file_contents("github.com/neovim/neovim", commit, "src/nvim/autocmd.c")
+
+print(">", y[1])
+print(">", y[2])
+print(">", y[39])
 
 -- lib.docs(function(get)
 --   get("https://google.com", function(body)

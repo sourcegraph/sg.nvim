@@ -4,6 +4,7 @@ use std::sync::Arc;
 use ::reqwest::Client;
 use anyhow::Context;
 use anyhow::Result;
+use async_trait::async_trait;
 use graphql_client::reqwest::post_graphql;
 use graphql_client::GraphQLQuery;
 use interprocess::local_socket::LocalSocketStream;
@@ -262,13 +263,20 @@ where
   })
 }
 
-pub trait RemoteMessage {
+const FAILED_TO_WRITE: &'static str = "Failed to write value";
+const FAILED_TO_READ: &'static str = "Failed to read value";
+
+#[async_trait]
+pub trait RemoteMessage
+where
+  Self: Sized + Sync,
+{
   const NAME: &'static str;
 
   fn args(&self) -> Vec<rmpv::Value>;
-  fn decode<'lua>(args: Vec<rmpv::Value>) -> Self;
-
-  fn conv_lua<'lua>(&self, lua: &'lua Lua, response: Vec<rmpv::Value>) -> LuaResult<LuaValue<'lua>>;
+  fn decode<'lua>(args: rmpv::Value) -> Result<Self>;
+  fn conv_lua<'lua>(&self, lua: &'lua Lua, response: rmpv::Value) -> LuaResult<LuaValue<'lua>>;
+  async fn process(&self) -> Result<rmpv::Value>;
 
   fn request<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
     let mut conn = LocalSocketStream::connect("/tmp/example.sock")?;
@@ -278,18 +286,26 @@ pub trait RemoteMessage {
 
     let val = rmpv::Value::Array(vec);
     if let Err(_) = rmpv::encode::write_value(&mut conn, &val) {
-      return Ok(LuaNil);
+      return Err(FAILED_TO_WRITE.to_lua_err());
     }
 
     // Read response
-    if let Ok(rmpv::Value::Array(response)) = rmpv::decode::read_value(&mut conn) {
-      return self.conv_lua(lua, response);
+    // TODO: Probably also want to put in the actual error message here...
+    let response = rmpv::decode::read_value(&mut conn);
+    if let Ok(response) = response {
+      self.conv_lua(lua, response)
+    } else {
+      Err(FAILED_TO_READ.to_lua_err())
     }
-
-    Ok(LuaNil)
   }
 
-  fn respond(&self, conn: &mut LocalSocketStream, val: Vec<rmpv::Value>) -> Result<()>;
+  fn respond(conn: &mut LocalSocketStream, val: rmpv::Value) -> Result<()> {
+    rmpv::encode::write_value(conn, &val).context("encode::write_value")
+  }
+
+  async fn handle(conn: &mut LocalSocketStream, arr: rmpv::Value) -> Result<()> {
+    Self::respond(conn, Self::decode(arr)?.process().await?)
+  }
 }
 
 pub struct HashMessage {
@@ -297,29 +313,32 @@ pub struct HashMessage {
   pub hash: String,
 }
 
+#[async_trait]
 impl RemoteMessage for HashMessage {
   const NAME: &'static str = "hash";
+
+  async fn process(&self) -> Result<rmpv::Value> {
+    let hash = get_commit_hash(self.remote.clone(), self.hash.clone()).await?;
+    Ok(hash.into())
+  }
 
   fn args(&self) -> Vec<rmpv::Value> {
     vec![self.remote.clone().into(), self.hash.clone().into()]
   }
 
-  fn decode(args: Vec<rmpv::Value>) -> Self {
-    HashMessage {
-      remote: args[1].as_str().unwrap().into(),
-      hash: args[2].as_str().unwrap().into(),
+  fn decode(args: rmpv::Value) -> Result<Self> {
+    if let rmpv::Value::Array(args) = args {
+      Ok(HashMessage {
+        remote: args[1].as_str().unwrap().into(),
+        hash: args[2].as_str().unwrap().into(),
+      })
+    } else {
+      Err(anyhow::anyhow!("Did not pass an array"))
     }
   }
 
-  fn conv_lua<'lua>(&self, lua: &'lua Lua, response: Vec<rmpv::Value>) -> LuaResult<LuaValue<'lua>> {
-    response[0].as_str().to_lua(lua)
-  }
-
-  fn respond(&self, conn: &mut LocalSocketStream, val: Vec<rmpv::Value>) -> Result<()> {
-    let val = rmpv::Value::Array(val);
-    rmpv::encode::write_value(conn, &val)?;
-
-    Ok(())
+  fn conv_lua<'lua>(&self, lua: &'lua Lua, response: rmpv::Value) -> LuaResult<LuaValue<'lua>> {
+    response.as_str().to_lua(lua)
   }
 }
 
@@ -329,8 +348,19 @@ pub struct ContentsMessage {
   pub path: String,
 }
 
+#[async_trait]
 impl RemoteMessage for ContentsMessage {
   const NAME: &'static str = "contents";
+
+  async fn process(&self) -> Result<rmpv::Value> {
+    Ok(rmpv::Value::Array(
+      get_remote_file_contents(&self.remote, &self.hash, &self.path)
+        .await?
+        .into_iter()
+        .map(|x| x.into())
+        .collect(),
+    ))
+  }
 
   fn args(&self) -> Vec<rmpv::Value> {
     vec![
@@ -340,28 +370,27 @@ impl RemoteMessage for ContentsMessage {
     ]
   }
 
-  fn decode<'lua>(args: Vec<rmpv::Value>) -> Self {
-    ContentsMessage {
-      remote: args[1].as_str().unwrap().into(),
-      hash: args[2].as_str().unwrap().into(),
-      path: args[3].as_str().unwrap().into(),
+  fn decode<'lua>(args: rmpv::Value) -> Result<Self> {
+    if let rmpv::Value::Array(args) = args {
+      Ok(ContentsMessage {
+        remote: args[1].as_str().unwrap().into(),
+        hash: args[2].as_str().unwrap().into(),
+        path: args[3].as_str().unwrap().into(),
+      })
+    } else {
+      Err(anyhow::anyhow!("Did not pass an array"))
     }
   }
 
-  fn conv_lua<'lua>(&self, lua: &'lua Lua, response: Vec<rmpv::Value>) -> LuaResult<LuaValue<'lua>> {
+  fn conv_lua<'lua>(&self, lua: &'lua Lua, response: rmpv::Value) -> LuaResult<LuaValue<'lua>> {
     let tbl = lua.create_table()?;
-    for line in response {
-      tbl.raw_insert(tbl.raw_len() + 1, line.as_str().to_lua(lua)?)?;
+    if let rmpv::Value::Array(response) = response {
+      for line in response {
+        tbl.raw_insert(tbl.raw_len() + 1, line.as_str().to_lua(lua)?)?;
+      }
     }
 
     Ok(mlua::Value::Table(tbl))
-  }
-
-  fn respond(&self, conn: &mut LocalSocketStream, val: Vec<rmpv::Value>) -> Result<()> {
-    let val = rmpv::Value::Array(val);
-    rmpv::encode::write_value(conn, &val)?;
-
-    Ok(())
   }
 }
 

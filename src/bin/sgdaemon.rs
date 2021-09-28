@@ -20,6 +20,20 @@ fn handle_error(conn: io::Result<LocalSocketStream>) -> Option<LocalSocketStream
   }
 }
 
+macro_rules! match_messages {
+  ($conn: ident, $arr: ident, $command:ident, [ $($typ: tt),* ]) => {
+    match $command {
+      $($typ::NAME => {
+          // TODO: Make this logging
+          println!("Handling: {:?}", $typ::NAME);
+          let res = $typ::handle(&mut $conn, $arr).await?;
+          println!("Complete: {:?} {:?}", $typ::NAME, res);
+      },)*
+      _ => panic!("Unknown command: {:?}", $command),
+    }
+  };
+}
+
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
   let listener = LocalSocketListener::bind("/tmp/example.sock")?;
@@ -28,44 +42,29 @@ async fn main() -> Result<(), Box<dyn Error>> {
     println!("Getting new connect...");
 
     match rmpv::decode::read_value(&mut conn)? {
-      rmpv::Value::Array(arr) => {
+      arr @ rmpv::Value::Array(_) => {
         println!("Got an array... {:?}", arr);
 
-        if arr.is_empty() {
-          println!("... Dude, don't send empty arrays");
-          continue;
-        }
-
         let command = arr[0].as_str().unwrap();
-        match command {
-          HashMessage::NAME => {
-            println!("Handling HashMessage");
-            let message = HashMessage::decode(arr);
-            let hash = sg::get_commit_hash(message.remote.clone(), message.hash.clone()).await?;
-            message.respond(&mut conn, vec![hash.into()])?;
-          }
-
-          ContentsMessage::NAME => {
-            println!("Handling ContentsMessage");
-            let message = ContentsMessage::decode(arr);
-            let contents = sg::get_remote_file_contents(&message.remote, &message.hash, &message.path).await?;
-            // println!("... {:?} ...", contents);
-            message.respond(&mut conn, contents.into_iter().map(|x| x.clone().into()).collect())?;
-          }
-
-          _ => {
-            continue;
-          }
-        }
+        // match command {
+        //   HashMessage::NAME => {
+        //     println!("Handling: {:?}", HashMessage::NAME);
+        //     let res = HashMessage::handle(&mut conn, arr).await?;
+        //     println!("Complete: {:?} {:?}", HashMessage::NAME, res);
+        //   }
+        //   ContentsMessage::NAME => {
+        //     println!("Handling: {:?}", ContentsMessage::NAME);
+        //     let res = ContentsMessage::handle(&mut conn, arr).await?;
+        //     println!("Complete: {:?} {:?}", ContentsMessage::NAME, res);
+        //   }
+        // }
+        match_messages!(conn, arr, command, [HashMessage, ContentsMessage]);
       }
 
       _ => {
-        println!("Bad bad bad...");
-        continue;
+        panic!("Did not even get an array.. that's really bad :'(");
       }
     };
-
-    println!("...Processed");
   }
 
   Ok(())
