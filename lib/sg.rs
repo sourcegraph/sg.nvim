@@ -349,20 +349,10 @@ impl RemoteMessage for ContentsMessage {
   }
 
   fn conv_lua<'lua>(&self, lua: &'lua Lua, response: Vec<rmpv::Value>) -> LuaResult<LuaValue<'lua>> {
-    // response[0].as_str().to_lua(lua)
-    // if true {
-    //   return "Hello world".to_lua(lua);
-    // }
-    // todo!()
-
     let tbl = lua.create_table()?;
     for line in response {
       tbl.raw_insert(tbl.raw_len() + 1, line.as_str().to_lua(lua)?)?;
     }
-
-    // response.into_iter().for_each(|x| {
-    //   tbl.raw_insert(tbl.raw_len(), x.as_str().to_lua(lua).unwrap()).unwrap();
-    // });
 
     Ok(mlua::Value::Table(tbl))
   }
