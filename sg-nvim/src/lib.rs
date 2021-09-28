@@ -11,6 +11,9 @@ use once_cell::sync::OnceCell;
 use reqwest;
 use serde::Serialize;
 use sg;
+use sg::ContentsMessage;
+use sg::HashMessage;
+use sg::RemoteMessage;
 use tokio::runtime::Runtime;
 
 // TODO: I would like to be able to do something like this and make a constant.
@@ -36,15 +39,6 @@ fn lua_print(lua: &Lua, str: &str) -> LuaResult<()> {
   Ok(())
 }
 
-async fn get_remote_file<'a>(lua: &'a Lua, url: String) -> LuaResult<LuaValue<'a>> {
-  match sg::uri_from_link(&url, sg::get_commit_hash).await {
-    // Ok(data) => to_lua(lua, &data),
-    // Ok(data) => data.to_lua,
-    Ok(data) => Ok(mlua::Value::UserData(lua.create_ser_userdata(data)?)),
-    Err(_) => return Ok(LuaNil),
-  }
-}
-
 async fn get_remote_contents<'lua>(lua: &'lua Lua, args: (String, String, String)) -> LuaResult<LuaValue<'lua>> {
   lua_print(lua, "Checking remote file")?;
   // lua_print(lua, &format!("WHAT IS THIS: {:?}", user_data).to_string())?;
@@ -59,46 +53,31 @@ async fn get_remote_contents<'lua>(lua: &'lua Lua, args: (String, String, String
 }
 
 fn get_remote_hash<'lua>(lua: &'lua Lua, args: (String, String)) -> LuaResult<LuaValue<'lua>> {
-  let mut conn = LocalSocketStream::connect("/tmp/example.sock")?;
-
   let remote = args.0.clone();
   let hash = args.1.clone();
 
-  let val = rmpv::Value::Array(vec!["hash".into(), remote.into(), hash.into()]);
+  HashMessage { remote, hash }.request(lua)
+}
 
-  // Send request
-  match rmpv::encode::write_value(&mut conn, &val) {
-    Ok(_) => (),
-    Err(_) => {
-      lua_print(lua, "WHAT IS AHPPENDFSL")?;
-    }
-  };
-
-  // Read response
-  match rmpv::decode::read_value(&mut conn) {
-    Ok(rmpv::Value::Array(response)) => {
-      return response[0].as_str().to_lua(lua);
-    }
-
-    _ => {
-      // println!("Actually should handle this...");
-      // return Ok(());
-    }
+fn get_remote_file_content<'lua>(lua: &'lua Lua, args: (String, String, String)) -> LuaResult<LuaValue<'lua>> {
+  ContentsMessage {
+    remote: args.0,
+    hash: args.1,
+    path: args.2,
   }
-
-  Ok(LuaNil)
+  .request(lua)
 }
 
-macro_rules! set_luafunc {
-  // Convert any async func that does normal lua things into a sync func we can call
-  // and use the shared runtime
-  ($lua: ident, $exports: ident, $key: literal, $async_func: ident) => {
-    $exports.set(
-      $key,
-      $lua.create_function(|lua, param| get_runtime().block_on($async_func(lua, param)))?,
-    )?;
-  };
-}
+// macro_rules! set_luafunc {
+//   // Convert any async func that does normal lua things into a sync func we can call
+//   // and use the shared runtime
+//   ($lua: ident, $exports: ident, $key: literal, $async_func: ident) => {
+//     $exports.set(
+//       $key,
+//       $lua.create_function(|lua, param| get_runtime().block_on($async_func(lua, param)))?,
+//     )?;
+//   };
+// }
 
 #[mlua::lua_module]
 fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
@@ -107,12 +86,17 @@ fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
 
   let exports = lua.create_table()?;
 
-  set_luafunc!(lua, exports, "get_remote_file", get_remote_file);
+  // set_luafunc!(lua, exports, "get_remote_file", get_remote_file);
   // set_luafunc!(lua, exports, "get_remote_contents", get_remote_contents);
 
   exports.set(
     "get_remote_hash",
     lua.create_function(|lua, param| get_remote_hash(lua, param))?,
+  )?;
+
+  exports.set(
+    "get_remote_file_contents",
+    lua.create_function(|lua, param| get_remote_file_content(lua, param))?,
   )?;
 
   exports.set(

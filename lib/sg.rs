@@ -6,6 +6,7 @@ use anyhow::Context;
 use anyhow::Result;
 use graphql_client::reqwest::post_graphql;
 use graphql_client::GraphQLQuery;
+use interprocess::local_socket::LocalSocketStream;
 use mlua::prelude::*;
 use mlua::UserData;
 use regex::Regex;
@@ -261,50 +262,163 @@ where
   })
 }
 
-// #[cfg(test)]
-// mod test {
-//   use super::*;
+pub trait RemoteMessage {
+  const NAME: &'static str;
 
-//   async fn return_raw_commit(_remote: &str, commit: &str) -> Result<String> {
-//     Ok(commit.to_string())
-//   }
+  fn args(&self) -> Vec<rmpv::Value>;
+  fn decode<'lua>(args: Vec<rmpv::Value>) -> Self;
 
-//   #[tokio::test]
-//   async fn create() -> Result<()> {
-//     let test_cases = vec![
-//       "https://sourcegraph.com/github.com/neovim/neovim/-/blob/src/nvim/autocmd.c",
-//       "https://sourcegraph.com/github.com/neovim/neovim/-/tree/src/nvim/autocmd.c",
-//       "sg://github.com/neovim/neovim/-/blob/src/nvim/autocmd.c",
-//       "sg://github.com/neovim/neovim/-/tree/src/nvim/autocmd.c",
-//       "sg://gh/neovim/neovim/-/blob/src/nvim/autocmd.c",
-//       "sg://gh/neovim/neovim/-/tree/src/nvim/autocmd.c",
-//       "sg://github.com/neovim/neovim/-/src/nvim/autocmd.c",
-//       "sg://gh/neovim/neovim/-/src/nvim/autocmd.c",
-//     ];
+  fn conv_lua<'lua>(&self, lua: &'lua Lua, response: Vec<rmpv::Value>) -> LuaResult<LuaValue<'lua>>;
 
-//     for tc in test_cases {
-//       let x = uri_from_link(tc, return_raw_commit).await?;
+  fn request<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+    let mut conn = LocalSocketStream::connect("/tmp/example.sock")?;
 
-//       assert_eq!(x.remote, "github.com/neovim/neovim");
-//       assert_eq!(x.commit, "HEAD");
-//       assert_eq!(x.path, "src/nvim/autocmd.c");
-//       assert_eq!(x.line, None);
-//       assert_eq!(x.col, None);
-//     }
+    let mut vec = vec![Self::NAME.into()];
+    vec.extend(self.args());
 
-//     Ok(())
-//   }
+    let val = rmpv::Value::Array(vec);
+    if let Err(_) = rmpv::encode::write_value(&mut conn, &val) {
+      return Ok(LuaNil);
+    }
 
-//   #[tokio::test]
-//   async fn can_get_lines_and_columns() -> Result<()> {
-//     let test_case = "sg://github.com/sourcegraph/sourcegraph@main/-/blob/dev/sg/rfc.go?L29:2".to_string();
+    // Read response
+    if let Ok(rmpv::Value::Array(response)) = rmpv::decode::read_value(&mut conn) {
+      return self.conv_lua(lua, response);
+    }
 
-//     let remote_file = uri_from_link(&test_case, return_raw_commit).await?;
-//     assert_eq!(remote_file.remote, "github.com/sourcegraph/sourcegraph");
-//     assert_eq!(remote_file.path, "dev/sg/rfc.go");
-//     assert_eq!(remote_file.line, Some(29));
-//     assert_eq!(remote_file.col, Some(2));
+    Ok(LuaNil)
+  }
 
-//     Ok(())
-//   }
-// }
+  fn respond(&self, conn: &mut LocalSocketStream, val: Vec<rmpv::Value>) -> Result<()>;
+}
+
+pub struct HashMessage {
+  pub remote: String,
+  pub hash: String,
+}
+
+impl RemoteMessage for HashMessage {
+  const NAME: &'static str = "hash";
+
+  fn args(&self) -> Vec<rmpv::Value> {
+    vec![self.remote.clone().into(), self.hash.clone().into()]
+  }
+
+  fn decode(args: Vec<rmpv::Value>) -> Self {
+    HashMessage {
+      remote: args[1].as_str().unwrap().into(),
+      hash: args[2].as_str().unwrap().into(),
+    }
+  }
+
+  fn conv_lua<'lua>(&self, lua: &'lua Lua, response: Vec<rmpv::Value>) -> LuaResult<LuaValue<'lua>> {
+    response[0].as_str().to_lua(lua)
+  }
+
+  fn respond(&self, conn: &mut LocalSocketStream, val: Vec<rmpv::Value>) -> Result<()> {
+    let val = rmpv::Value::Array(val);
+    rmpv::encode::write_value(conn, &val)?;
+
+    Ok(())
+  }
+}
+
+pub struct ContentsMessage {
+  pub remote: String,
+  pub hash: String,
+  pub path: String,
+}
+
+impl RemoteMessage for ContentsMessage {
+  const NAME: &'static str = "contents";
+
+  fn args(&self) -> Vec<rmpv::Value> {
+    vec![
+      self.remote.clone().into(),
+      self.hash.clone().into(),
+      self.path.clone().into(),
+    ]
+  }
+
+  fn decode<'lua>(args: Vec<rmpv::Value>) -> Self {
+    ContentsMessage {
+      remote: args[1].as_str().unwrap().into(),
+      hash: args[2].as_str().unwrap().into(),
+      path: args[3].as_str().unwrap().into(),
+    }
+  }
+
+  fn conv_lua<'lua>(&self, lua: &'lua Lua, response: Vec<rmpv::Value>) -> LuaResult<LuaValue<'lua>> {
+    // response[0].as_str().to_lua(lua)
+    // if true {
+    //   return "Hello world".to_lua(lua);
+    // }
+    // todo!()
+
+    let tbl = lua.create_table()?;
+    for line in response {
+      tbl.raw_insert(tbl.raw_len() + 1, line.as_str().to_lua(lua)?)?;
+    }
+
+    // response.into_iter().for_each(|x| {
+    //   tbl.raw_insert(tbl.raw_len(), x.as_str().to_lua(lua).unwrap()).unwrap();
+    // });
+
+    Ok(mlua::Value::Table(tbl))
+  }
+
+  fn respond(&self, conn: &mut LocalSocketStream, val: Vec<rmpv::Value>) -> Result<()> {
+    let val = rmpv::Value::Array(val);
+    rmpv::encode::write_value(conn, &val)?;
+
+    Ok(())
+  }
+}
+
+#[cfg(test)]
+mod test {
+  use super::*;
+
+  async fn return_raw_commit(_remote: String, commit: String) -> Result<String> {
+    Ok(commit.to_string())
+  }
+
+  #[tokio::test]
+  async fn create() -> Result<()> {
+    let test_cases = vec![
+      "https://sourcegraph.com/github.com/neovim/neovim/-/blob/src/nvim/autocmd.c",
+      "https://sourcegraph.com/github.com/neovim/neovim/-/tree/src/nvim/autocmd.c",
+      "sg://github.com/neovim/neovim/-/blob/src/nvim/autocmd.c",
+      "sg://github.com/neovim/neovim/-/tree/src/nvim/autocmd.c",
+      "sg://gh/neovim/neovim/-/blob/src/nvim/autocmd.c",
+      "sg://gh/neovim/neovim/-/tree/src/nvim/autocmd.c",
+      "sg://github.com/neovim/neovim/-/src/nvim/autocmd.c",
+      "sg://gh/neovim/neovim/-/src/nvim/autocmd.c",
+    ];
+
+    for tc in test_cases {
+      let x = uri_from_link(tc, return_raw_commit).await?;
+
+      assert_eq!(x.remote, "github.com/neovim/neovim");
+      assert_eq!(x.commit, "HEAD");
+      assert_eq!(x.path, "src/nvim/autocmd.c");
+      assert_eq!(x.line, None);
+      assert_eq!(x.col, None);
+    }
+
+    Ok(())
+  }
+
+  #[tokio::test]
+  async fn can_get_lines_and_columns() -> Result<()> {
+    let test_case = "sg://github.com/sourcegraph/sourcegraph@main/-/blob/dev/sg/rfc.go?L29:2".to_string();
+
+    let remote_file = uri_from_link(&test_case, return_raw_commit).await?;
+    assert_eq!(remote_file.remote, "github.com/sourcegraph/sourcegraph");
+    assert_eq!(remote_file.path, "dev/sg/rfc.go");
+    assert_eq!(remote_file.line, Some(29));
+    assert_eq!(remote_file.col, Some(2));
+
+    Ok(())
+  }
+}

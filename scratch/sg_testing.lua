@@ -1,7 +1,7 @@
 local lib = R "libsg_nvim"
--- P(lib)
 
-P(lib.get_remote_hash("github.com/neovim/neovim", "HEAD"))
+local commit = lib.get_remote_hash("github.com/neovim/neovim", "HEAD")
+local y = lib.get_remote_file_contents("github.com/neovim/neovim", commit, "README.md")
 
 -- lib.docs(function(get)
 --   get("https://google.com", function(body)

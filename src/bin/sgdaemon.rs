@@ -6,6 +6,9 @@ use std::io;
 use interprocess::local_socket::LocalSocketListener;
 use interprocess::local_socket::LocalSocketStream;
 use rmpv;
+use sg::ContentsMessage;
+use sg::HashMessage;
+use sg::RemoteMessage;
 
 fn handle_error(conn: io::Result<LocalSocketStream>) -> Option<LocalSocketStream> {
   match conn {
@@ -35,16 +38,19 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
         let command = arr[0].as_str().unwrap();
         match command {
-          "hash" => {
-            let hash = sg::get_commit_hash(
-              arr[1].as_str().unwrap().to_string(),
-              arr[2].as_str().unwrap().to_string(),
-            )
-            .await?;
+          HashMessage::NAME => {
+            println!("Handling HashMessage");
+            let message = HashMessage::decode(arr);
+            let hash = sg::get_commit_hash(message.remote.clone(), message.hash.clone()).await?;
+            message.respond(&mut conn, vec![hash.into()])?;
+          }
 
-            let val = rmpv::Value::Array(vec![hash.into()]);
-
-            rmpv::encode::write_value(&mut conn, &val)?;
+          ContentsMessage::NAME => {
+            println!("Handling ContentsMessage");
+            let message = ContentsMessage::decode(arr);
+            let contents = sg::get_remote_file_contents(&message.remote, &message.hash, &message.path).await?;
+            // println!("... {:?} ...", contents);
+            message.respond(&mut conn, contents.into_iter().map(|x| x.clone().into()).collect())?;
           }
 
           _ => {
