@@ -12,6 +12,14 @@ print(">", y[1])
 print(">", y[2])
 print(">", y[39])
 
+print "Asking remote file..."
+local rf = lib.get_remote_file "https://sourcegraph.com/github.com/neovim/neovim/-/blob/src/nvim/autocmd.c?L10:5"
+print("Remote:", rf.remote)
+
+print "trying contents..."
+-- print("contents", rf:read())
+print(rf.read)
+
 -- lib.docs(function(get)
 --   get("https://google.com", function(body)
 --     print("GOOGLE:", string.sub(body, 1, 100))
@@ -33,9 +41,6 @@ print(">", y[39])
 -- if contents then
 --   print(string.sub(contents, 1, 100))
 -- end
-
--- local rf = lib.get_remote_file "https://sourcegraph.com/github.com/neovim/neovim/-/blob/src/nvim/autocmd.c?L10:5"
--- print("Remote:", rf.remote)
 
 -- -- local contents = lib.get_remote_contents(rf.remote, rf.commit, rf.path)
 -- -- print(contents)

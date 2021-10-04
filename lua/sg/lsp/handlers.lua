@@ -157,7 +157,7 @@ methods["textDocument/definition"] = function(params, id)
 
   local repository = uri.remote
   local rev = uri.commit
-  local path = uri.filepath
+  local path = uri.path
   local line = params.position.line
   local character = params.position.character
 
@@ -179,6 +179,7 @@ methods["textDocument/definition"] = function(params, id)
     -- $query: String!
     query = string.format("repo:^%s$@%s type:symbol patternType:regexp ^%s$", repository, rev, symbol),
   })
+
   log.info(
     "definiton: output",
     string.format("^%s$@%s type:symbol patternType:regexp ^%s$", repository, rev, symbol),
@@ -231,6 +232,10 @@ methods["textDocument/definition"] = function(params, id)
   if type(lsif_results) == "table" and #lsif_results >= 1 then
     local node = lsif_results[1]
     return rpc.respond(id, nil, transform.node_to_location(node))
+  end
+
+  if true then
+    return
   end
 
   --[[

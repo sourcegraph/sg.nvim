@@ -13,6 +13,7 @@ use serde::Serialize;
 use sg;
 use sg::ContentsMessage;
 use sg::HashMessage;
+use sg::RemoteFileMessage;
 use sg::RemoteMessage;
 
 // TODO: I would like to be able to do something like this and make a constant.
@@ -50,6 +51,10 @@ fn get_remote_file_content<'lua>(lua: &'lua Lua, args: (String, String, String))
   .request(lua)
 }
 
+fn get_remote_file<'lua>(lua: &'lua Lua, args: (String,)) -> LuaResult<LuaValue<'lua>> {
+  RemoteFileMessage { path: args.0 }.request(lua)
+}
+
 #[mlua::lua_module]
 fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
   // TODO: Consider putting mlua_null as a global so we can compare with that
@@ -57,17 +62,14 @@ fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
 
   let exports = lua.create_table()?;
 
-  exports.set(
-    "get_remote_hash",
-    lua.create_function(|lua, param| get_remote_hash(lua, param))?,
-  )?;
+  exports.set("get_remote_hash", lua.create_function(get_remote_hash)?)?;
 
   exports.set(
     "get_remote_file_contents",
-    lua.create_function(|lua, param| get_remote_file_content(lua, param))?,
+    lua.create_function(get_remote_file_content)?,
   )?;
 
-  exports.set("showing_prime", true)?;
+  exports.set("get_remote_file", lua.create_function(get_remote_file)?)?;
 
   // TODO: Understand this at some point would be good.
   exports.set(

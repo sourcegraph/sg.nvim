@@ -27,6 +27,7 @@ impl UserData for RemoteFile {
     let r = Arc::new(tokio::runtime::Runtime::new().unwrap());
 
     methods.add_method("bufname", |lua, t, ()| t.bufname().to_lua(lua));
+    methods.add_method("sourcegraph_url", |lua, t, ()| t.sourcegraph_url().to_lua(lua));
 
     let read_runtime = r.clone();
     methods.add_method("read", move |_, remote_file, ()| {
@@ -169,7 +170,7 @@ impl RemoteFile {
 
   pub fn bufname(&self) -> String {
     format!(
-      "sg://{}{}/-/{}",
+      "sg://{}@{}/-/{}",
       self.shortened_remote(),
       self.shortened_commit(),
       self.path
@@ -193,12 +194,18 @@ impl RemoteFile {
 
 fn normalize_url(url: &str) -> String {
   // TODO: This is a bit ugly atm
-  url
-    .clone()
-    .to_string()
-    .replace("//gh/", "//github.com/")
-    .replace("https://sourcegraph.com/", "")
-    .replace("sg://", "")
+  let re = Regex::new(r"^/").unwrap();
+
+  re.replace_all(
+    &url
+      .clone()
+      .to_string()
+      .replace("//gh/", "//github.com/")
+      .replace("https://sourcegraph.com/", "")
+      .replace("sg://", ""),
+    "",
+  )
+  .to_string()
 }
 
 // async fn return_raw_commit(_remote: &str, commit: &str) -> Result<String> {
@@ -237,18 +244,24 @@ where
     return Err(anyhow::anyhow!("Too many question marks. Please don't do that"));
   }
 
+  // TODO: Check out split_once for some stuff here.
   let path = path_and_args[0].to_string();
   let (line, col) = if path_and_args.len() == 2 {
     // TODO: We could probably handle a few more cases here :)
     let arg_split: Vec<&str> = path_and_args[1].split(":").collect();
 
-    if arg_split.len() != 2 {
-      (None, None)
-    } else {
+    if arg_split.len() == 2 {
       (
         Some(arg_split[0][1..].parse().unwrap_or(1)),
         Some(arg_split[1].parse().unwrap_or(1)),
       )
+    } else if arg_split.len() == 1 {
+      match arg_split[0][1..].parse() {
+        Ok(val) => (Some(val), None),
+        Err(_) => (None, None),
+      }
+    } else {
+      (None, None)
     }
   } else {
     (None, None)
@@ -299,12 +312,14 @@ where
     }
   }
 
-  fn respond(conn: &mut LocalSocketStream, val: rmpv::Value) -> Result<()> {
-    rmpv::encode::write_value(conn, &val).context("encode::write_value")
-  }
-
   async fn handle(conn: &mut LocalSocketStream, arr: rmpv::Value) -> Result<()> {
-    Self::respond(conn, Self::decode(arr)?.process().await?)
+    let decoded = Self::decode(arr)?;
+    // println!("    Decoded: {:?}", decoded);
+
+    let processed = decoded.process().await?;
+    // println!("    Processed: {:?}", processed);
+
+    rmpv::encode::write_value(conn, &processed).context("encode::write_value")
   }
 }
 
@@ -391,6 +406,86 @@ impl RemoteMessage for ContentsMessage {
     }
 
     Ok(mlua::Value::Table(tbl))
+  }
+}
+
+pub struct RemoteFileMessage {
+  pub path: String,
+}
+
+#[async_trait]
+impl RemoteMessage for RemoteFileMessage {
+  const NAME: &'static str = "RemoteFile";
+
+  fn args(&self) -> Vec<rmpv::Value> {
+    vec![self.path.clone().into()]
+  }
+
+  fn decode<'lua>(args: rmpv::Value) -> Result<Self> {
+    if let rmpv::Value::Array(args) = args {
+      Ok(RemoteFileMessage {
+        path: args[1].as_str().unwrap().into(),
+      })
+    } else {
+      Err(anyhow::anyhow!("Did not pass an array"))
+    }
+  }
+
+  fn conv_lua<'lua>(&self, lua: &'lua Lua, response: rmpv::Value) -> LuaResult<LuaValue<'lua>> {
+    // todo!()
+    if let rmpv::Value::Array(response) = response {
+      // Ok(RemoteFileMessage {
+      //   path: args[1].as_str().unwrap().into(),
+      // })
+
+      // let path,
+      // pub remote: String,
+      // pub commit: String,
+      // pub path: String,
+      // pub line: Option<usize>,
+      // pub col: Option<usize>,
+
+      let remote = response[0].as_str().unwrap().to_string();
+      let commit = response[1].as_str().unwrap().to_string();
+      let path = response[2].as_str().unwrap().to_string();
+
+      // TODO: Need to handle line and column, could be null
+
+      RemoteFile {
+        remote,
+        commit,
+        path,
+
+        // TODO: Clean this up and do gud
+        line: match response[3] {
+          rmpv::Value::Integer(line) => Some(line.as_u64().unwrap() as usize),
+          _ => None,
+        },
+        col: match response[4] {
+          rmpv::Value::Integer(col) => Some(col.as_u64().unwrap() as usize),
+          _ => None,
+        },
+      }
+      .to_lua(lua)
+
+      // todo!()
+    } else {
+      Err(anyhow::anyhow!("Did not pass an array").to_lua_err())
+    }
+  }
+
+  async fn process(&self) -> Result<rmpv::Value> {
+    // todo!()
+    let remote_file = uri_from_link(&self.path, get_commit_hash).await?;
+    println!("TESTING: {:?} {:?}", remote_file.line, remote_file.col);
+
+    Ok(rmpv::Value::Array(vec![
+      remote_file.remote.into(),
+      remote_file.commit.into(),
+      remote_file.path.into(),
+      remote_file.line.unwrap_or(0).into(),
+      remote_file.col.unwrap_or(0).into(),
+    ]))
   }
 }
 

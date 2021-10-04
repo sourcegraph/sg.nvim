@@ -39,7 +39,7 @@ M.edit = function(path)
       vim.api.nvim_buf_set_name(bufnr, normalized_bufname)
     end
 
-    local contents = remote_file:read()
+    local contents = lib.get_remote_file_contents(remote_file.remote, remote_file.commit, remote_file.path)
     vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
     vim.api.nvim_buf_set_option(bufnr, "modifiable", false)

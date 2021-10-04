@@ -106,7 +106,7 @@ M.setup = function(opts)
     --
     --  That will happen where I put -- HERE
     local request = client.request
-    client.request = function(method, params, handler, bufnr)
+    client.__request = function(method, params, handler, bufnr)
       if method == "textDocument/references" then
         print "Yo, we requestin this right now"
 

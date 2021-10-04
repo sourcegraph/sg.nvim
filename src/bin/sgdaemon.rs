@@ -8,6 +8,7 @@ use interprocess::local_socket::LocalSocketStream;
 use rmpv;
 use sg::ContentsMessage;
 use sg::HashMessage;
+use sg::RemoteFileMessage;
 use sg::RemoteMessage;
 
 fn handle_error(conn: io::Result<LocalSocketStream>) -> Option<LocalSocketStream> {
@@ -24,7 +25,6 @@ macro_rules! match_messages {
   ($conn: ident, $arr: ident, $command:ident, [ $($typ: tt),* ]) => {
     match $command {
       $($typ::NAME => {
-          // TODO: Make this logging
           println!("Handling: {:?}", $typ::NAME);
           let res = $typ::handle(&mut $conn, $arr).await?;
           println!("Complete: {:?} {:?}", $typ::NAME, res);
@@ -43,7 +43,8 @@ async fn main() -> Result<(), Box<dyn Error>> {
 
     match rmpv::decode::read_value(&mut conn)? {
       arr @ rmpv::Value::Array(_) => {
-        println!("Got an array... {:?}", arr);
+        println!("");
+        println!("DaemonRead: {:?}", arr);
 
         let command = arr[0].as_str().unwrap();
         // match command {
@@ -58,7 +59,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
         //     println!("Complete: {:?} {:?}", ContentsMessage::NAME, res);
         //   }
         // }
-        match_messages!(conn, arr, command, [HashMessage, ContentsMessage]);
+        match_messages!(conn, arr, command, [HashMessage, ContentsMessage, RemoteFileMessage]);
       }
 
       _ => {
