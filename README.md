@@ -12,6 +12,8 @@ sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com 
 
 ## Demos:
 
+- Short clip of cross repository jumpt to definition: [Clip](https://clips.twitch.tv/AmazonianSullenSwordBloodTrail-l8H5WKEd8sNpEdIT)
+
 - Demo v2: [YouTube](https://www.youtube.com/watch?v=RCyBnAx-4Q4)
 - Demo v1: [YouTube](https://youtu.be/iCdsD6MiLQs)
 
