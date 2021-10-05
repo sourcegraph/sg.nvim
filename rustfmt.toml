@@ -2,4 +2,4 @@ max_width = 120
 imports_granularity = "Item"
 reorder_imports = true
 group_imports = "StdExternalCrate"
-tab_spaces = 2
+tab_spaces = 4

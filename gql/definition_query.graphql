@@ -1,4 +1,4 @@
-query DefinitionQuery($repository: String!, $revision: String!, $path: String!, $line: Int!, $character: Int!, $query: String!) {
+query DefinitionQuery($repository: String!, $revision: String!, $path: String!, $line: Int!, $character: Int!) {
   repository(name: $repository) {
     commit(rev: $revision) {
       blob(path: $path) {
@@ -11,32 +11,6 @@ query DefinitionQuery($repository: String!, $revision: String!, $path: String!, 
               resource {
                 path
               }
-              range {
-                start {
-                  line
-                  character
-                }
-                end {
-                  line
-                  character
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  search(patternType: regexp, query: $query) {
-    results {
-      results {
-        __typename
-        ... on FileMatch {
-          symbols {
-            name
-            canonicalURL
-            location {
               range {
                 start {
                   line

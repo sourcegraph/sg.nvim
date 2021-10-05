@@ -1,0 +1,28 @@
+
+query SearchDefinitionQuery($query: String!) {
+  search(patternType: regexp, query: $query) {
+    results {
+      results {
+        __typename
+        ... on FileMatch {
+          symbols {
+            name
+            canonicalURL
+            location {
+              range {
+                start {
+                  line
+                  character
+                }
+                end {
+                  line
+                  character
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

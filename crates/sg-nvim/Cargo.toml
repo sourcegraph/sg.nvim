@@ -8,7 +8,7 @@ edition = "2021"
 crate-type = ["cdylib"]
 
 [dependencies]
-sg = { path = "../" }
+sg = { path = "../../" }
 mlua = { version = "0.6", features = ["luajit", "vendored", "module", "serialize", "async"] }
 tokio = { version = "1", features = ["full"] }
 reqwest = "0.11.3"

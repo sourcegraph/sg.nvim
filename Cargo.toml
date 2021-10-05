@@ -19,19 +19,29 @@ rmp = "0.8.10"
 rmpv = "0.4.7"
 futures = "0.3.17"
 async-trait = "0.1.51"
+lsp-server = "0.5.2"
+lsp-types = "0.89.2"
+serde_json = "1.0.68"
+log4rs = "1.0.0"
+log = "0.4.14"
 
 [[bin]]
-name = "sg-main"
-path = "src/main.rs"
+name = "sg-lsp"
+path = "src/lsp/bin/main.rs"
+
+[[bin]]
+name = "sg-daemon"
+path = "src/daemon/bin/main.rs"
+
+[[bin]]
+name = "sg-connect"
+path = "src/connect/bin/main.rs"
 
 [lib]
 name = "sg"
 path = "lib/sg.rs"
 
 [workspace]
-# TODO: Add these
-# "sg-bg",
-# "sg-lsp",
 members = [
-    "sg-nvim",
+    "crates/sg-nvim",
 ]
