@@ -31,57 +31,24 @@ M.setup = function(opts)
   -- Otherwise it's gonna take forever to resolve all of them if you've
   -- got a lot of files.
 
-  -- opts.handlers = vim.tbl_deep_extend("force", {
-  --   ["textDocument/references"] = function()
-  --     print "Yo, references"
-  --   end,
-  -- }, opts.handlers or {})
+  opts.handlers = vim.tbl_deep_extend("force", {
+    ["textDocument/references"] = function(err, result, ctx, config)
+      -- print(vim.inspect(result))
+
+      print "Yo, references"
+      for _, item in ipairs(result) do
+        -- print(vim.inspect(result))
+        -- local bufnr = vim.fn.bufadd(item.uri)
+        -- vim.fn.bufload(bufnr)
+
+        print(item.uri)
+      end
+
+      vim.lsp.handlers["textDocument/references"](err, result, ctx, config)
+    end,
+  }, opts.handlers or {})
 
   require("lspconfig").sg.setup(opts)
 end
 
 return M
-
--- M.start = function()
---   local ok, msg = pcall(function()
---     log.info "[sg lsp] Started"
-
---     while not Shutdown do
---       -- header
---       local err, data = rpc.read_message()
-
---       if data == nil then
---         if err == "eof" then
---           return os.exit(1)
---         end
---         error(err)
---       elseif data.method then
---         -- request
---         if not handlers[data.method] then
---           log.info("confused by %t", data)
---           err = string.format("%q: Not found/NYI", tostring(data.method))
---           log.warn("%s", err)
---         else
---           local ok
---           ok, err = xpcall(function()
---             handlers[data.method](data.params, data.id)
---           end, debug.traceback)
-
---           if not ok then
---             log.warn("%s", tostring(err))
---           end
---         end
---       elseif data.result then
---         rpc.finish(data)
---       elseif data.error then
---         log.info("client error:%s", data.error.message)
---       end
---     end
-
---     os.exit(0)
---   end)
-
---   if not ok then
---     log.info("ERROR:", msg)
---   end
--- end

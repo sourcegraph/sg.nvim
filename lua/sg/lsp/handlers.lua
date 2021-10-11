@@ -498,12 +498,4 @@ methods["textDocument/references"] = function(params, id)
   return nil
 end
 
-methods["shutdown"] = function()
-  vim.schedule(function()
-    vim.cmd [[qa!]]
-  end)
-end
-
-methods["initizlied"] = function() end
-
 return methods

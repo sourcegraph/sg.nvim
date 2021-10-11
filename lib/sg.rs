@@ -8,18 +8,36 @@ use async_trait::async_trait;
 use graphql_client::reqwest::post_graphql;
 use graphql_client::GraphQLQuery;
 use interprocess::local_socket::LocalSocketStream;
+use lsp_types::Url;
 use mlua::prelude::*;
 use mlua::UserData;
 use regex::Regex;
 use serde;
 
 pub mod definition;
+pub mod references;
+
+fn get_client() -> Result<Client> {
+    let sourcegraph_access_token = std::env::var("SRC_ACCESS_TOKEN").expect("Sourcegraph access token");
+
+    Ok(Client::builder()
+        .default_headers(
+            std::iter::once((
+                reqwest::header::AUTHORIZATION,
+                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", sourcegraph_access_token)).unwrap(),
+            ))
+            .collect(),
+        )
+        .build()?)
+}
 
 #[derive(serde::Serialize, serde::Deserialize, Clone)]
 pub struct RemoteFile {
     pub remote: String,
     pub commit: String,
     pub path: String,
+
+    // pub start: Option<
     pub line: Option<usize>,
     pub col: Option<usize>,
 }
@@ -242,10 +260,12 @@ where
     }
 
     // TODO: Check out split_once for some stuff here.
+    // TODO: Handle ranges here... :)
     let path = path_and_args[0].to_string();
     let (line, col) = if path_and_args.len() == 2 {
         // TODO: We could probably handle a few more cases here :)
-        let arg_split: Vec<&str> = path_and_args[1].split(":").collect();
+        let args = path_and_args[1].split("-").collect::<Vec<&str>>()[0];
+        let arg_split: Vec<&str> = args.split(":").collect();
 
         if arg_split.len() == 2 {
             (
@@ -273,7 +293,7 @@ where
     })
 }
 
-const FAILED_TO_WRITE: &'static str = "Failed to write value";
+// const FAILED_TO_WRITE: &'static str = "Failed to write value";
 const FAILED_TO_READ: &'static str = "Failed to read value";
 
 #[async_trait]
@@ -288,20 +308,25 @@ where
     fn conv_lua<'lua>(&self, lua: &'lua Lua, response: rmpv::Value) -> LuaResult<LuaValue<'lua>>;
     async fn process(&self) -> Result<rmpv::Value>;
 
-    fn request<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
-        let mut conn = LocalSocketStream::connect("/tmp/example.sock")?;
-
+    fn get_response(&self, conn: &mut LocalSocketStream) -> Result<rmpv::Value> {
         let mut vec = vec![Self::NAME.into()];
         vec.extend(self.args());
 
         let val = rmpv::Value::Array(vec);
-        if let Err(_) = rmpv::encode::write_value(&mut conn, &val) {
-            return Err(FAILED_TO_WRITE.to_lua_err());
+        if let Err(_) = rmpv::encode::write_value(conn, &val) {
+            // TODO: How do I do this?
+            // return Err(FAILED_TO_WRITE);
+            panic!("TODO: Need to write an error condition here");
         }
 
-        // Read response
-        // TODO: Probably also want to put in the actual error message here...
-        let response = rmpv::decode::read_value(&mut conn);
+        let result = rmpv::decode::read_value(conn)?;
+        Ok(result)
+    }
+
+    fn request<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
+        let mut conn = LocalSocketStream::connect("/tmp/example.sock")?;
+
+        let response = self.get_response(&mut conn);
         if let Ok(response) = response {
             self.conv_lua(lua, response)
         } else {
@@ -317,6 +342,35 @@ where
         // println!("    Processed: {:?}", processed);
 
         rmpv::encode::write_value(conn, &processed).context("encode::write_value")
+    }
+}
+
+impl RemoteFileMessage {
+    pub fn get_remote_file(&self, conn: &mut LocalSocketStream) -> Result<RemoteFile> {
+        let response = self.get_response(conn)?;
+        if let rmpv::Value::Array(response) = response {
+            let remote = response[0].as_str().unwrap().to_string();
+            let commit = response[1].as_str().unwrap().to_string();
+            let path = response[2].as_str().unwrap().to_string();
+
+            Ok(RemoteFile {
+                remote,
+                commit,
+                path,
+
+                // TODO: Clean this up and do gud
+                line: match response[3] {
+                    rmpv::Value::Integer(line) => Some(line.as_u64().unwrap() as usize),
+                    _ => None,
+                },
+                col: match response[4] {
+                    rmpv::Value::Integer(col) => Some(col.as_u64().unwrap() as usize),
+                    _ => None,
+                },
+            })
+        } else {
+            panic!("Somehow got a non-array response over the wire.")
+        }
     }
 }
 
@@ -486,13 +540,51 @@ impl RemoteMessage for RemoteFileMessage {
     }
 }
 
+macro_rules! nodes_to_locations {
+    ($vec: ident, $nodes: ident) => {
+        for node in $nodes {
+            info!("Checking out node: {:?}", node);
+            let range = node.range.context("Missing range for some IDIOTIC reason??? ME???")?;
+
+            let sg_url = format!("sg:/{}", node.url);
+            let mut uri = Url::parse(&sg_url).unwrap_or_else(|e| {
+                info!("We couldn't do it because we suck. {:?}", e);
+                panic!("SUCKING");
+            });
+            uri.set_query(None);
+
+            let remote_file = crate::uri_from_link(&uri.to_string(), crate::return_raw_commit).await?;
+
+            info!("URI: {:?}", uri);
+
+            $vec.push(Location {
+                uri: Url::parse(&remote_file.bufname()).unwrap(),
+
+                // TODO: impl into
+                range: lsp_types::Range {
+                    start: lsp_types::Position {
+                        line: range.start.line as u32,
+                        character: range.start.character as u32,
+                    },
+                    end: lsp_types::Position {
+                        line: range.end.line as u32,
+                        character: range.end.character as u32,
+                    },
+                },
+            })
+        }
+    };
+}
+
+async fn return_raw_commit(_remote: String, commit: String) -> Result<String> {
+    Ok(commit.to_string())
+}
+
+pub(crate) use nodes_to_locations;
+
 #[cfg(test)]
 mod test {
     use super::*;
-
-    async fn return_raw_commit(_remote: String, commit: String) -> Result<String> {
-        Ok(commit.to_string())
-    }
 
     #[tokio::test]
     async fn create() -> Result<()> {
@@ -529,6 +621,24 @@ mod test {
         assert_eq!(remote_file.path, "dev/sg/rfc.go");
         assert_eq!(remote_file.line, Some(29));
         assert_eq!(remote_file.col, Some(2));
+
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn can_get_ranges() -> Result<()> {
+        let test_case = "sg://github.com/scalameta/metals@ee8289a9c88f3cd72e94442598feca2a7905e30a/-/tree/tests/unit/src/test/scala/tests/troubleshoot/ProblemResolverSuite.scala?L137:21-137:54".to_string();
+
+        let remote_file = uri_from_link(&test_case, return_raw_commit).await?;
+
+        assert_eq!(remote_file.remote, "github.com/scalameta/metals");
+        assert_eq!(
+            remote_file.path,
+            "tests/unit/src/test/scala/tests/troubleshoot/ProblemResolverSuite.scala"
+        );
+
+        assert_eq!(remote_file.line, Some(137));
+        assert_eq!(remote_file.col, Some(21));
 
         Ok(())
     }
