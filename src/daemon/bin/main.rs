@@ -7,6 +7,7 @@ use interprocess::local_socket::LocalSocketListener;
 use interprocess::local_socket::LocalSocketStream;
 use rmpv;
 use sg::ContentsMessage;
+use sg::GetFilesMessage;
 use sg::HashMessage;
 use sg::RemoteFileMessage;
 use sg::RemoteMessage;
@@ -39,27 +40,20 @@ async fn main() -> Result<(), Box<dyn Error>> {
     let listener = LocalSocketListener::bind("/tmp/example.sock")?;
 
     for mut conn in listener.incoming().filter_map(handle_error) {
+        println!("");
         println!("Getting new connect...");
 
         match rmpv::decode::read_value(&mut conn)? {
             arr @ rmpv::Value::Array(_) => {
-                println!("");
                 println!("DaemonRead: {:?}", arr);
 
                 let command = arr[0].as_str().unwrap();
-                // match command {
-                //   HashMessage::NAME => {
-                //     println!("Handling: {:?}", HashMessage::NAME);
-                //     let res = HashMessage::handle(&mut conn, arr).await?;
-                //     println!("Complete: {:?} {:?}", HashMessage::NAME, res);
-                //   }
-                //   ContentsMessage::NAME => {
-                //     println!("Handling: {:?}", ContentsMessage::NAME);
-                //     let res = ContentsMessage::handle(&mut conn, arr).await?;
-                //     println!("Complete: {:?} {:?}", ContentsMessage::NAME, res);
-                //   }
-                // }
-                match_messages!(conn, arr, command, [HashMessage, ContentsMessage, RemoteFileMessage]);
+                match_messages!(
+                    conn,
+                    arr,
+                    command,
+                    [HashMessage, ContentsMessage, RemoteFileMessage, GetFilesMessage]
+                );
             }
 
             _ => {

@@ -1418,6 +1418,7 @@ dependencies = [
  "lsp-types",
  "memoize",
  "mlua",
+ "once_cell",
  "regex",
  "reqwest",
  "rmp",

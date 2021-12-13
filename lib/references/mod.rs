@@ -11,8 +11,8 @@ use crate::RemoteFileMessage;
 
 #[derive(GraphQLQuery)]
 #[graphql(
-    schema_path = "gql/schema.graphql",
-    query_path = "gql/references_query.graphql",
+    schema_path = "gql/schema.gql",
+    query_path = "gql/references_query.gql",
     response_derives = "Debug"
 )]
 pub struct ReferencesQuery;

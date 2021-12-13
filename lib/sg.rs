@@ -8,17 +8,17 @@ use async_trait::async_trait;
 use graphql_client::reqwest::post_graphql;
 use graphql_client::GraphQLQuery;
 use interprocess::local_socket::LocalSocketStream;
-use lsp_types::Url;
 use mlua::prelude::*;
 use mlua::UserData;
 use regex::Regex;
 use serde;
 
 pub mod definition;
+pub mod files;
 pub mod references;
 
 fn get_client() -> Result<Client> {
-    let sourcegraph_access_token = std::env::var("SRC_ACCESS_TOKEN").expect("Sourcegraph access token");
+    let sourcegraph_access_token = std::env::var("SRC_ACCESS_TOKEN")?;
 
     Ok(Client::builder()
         .default_headers(
@@ -77,16 +77,16 @@ impl UserData for RemoteFile {
 
 #[derive(GraphQLQuery)]
 #[graphql(
-    schema_path = "gql/schema.graphql",
-    query_path = "gql/file_query.graphql",
+    schema_path = "gql/schema.gql",
+    query_path = "gql/file_query.gql",
     response_derives = "Debug"
 )]
 pub struct FileQuery;
 
 #[derive(GraphQLQuery)]
 #[graphql(
-    schema_path = "gql/schema.graphql",
-    query_path = "gql/commit_query.graphql",
+    schema_path = "gql/schema.gql",
+    query_path = "gql/commit_query.gql",
     response_derives = "Debug"
 )]
 pub struct CommitQuery;
@@ -460,6 +460,50 @@ impl RemoteMessage for ContentsMessage {
     }
 }
 
+pub struct GetFilesMessage {
+    pub repository: String,
+    pub commit: String,
+}
+
+#[async_trait]
+impl RemoteMessage for GetFilesMessage {
+    const NAME: &'static str = "GetFiles";
+
+    fn args(&self) -> Vec<rmpv::Value> {
+        vec![self.repository.clone().into(), self.commit.clone().into()]
+    }
+
+    fn decode<'lua>(args: rmpv::Value) -> Result<Self> {
+        if let rmpv::Value::Array(args) = args {
+            Ok(GetFilesMessage {
+                repository: args[1].as_str().unwrap().into(),
+                commit: args[2].as_str().unwrap().into(),
+            })
+        } else {
+            Err(anyhow::anyhow!("Did not pass an array"))
+        }
+    }
+
+    fn conv_lua<'lua>(&self, lua: &'lua Lua, response: rmpv::Value) -> LuaResult<LuaValue<'lua>> {
+        if let rmpv::Value::Array(response) = response {
+            let vec = response
+                .into_iter()
+                .map(|x| x.as_str().unwrap().to_lua(lua).unwrap())
+                .collect::<Vec<LuaValue>>();
+
+            vec.to_lua(lua)
+        } else {
+            Err(anyhow::anyhow!("Did not pass an array").to_lua_err())
+        }
+    }
+
+    async fn process(&self) -> Result<rmpv::Value> {
+        let result = files::get_files(self.repository.clone(), self.commit.clone()).await?;
+        let res = result.into_iter().map(|x| x.into()).collect();
+        Ok(rmpv::Value::Array(res))
+    }
+}
+
 pub struct RemoteFileMessage {
     pub path: String,
 }
@@ -483,24 +527,10 @@ impl RemoteMessage for RemoteFileMessage {
     }
 
     fn conv_lua<'lua>(&self, lua: &'lua Lua, response: rmpv::Value) -> LuaResult<LuaValue<'lua>> {
-        // todo!()
         if let rmpv::Value::Array(response) = response {
-            // Ok(RemoteFileMessage {
-            //   path: args[1].as_str().unwrap().into(),
-            // })
-
-            // let path,
-            // pub remote: String,
-            // pub commit: String,
-            // pub path: String,
-            // pub line: Option<usize>,
-            // pub col: Option<usize>,
-
             let remote = response[0].as_str().unwrap().to_string();
             let commit = response[1].as_str().unwrap().to_string();
             let path = response[2].as_str().unwrap().to_string();
-
-            // TODO: Need to handle line and column, could be null
 
             RemoteFile {
                 remote,
@@ -518,8 +548,6 @@ impl RemoteMessage for RemoteFileMessage {
                 },
             }
             .to_lua(lua)
-
-            // todo!()
         } else {
             Err(anyhow::anyhow!("Did not pass an array").to_lua_err())
         }
@@ -528,7 +556,6 @@ impl RemoteMessage for RemoteFileMessage {
     async fn process(&self) -> Result<rmpv::Value> {
         // todo!()
         let remote_file = uri_from_link(&self.path, get_commit_hash).await?;
-        println!("TESTING: {:?} {:?}", remote_file.line, remote_file.col);
 
         Ok(rmpv::Value::Array(vec![
             remote_file.remote.into(),

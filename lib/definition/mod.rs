@@ -11,16 +11,16 @@ use crate::RemoteFileMessage;
 
 #[derive(GraphQLQuery)]
 #[graphql(
-    schema_path = "gql/schema.graphql",
-    query_path = "gql/definition_query.graphql",
+    schema_path = "gql/schema.gql",
+    query_path = "gql/definition_query.gql",
     response_derives = "Debug"
 )]
 pub struct DefinitionQuery;
 
 #[derive(GraphQLQuery)]
 #[graphql(
-    schema_path = "gql/schema.graphql",
-    query_path = "gql/search_definition_query.graphql",
+    schema_path = "gql/schema.gql",
+    query_path = "gql/search_definition_query.gql",
     response_derives = "Debug"
 )]
 pub struct SearchDefinitionQuery;

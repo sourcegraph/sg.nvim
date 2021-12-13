@@ -3,6 +3,7 @@
 use std::sync::Arc;
 use std::sync::Mutex;
 
+use interprocess::local_socket::LocalSocketStream;
 use mlua::prelude::*;
 use mlua::Function;
 use mlua::LuaSerdeExt;
@@ -11,7 +12,9 @@ use mlua::Value;
 use reqwest;
 use serde::Serialize;
 use sg;
+use sg::files;
 use sg::ContentsMessage;
+use sg::GetFilesMessage;
 use sg::HashMessage;
 use sg::RemoteFileMessage;
 use sg::RemoteMessage;
@@ -28,12 +31,12 @@ where
 }
 
 // This is how you can print easily
-// fn lua_print(lua: &Lua, str: &str) -> LuaResult<()> {
-//   let print: Function = lua.globals().get("print")?;
-//   print.call::<_, ()>(str.to_lua(lua))?;
+fn lua_print(lua: &Lua, str: &str) -> LuaResult<()> {
+    let print: Function = lua.globals().get("print")?;
+    print.call::<_, ()>(str.to_lua(lua))?;
 
-//   Ok(())
-// }
+    Ok(())
+}
 
 fn get_remote_hash<'lua>(lua: &'lua Lua, args: (String, String)) -> LuaResult<LuaValue<'lua>> {
     let remote = args.0.clone();
@@ -55,6 +58,50 @@ fn get_remote_file<'lua>(lua: &'lua Lua, args: (String,)) -> LuaResult<LuaValue<
     RemoteFileMessage { path: args.0 }.request(lua)
 }
 
+fn get_files<'lua>(lua: &'lua Lua, args: (String, String)) -> LuaResult<LuaValue<'lua>> {
+    let mut file_map = files::get_file_map().lock().unwrap();
+
+    let repository = args.0;
+    let commit = args.1;
+
+    let key = (repository.clone(), commit.clone());
+
+    if let None = file_map.get(&key) {
+        // info!("MISSING KEY! {:?}", key);
+        lua_print(lua, "Missing Key!")?;
+
+        let mut conn = LocalSocketStream::connect("/tmp/example.sock")?;
+        let response = GetFilesMessage {
+            repository: repository.clone(),
+            commit: commit.clone(),
+        }
+        .get_response(&mut conn)
+        .unwrap();
+
+        file_map.insert(
+            (repository, commit),
+            response
+                .as_array()
+                .expect("needs array")
+                .into_iter()
+                .map(|x| x.as_str().expect("all strings").to_string())
+                .collect(),
+        );
+    } else {
+        lua_print(lua, "ACTUALLY HAD THE KEY")?;
+    }
+
+    if let Some(result) = file_map.get(&key) {
+        return result
+            .into_iter()
+            .map(|x| x.clone().to_lua(lua).unwrap())
+            .collect::<Vec<LuaValue>>()
+            .to_lua(lua);
+    } else {
+        panic!("Cannot not have something now...");
+    }
+}
+
 #[mlua::lua_module]
 fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
     // TODO: Consider putting mlua_null as a global so we can compare with that
@@ -70,6 +117,7 @@ fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
     )?;
 
     exports.set("get_remote_file", lua.create_function(get_remote_file)?)?;
+    exports.set("get_files", lua.create_function(get_files)?)?;
 
     // TODO: Understand this at some point would be good.
     exports.set(

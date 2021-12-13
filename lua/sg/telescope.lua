@@ -1,9 +1,14 @@
 local defaulter = require("telescope.utils").make_default_callable
+local from_entry = require "telescope.from_entry"
 local previewers = require "telescope.previewers"
 local putils = require "telescope.previewers.utils"
-local from_entry = require "telescope.from_entry"
+local pickers = require "telescope.pickers"
+local finders = require "telescope.finders"
+local conf = require("telescope.config").values
 
 local log = require "sg.log"
+
+local lib = require "libsg_nvim"
 
 local telescope = {}
 
@@ -67,5 +72,37 @@ telescope.sg_references = function(opts)
     layout_strategy = "vertical",
   }
 end
+
+telescope.sg_files = function(opts)
+  opts = opts or {}
+
+  opts.repository = opts.repository or "github.com/neovim/neovim"
+  opts.commit = "ee342d3cef97aa2414c05261b448228ae3277862"
+  if not opts.commit then
+    opts.commit = lib.get_remote_hash(opts.repository, "ee342d3cef97aa2414c05261b448228ae3277862")
+  end
+
+  print("Getting remote files", opts.repository, opts.commit)
+  local files = lib.get_files(opts.repository, opts.commit)
+
+  pickers.new({
+    finder = finders.new_table {
+      results = files,
+      entry_maker = function(entry)
+        return {
+          value = entry,
+          text = entry,
+          display = entry,
+          ordinal = entry,
+          filename = string.format("sg://%s@%s/-/%s", opts.repository, opts.commit, entry),
+        }
+      end,
+    },
+    sorter = conf.generic_sorter(opts),
+    previewer = telescope.sg_previewer.new(opts),
+  }):find()
+end
+
+telescope.sg_files()
 
 return telescope

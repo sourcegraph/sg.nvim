@@ -1,0 +1,7 @@
+query GetFileQuery($name: String!, $rev: String!) {
+  repository(name: $name) {
+    commit(rev: $rev) {
+        fileNames
+    }
+  }
+}

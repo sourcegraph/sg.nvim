@@ -56,7 +56,15 @@ async fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     let server_capabilities = serde_json::to_value(&capabilities).unwrap();
     let initialization_params = connection.initialize(server_capabilities)?;
 
-    main_loop(connection, initialization_params).await?;
+    match main_loop(connection, initialization_params).await {
+        Ok(_) => {
+            info!("Completed main loop, and shut down");
+        }
+        Err(err) => {
+            info!("Error in main loop, had to shut down: {:?}", err);
+        }
+    };
+
     io_threads.join()?;
 
     // Shut down gracefully.
@@ -79,6 +87,8 @@ async fn main_loop(connection: Connection, params: serde_json::Value) -> Result<
                 debug!("got request: {:?}", req);
                 let req = match cast::<GotoDefinition>(req) {
                     Ok((id, params)) => {
+                        debug!("Handling goto definition");
+
                         let params = params.text_document_position_params;
                         let uri = params.text_document.uri;
                         let definitions = sg::definition::get_definitions(
@@ -98,7 +108,10 @@ async fn main_loop(connection: Connection, params: serde_json::Value) -> Result<
                         connection.sender.send(Message::Response(resp))?;
                         continue;
                     }
-                    Err(req) => req,
+                    Err(req) => {
+                        info!("Unable to cast to goto definition?...");
+                        req
+                    }
                 };
 
                 let req = match cast::<References>(req) {
@@ -124,6 +137,8 @@ async fn main_loop(connection: Connection, params: serde_json::Value) -> Result<
                     }
                     Err(req) => req,
                 };
+
+                info!("Unhandled request: {:?}", req);
                 // ...
             }
             Message::Response(resp) => {

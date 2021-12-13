@@ -6,19 +6,32 @@ if not commit or string.find(commit, "failed") then
   return
 end
 
-local y = lib.get_remote_file_contents("github.com/neovim/neovim", commit, "src/nvim/autocmd.c")
+local files = lib.get_files("github.com/neovim/neovim", commit)
+print("Files:", #files)
+print(files[2])
+print(files[3])
+print(files[4])
+print(files[5])
+print(files[6])
+print(files[7])
+print(files[8])
+print(files[9])
+print(files[10])
+print(files[11])
 
-print(">", y[1])
-print(">", y[2])
-print(">", y[39])
+-- local y = lib.get_remote_file_contents("github.com/neovim/neovim", commit, "src/nvim/autocmd.c")
 
-print "Asking remote file..."
-local rf = lib.get_remote_file "https://sourcegraph.com/github.com/neovim/neovim/-/blob/src/nvim/autocmd.c?L10:5"
-print("Remote:", rf.remote)
+-- print(">", y[1])
+-- print(">", y[2])
+-- print(">", y[39])
 
-print "trying contents..."
--- print("contents", rf:read())
-print(rf.read)
+-- print "Asking remote file..."
+-- local rf = lib.get_remote_file "https://sourcegraph.com/github.com/neovim/neovim/-/blob/src/nvim/autocmd.c?L10:5"
+-- print("Remote:", rf.remote)
+
+-- print "trying contents..."
+-- -- print("contents", rf:read())
+-- print(rf.read)
 
 -- lib.docs(function(get)
 --   get("https://google.com", function(body)
