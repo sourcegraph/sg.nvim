@@ -8,6 +8,8 @@ use lsp_types::Location;
 use lsp_types::Url;
 use reqwest::Client;
 
+use crate::get_commit_hash;
+use crate::uri_from_link;
 use crate::RemoteFile;
 use crate::RemoteFileMessage;
 use crate::RemoteMessage;
@@ -118,15 +120,12 @@ pub async fn get_definitions(uri: String, line: i64, character: i64) -> Result<V
         let range = node.range.context("Missing range for some IDIOTIC reason??? ME???")?;
 
         let sg_url = format!("sg:/{}", node.url);
-        let uri = Url::parse(&sg_url).unwrap_or_else(|e| {
-            info!("We couldn't do it because we suck. {:?}", e);
-            panic!("SUCKING");
-        });
 
-        info!("URI: {:?}", uri);
+        let node_remote = uri_from_link(&sg_url, get_commit_hash).await?;
+        info!("Node Remote: {:?}", node_remote);
 
         definitions.push(Location {
-            uri,
+            uri: Url::parse(&node_remote.bufname())?,
 
             // TODO: impl into
             range: lsp_types::Range {

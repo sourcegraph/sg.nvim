@@ -15,7 +15,7 @@ use serde;
 
 pub mod definition;
 
-#[derive(serde::Serialize, serde::Deserialize, Clone)]
+#[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct RemoteFile {
     pub remote: String,
     pub commit: String,

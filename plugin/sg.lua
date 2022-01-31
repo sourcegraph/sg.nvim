@@ -1,1 +1,1 @@
-require "sg.bufread"
+pcall(require, "sg.bufread")
