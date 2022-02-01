@@ -13,6 +13,7 @@ use crate::uri_from_link;
 use crate::RemoteFile;
 use crate::RemoteFileMessage;
 use crate::RemoteMessage;
+use crate::CLIENT;
 
 #[derive(GraphQLQuery)]
 #[graphql(
@@ -29,20 +30,6 @@ pub struct DefinitionQuery;
     response_derives = "Debug"
 )]
 pub struct SearchDefinitionQuery;
-
-fn get_client() -> Result<Client> {
-    let sourcegraph_access_token = std::env::var("SRC_ACCESS_TOKEN").expect("Sourcegraph access token");
-
-    Ok(Client::builder()
-        .default_headers(
-            std::iter::once((
-                reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", sourcegraph_access_token)).unwrap(),
-            ))
-            .collect(),
-        )
-        .build()?)
-}
 
 pub async fn get_definitions(uri: String, line: i64, character: i64) -> Result<Vec<Location>> {
     // let remote_file = uri_from_link(&uri, get_commit_hash).await?;
@@ -85,9 +72,8 @@ pub async fn get_definitions(uri: String, line: i64, character: i64) -> Result<V
         panic!("Can't do it")
     };
 
-    let client = get_client()?;
     let response_body = post_graphql::<DefinitionQuery, _>(
-        &client,
+        &CLIENT,
         "https://sourcegraph.com/.api/graphql",
         definition_query::Variables {
             repository: remote_file.remote,

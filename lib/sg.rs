@@ -10,10 +10,28 @@ use graphql_client::GraphQLQuery;
 use interprocess::local_socket::LocalSocketStream;
 use mlua::prelude::*;
 use mlua::UserData;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde;
 
 pub mod definition;
+
+static CLIENT: Lazy<Client> = Lazy::new(|| {
+    if let Ok(sourcegraph_access_token) = std::env::var("SRC_ACCESS_TOKEN") {
+        Client::builder()
+            .default_headers(
+                std::iter::once((
+                    reqwest::header::AUTHORIZATION,
+                    reqwest::header::HeaderValue::from_str(&format!("Bearer {}", sourcegraph_access_token)).unwrap(),
+                ))
+                .collect(),
+            )
+            .build()
+            .expect("to be able to create the client")
+    } else {
+        Client::builder().build().expect("to be able to create the client")
+    }
+});
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct RemoteFile {
@@ -84,19 +102,8 @@ pub async fn get_commit_hash(remote: String, revision: String) -> Result<String>
     }
 
     // TODO: How expensive is this?
-    let sourcegraph_access_token = std::env::var("SRC_ACCESS_TOKEN").expect("Sourcegraph access token");
-    let client = Client::builder()
-        .default_headers(
-            std::iter::once((
-                reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", sourcegraph_access_token)).unwrap(),
-            ))
-            .collect(),
-        )
-        .build()?;
-
     let response_body = post_graphql::<CommitQuery, _>(
-        &client,
+        &CLIENT,
         "https://sourcegraph.com/.api/graphql",
         commit_query::Variables {
             name: remote.to_string(),
@@ -116,19 +123,8 @@ pub async fn get_commit_hash(remote: String, revision: String) -> Result<String>
 }
 
 pub async fn get_remote_file_contents(remote: &str, commit: &str, path: &str) -> Result<Vec<String>> {
-    let sourcegraph_access_token = std::env::var("SRC_ACCESS_TOKEN").expect("Sourcegraph access token");
-    let client = Client::builder()
-        .default_headers(
-            std::iter::once((
-                reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", sourcegraph_access_token)).unwrap(),
-            ))
-            .collect(),
-        )
-        .build()?;
-
     let response_body = post_graphql::<FileQuery, _>(
-        &client,
+        &CLIENT,
         "https://sourcegraph.com/.api/graphql",
         file_query::Variables {
             name: remote.to_string(),
