@@ -1,5 +1,7 @@
+use std::collections::HashMap;
 use std::future::Future;
 use std::sync::Arc;
+use std::sync::Mutex;
 
 use ::reqwest::Client;
 use anyhow::Context;
@@ -10,6 +12,7 @@ use graphql_client::GraphQLQuery;
 use interprocess::local_socket::LocalSocketStream;
 use mlua::prelude::*;
 use mlua::UserData;
+use once_cell::sync::Lazy;
 use regex::Regex;
 use serde;
 
@@ -37,7 +40,6 @@ pub struct RemoteFile {
     pub commit: String,
     pub path: String,
 
-    // pub start: Option<
     pub line: Option<usize>,
     pub col: Option<usize>,
 }
@@ -51,11 +53,7 @@ impl UserData for RemoteFile {
 
         let read_runtime = r.clone();
         methods.add_method("read", move |_, remote_file, ()| {
-            // TODO: There has to be a cleaner way to write this
-            match read_runtime.block_on(remote_file.read()) {
-                Ok(val) => Ok(val),
-                Err(err) => return Err(err.to_lua_err()),
-            }
+            read_runtime.block_on(remote_file.read()).map_err(|e| e.to_lua_err())
         });
     }
 
@@ -133,13 +131,30 @@ pub async fn get_commit_hash(remote: String, revision: String) -> Result<String>
         .oid)
 }
 
+static SRC_ACCESS_TOKEN: Lazy<String> =
+    Lazy::new(|| std::env::var("SRC_ACCESS_TOKEN").expect("Sourcegraph access token"));
+
+static REMOTE_FILE_CONTENTS: Lazy<Mutex<HashMap<(String, String, String), Vec<String>>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+
 pub async fn get_remote_file_contents(remote: &str, commit: &str, path: &str) -> Result<Vec<String>> {
-    let sourcegraph_access_token = std::env::var("SRC_ACCESS_TOKEN").expect("Sourcegraph access token");
+    let remote = remote.to_string();
+    let commit = commit.to_string();
+    let path = path.to_string();
+
+    if let Some(contents) = REMOTE_FILE_CONTENTS
+        .lock()
+        .unwrap()
+        .get(&(remote.clone(), commit.clone(), path.clone()))
+    {
+        return Ok(contents.clone());
+    }
+
     let client = Client::builder()
         .default_headers(
             std::iter::once((
                 reqwest::header::AUTHORIZATION,
-                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", sourcegraph_access_token)).unwrap(),
+                reqwest::header::HeaderValue::from_str(&format!("Bearer {}", SRC_ACCESS_TOKEN.clone())).unwrap(),
             ))
             .collect(),
         )
@@ -149,14 +164,14 @@ pub async fn get_remote_file_contents(remote: &str, commit: &str, path: &str) ->
         &client,
         "https://sourcegraph.com/.api/graphql",
         file_query::Variables {
-            name: remote.to_string(),
-            rev: commit.to_string(),
-            path: path.to_string(),
+            name: remote.clone(),
+            rev: commit.clone(),
+            path: path.clone(),
         },
     )
     .await?;
 
-    Ok(response_body
+    let contents: Vec<String> = response_body
         .data
         .context("No data")?
         .repository
@@ -168,7 +183,14 @@ pub async fn get_remote_file_contents(remote: &str, commit: &str, path: &str) ->
         .content
         .split("\n")
         .map(|x| x.to_string())
-        .collect())
+        .collect();
+
+    REMOTE_FILE_CONTENTS
+        .lock()
+        .unwrap()
+        .insert((remote, commit, path), contents.clone());
+
+    Ok(contents)
 }
 
 impl RemoteFile {
@@ -253,11 +275,9 @@ where
 
     let prefix_regex = Regex::new("^(blob|tree)/")?;
     let replaced_path = prefix_regex.replace(split[1], "");
-    let path_and_args: Vec<&str> = replaced_path.split("?").collect();
 
-    if path_and_args.len() > 2 {
-        return Err(anyhow::anyhow!("Too many question marks. Please don't do that"));
-    }
+    let path_and_args: Vec<&str> = replaced_path.split("?").collect();
+    anyhow::ensure!(path_and_args.len() > 2, "Too many question marks. Please don't do that");
 
     // TODO: Check out split_once for some stuff here.
     // TODO: Handle ranges here... :)
