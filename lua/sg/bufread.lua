@@ -13,18 +13,27 @@ pcall(
 ]]
 )
 
-vim.cmd [[
-  augroup Sourcegraph
-    au!
-    autocmd BufReadCmd sg://* lua (R or require)("sg.bufread").edit(vim.fn.expand("<amatch>"))
-    autocmd BufReadCmd https://sourcegraph.com/* lua (R or require)("sg.bufread").edit(vim.fn.expand("<amatch>"))
-  augroup END
-]]
+local group = vim.api.nvim_create_augroup("sg.nvim", { clear = true })
+vim.api.nvim_create_autocmd("BufReadCmd", {
+  group = group,
+  pattern = "sg://*",
+  callback = function()
+    require("sg.bufread").edit(vim.fn.expand "<amatch>")
+  end,
+})
+vim.api.nvim_create_autocmd("BufReadCmd", {
+  group = group,
+  pattern = "https://sourcegraph.com/*",
+  callback = function()
+    require("sg.bufread").edit(vim.fn.expand "<amatch>")
+  end,
+})
 
 M.edit = function(path)
   log.info("BufReadCmd: ", path)
 
   local remote_file = lib.get_remote_file(path)
+  log.info("remote_file:", remote_file)
   local bufnr = vim.api.nvim_get_current_buf()
 
   local normalized_bufname = remote_file:bufname()

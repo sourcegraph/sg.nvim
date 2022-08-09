@@ -100,7 +100,7 @@ pub async fn get_commit_hash(remote: String, revision: String) -> Result<String>
     }
 
     // TODO: How expensive is this?
-    let sourcegraph_access_token = std::env::var("SRC_ACCESS_TOKEN").expect("Sourcegraph access token");
+    let sourcegraph_access_token = dotenv::var("SRC_ACCESS_TOKEN").expect("Sourcegraph access token");
     let client = Client::builder()
         .default_headers(
             std::iter::once((
@@ -277,7 +277,7 @@ where
     let replaced_path = prefix_regex.replace(split[1], "");
 
     let path_and_args: Vec<&str> = replaced_path.split("?").collect();
-    anyhow::ensure!(path_and_args.len() > 2, "Too many question marks. Please don't do that");
+    anyhow::ensure!(path_and_args.len() <= 2, "Invalid Sourcegraph path and args");
 
     // TODO: Check out split_once for some stuff here.
     // TODO: Handle ranges here... :)
