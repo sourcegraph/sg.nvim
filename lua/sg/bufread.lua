@@ -13,27 +13,41 @@ pcall(
 ]]
 )
 
+local sg_lsp_id = nil
+local sg_lsp_config = {}
+
 local group = vim.api.nvim_create_augroup("sg.nvim", { clear = true })
 vim.api.nvim_create_autocmd("BufReadCmd", {
   group = group,
-  pattern = "sg://*",
+  pattern = { "https://sourcegraph.com/*", "sg://*" },
   callback = function()
+    if not sg_lsp_id then
+      local cmd = vim.api.nvim_get_runtime_file("target/debug/sg-lsp", false)[1]
+      sg_lsp_id = vim.lsp.start_client {
+        cmd = { cmd },
+        name = "sg-lsp",
+        on_attach = sg_lsp_config.on_attach,
+        cmd_env = {
+          SRC_ACCESS_TOKEN = os.getenv "SRC_ACCESS_TOKEN",
+          SRC_ENDPOINT = os.getenv "SRC_ENDPOINT",
+        },
+      }
+
+      print("LSP: ", sg_lsp_id)
+    end
+
     require("sg.bufread").edit(vim.fn.expand "<amatch>")
   end,
 })
-vim.api.nvim_create_autocmd("BufReadCmd", {
-  group = group,
-  pattern = "https://sourcegraph.com/*",
-  callback = function()
-    require("sg.bufread").edit(vim.fn.expand "<amatch>")
-  end,
-})
+
+M.setup = function(opts)
+  sg_lsp_config.on_attach = opts.on_attach
+end
 
 M.edit = function(path)
   log.info("BufReadCmd: ", path)
 
   local remote_file = lib.get_remote_file(path)
-  log.info("remote_file:", remote_file)
   local bufnr = vim.api.nvim_get_current_buf()
 
   local normalized_bufname = remote_file:bufname()
@@ -60,6 +74,8 @@ M.edit = function(path)
   if remote_file.line then
     pcall(vim.api.nvim_win_set_cursor, 0, { remote_file.line, remote_file.col or 0 })
   end
+
+  vim.lsp.buf_attach_client(bufnr, sg_lsp_id)
 end
 
 return M
