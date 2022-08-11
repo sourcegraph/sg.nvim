@@ -14,7 +14,6 @@ pcall(
 )
 
 local sg_lsp_id = nil
-local sg_lsp_config = {}
 
 local group = vim.api.nvim_create_augroup("sg.nvim", { clear = true })
 vim.api.nvim_create_autocmd("BufReadCmd", {
@@ -26,7 +25,7 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
       sg_lsp_id = vim.lsp.start_client {
         cmd = { cmd },
         name = "sg-lsp",
-        on_attach = sg_lsp_config.on_attach,
+        on_attach = require("sg.lsp").on_attach,
         cmd_env = {
           SRC_ACCESS_TOKEN = os.getenv "SRC_ACCESS_TOKEN",
           SRC_ENDPOINT = os.getenv "SRC_ENDPOINT",
@@ -39,10 +38,6 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
     require("sg.bufread").edit(vim.fn.expand "<amatch>")
   end,
 })
-
-M.setup = function(opts)
-  sg_lsp_config.on_attach = opts.on_attach
-end
 
 M.edit = function(path)
   log.info("BufReadCmd: ", path)

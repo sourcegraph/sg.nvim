@@ -113,7 +113,7 @@ pub async fn get_commit_hash(remote: String, revision: String) -> Result<String>
 
     let response_body = post_graphql::<CommitQuery, _>(
         &client,
-        "https://sourcegraph.test:3443/.api/graphql",
+        "https://sourcegraph.com/.api/graphql",
         commit_query::Variables {
             name: remote.to_string(),
             rev: revision.to_string(),
@@ -162,7 +162,7 @@ pub async fn get_remote_file_contents(remote: &str, commit: &str, path: &str) ->
 
     let response_body = post_graphql::<FileQuery, _>(
         &client,
-        "https://sourcegraph.test:3443/.api/graphql",
+        "https://sourcegraph.com/.api/graphql",
         file_query::Variables {
             name: remote.clone(),
             rev: commit.clone(),
@@ -575,6 +575,7 @@ impl RemoteMessage for RemoteFileMessage {
 
     async fn process(&self) -> Result<rmpv::Value> {
         // todo!()
+        println!("Processing Remote File");
         let remote_file = uri_from_link(&self.path, get_commit_hash).await?;
 
         Ok(rmpv::Value::Array(vec![

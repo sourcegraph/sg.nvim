@@ -57,6 +57,7 @@ async fn main() -> Result<(), Box<dyn Error>> {
             }
 
             _ => {
+                drop(listener);
                 panic!("Did not even get an array.. that's really bad :'(");
             }
         };

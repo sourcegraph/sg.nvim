@@ -21,6 +21,8 @@ use lsp_types::ServerCapabilities;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
+    // let xdg_dirs = xdg::BaseDirectories::with_prefix("nvim").unwrap();
+    // let file_path = xdg_dirs.place_state_file("sg-lsp.log")?;
     let file_path = "/home/tjdevries/.cache/nvim/sg-lsp.log";
 
     // Logging to log file.
