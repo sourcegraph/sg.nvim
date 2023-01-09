@@ -7,10 +7,11 @@ use std::error::Error;
 // use std::io::BufReader;
 use interprocess::local_socket::LocalSocketStream;
 use rmpv;
+use sg::DAEMON_SOCKET;
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
-    let mut conn = LocalSocketStream::connect("/tmp/example.sock")?;
+    let mut conn = LocalSocketStream::connect(DAEMON_SOCKET)?;
 
     // TODO: I don't know if this should be a bunch more complicated??
     match args[1].as_str() {

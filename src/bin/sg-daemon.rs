@@ -10,6 +10,7 @@ use sg::ContentsMessage;
 use sg::HashMessage;
 use sg::RemoteFileMessage;
 use sg::RemoteMessage;
+use sg::DAEMON_SOCKET;
 
 fn handle_error(conn: io::Result<LocalSocketStream>) -> Option<LocalSocketStream> {
     match conn {
@@ -36,7 +37,7 @@ macro_rules! match_messages {
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error>> {
-    let listener = LocalSocketListener::bind("/tmp/example.sock")?;
+    let listener = LocalSocketListener::bind(DAEMON_SOCKET)?;
 
     for mut conn in listener.incoming().filter_map(handle_error) {
         println!("Getting new connect...");

@@ -33,6 +33,8 @@ static CLIENT: Lazy<Client> = Lazy::new(|| {
     }
 });
 
+pub const DAEMON_SOCKET: &str = "/tmp/sg-daemon.sock";
+
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct RemoteFile {
     pub remote: String,
@@ -285,7 +287,7 @@ where
     async fn process(&self) -> Result<rmpv::Value>;
 
     fn request<'lua>(&self, lua: &'lua Lua) -> LuaResult<LuaValue<'lua>> {
-        let mut conn = LocalSocketStream::connect("/tmp/example.sock")?;
+        let mut conn = LocalSocketStream::connect(DAEMON_SOCKET)?;
 
         let mut vec = vec![Self::NAME.into()];
         vec.extend(self.args());

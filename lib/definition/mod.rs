@@ -6,7 +6,6 @@ use interprocess::local_socket::LocalSocketStream;
 use log::info;
 use lsp_types::Location;
 use lsp_types::Url;
-use reqwest::Client;
 
 use crate::get_commit_hash;
 use crate::uri_from_link;
@@ -14,6 +13,7 @@ use crate::RemoteFile;
 use crate::RemoteFileMessage;
 use crate::RemoteMessage;
 use crate::CLIENT;
+use crate::DAEMON_SOCKET;
 
 #[derive(GraphQLQuery)]
 #[graphql(
@@ -32,10 +32,7 @@ pub struct DefinitionQuery;
 pub struct SearchDefinitionQuery;
 
 pub async fn get_definitions(uri: String, line: i64, character: i64) -> Result<Vec<Location>> {
-    // let remote_file = uri_from_link(&uri, get_commit_hash).await?;
-
-    // TODO: Don't copy this so much
-    let mut conn = LocalSocketStream::connect("/tmp/example.sock")?;
+    let mut conn = LocalSocketStream::connect(DAEMON_SOCKET)?;
 
     let message = RemoteFileMessage { path: uri };
     let mut vec = vec![RemoteFileMessage::NAME.into()];
