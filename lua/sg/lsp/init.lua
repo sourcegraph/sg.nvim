@@ -1,49 +1,55 @@
-local log = require "sg.log"
-local rpc = require "sg.lsp.rpc"
-local handlers = require "sg.lsp.handlers"
+local lib = require "libsg_nvim"
+
+local config = {
+  -- TODO: Perhaps we can provide some reasonable defaults here for people
+  on_attach = function() end,
+}
 
 local M = {}
 
 M.setup = function(opts)
-  -- TODO: Need to figure out how to ask for the files concurrently.
-  -- Otherwise it's gonna take forever to resolve all of them if you've
-  -- got a lot of files.
+  config.on_attach = opts.on_attach
 
-  -- opts.handlers = vim.tbl_deep_extend("force", {
-  --   ["textDocument/references"] = function()
-  --     print "Yo, references"
-  --   end,
-  -- }, opts.handlers or {})
+  -- TODO: Figure out how we might do this beforehand...
+  M.get_client_id()
 
-  -- require("lspconfig").sg.setup(opts)
-
-  M.on_attach = opts.on_attach
-
-  vim.cmd [[
-    augroup SourcegraphLSP
-      au!
-      autocmd BufReadPost sg://* :lua require("sg.lsp").attach()
-    augroup END
-  ]]
+  vim.api.nvim_create_autocmd("BufReadPost", {
+    group = vim.api.nvim_create_augroup("sourcegraph-attach", { clear = true }),
+    pattern = "sg://*",
+    callback = function()
+      M.get_client_id()
+    end,
+  })
 end
 
-M.start = function()
-  if M._client then
-    return
+M.get_client_id = function()
+  -- TODO: Restart the client if it is no longer active?
+  if not M._client then
+    M._client = vim.lsp.start_client {
+      cmd = { "/home/tjdevries/plugins/sg.nvim/target/debug/sg-lsp" },
+      on_attach = config.on_attach,
+      -- handlers = handlers,
+    }
   end
 
-  M._client = vim.lsp.start_client {
-    cmd = { "/home/tjdevries/plugins/sg.nvim/target/debug/sg-lsp" },
-    on_attach = M.on_attach,
-    -- handlers = handlers,
-  }
+  return assert(M._client, "Must have a client started")
 end
 
 M.attach = function(bufnr)
-  bufnr = bufnr or vim.api.nvim_get_current_buf()
+  vim.lsp.buf_attach_client(bufnr or vim.api.nvim_get_current_buf(), M.get_client_id())
+end
 
-  M.start()
-  vim.lsp.buf_attach_client(bufnr, M._client)
+M.get_remote_file = function(path)
+  local client = vim.lsp.get_client_by_id(M.get_client_id())
+  local response = client.request_sync("$sourcegraph/get_remote_file", { path = path }, 10000)
+  local normalized = response.result.normalized
+  local ok, remote_file = pcall(lib.get_remote_file, normalized)
+  if not ok then
+    print("Failed to do this with:", remote_file)
+    return
+  end
+
+  return remote_file
 end
 
 return M

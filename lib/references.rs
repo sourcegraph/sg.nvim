@@ -1,5 +1,5 @@
 use {
-    crate::{get_commit_hash, uri_from_link, CLIENT},
+    crate::{get_commit_hash, normalize_url, uri_from_link, CLIENT},
     anyhow::{Context, Result},
     graphql_client::{reqwest::post_graphql, GraphQLQuery},
     log::info,
@@ -9,28 +9,20 @@ use {
 #[derive(GraphQLQuery)]
 #[graphql(
     schema_path = "gql/schema.graphql",
-    query_path = "gql/definition_query.graphql",
+    query_path = "gql/references_query.graphql",
     response_derives = "Debug"
 )]
-pub struct DefinitionQuery;
+pub struct ReferencesQuery;
 
-#[derive(GraphQLQuery)]
-#[graphql(
-    schema_path = "gql/schema.graphql",
-    query_path = "gql/search_definition_query.graphql",
-    response_derives = "Debug"
-)]
-pub struct SearchDefinitionQuery;
-
-pub async fn get_definitions(uri: String, line: i64, character: i64) -> Result<Vec<Location>> {
-    let uri = crate::normalize_url(&uri);
+pub async fn get_references(uri: String, line: i64, character: i64) -> Result<Vec<Location>> {
+    let uri = normalize_url(&uri);
     let remote_file = uri_from_link(&uri, get_commit_hash).await?;
     info!("Remote File: {:?}", remote_file);
 
-    let response_body = post_graphql::<DefinitionQuery, _>(
+    let response_body = post_graphql::<ReferencesQuery, _>(
         &CLIENT,
         "https://sourcegraph.com/.api/graphql",
-        definition_query::Variables {
+        references_query::Variables {
             repository: remote_file.remote,
             revision: remote_file.commit,
             path: remote_file.path,
@@ -40,22 +32,21 @@ pub async fn get_definitions(uri: String, line: i64, character: i64) -> Result<V
     )
     .await?;
 
-    info!("Got a responsew!");
     let nodes = response_body
         .data
-        .context("definition.data")?
+        .context("data")?
         .repository
-        .context("No matching repository")?
+        .context("repository")?
         .commit
-        .context("No matching commit")?
+        .context("commit")?
         .blob
-        .context("No matching blob")?
+        .context("blob")?
         .lsif
-        .context("No corresponding code intelligence")?
-        .definitions
+        .context("lsif")?
+        .references
         .nodes;
 
-    let mut definitions: Vec<Location> = Vec::new();
+    let mut references: Vec<Location> = Vec::new();
     for node in nodes {
         info!("Checking out node: {:?}", node);
         let range = node
@@ -68,7 +59,7 @@ pub async fn get_definitions(uri: String, line: i64, character: i64) -> Result<V
         let node_remote = uri_from_link(&sg_url, get_commit_hash).await?;
         info!("Node Remote: {:?}", node_remote);
 
-        definitions.push(Location {
+        references.push(Location {
             uri: Url::parse(&node_remote.bufname())?,
 
             // TODO: impl into
@@ -85,5 +76,5 @@ pub async fn get_definitions(uri: String, line: i64, character: i64) -> Result<V
         })
     }
 
-    Ok(definitions)
+    Ok(references)
 }

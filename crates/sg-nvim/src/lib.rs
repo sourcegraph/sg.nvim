@@ -4,7 +4,10 @@ use {
     mlua::{prelude::*, Function, LuaSerdeExt, SerializeOptions, Value},
     reqwest,
     serde::Serialize,
-    sg::{self, ContentsMessage, HashMessage, RemoteFileMessage, RemoteMessage},
+    sg::{
+        self, get_commit_hash, uri_from_link, ContentsMessage, HashMessage, RemoteFileMessage,
+        RemoteMessage,
+    },
     std::sync::{Arc, Mutex},
 };
 
@@ -20,12 +23,12 @@ where
 }
 
 // This is how you can print easily
-// fn lua_print(lua: &Lua, str: &str) -> LuaResult<()> {
-//   let print: Function = lua.globals().get("print")?;
-//   print.call::<_, ()>(str.to_lua(lua))?;
+fn lua_print(lua: &Lua, str: &str) -> LuaResult<()> {
+    let print: Function = lua.globals().get("print")?;
+    print.call::<_, ()>(str.to_lua(lua))?;
 
-//   Ok(())
-// }
+    Ok(())
+}
 
 fn get_remote_hash<'lua>(lua: &'lua Lua, args: (String, String)) -> LuaResult<LuaValue<'lua>> {
     let remote = args.0.clone();
@@ -38,16 +41,29 @@ fn get_remote_file_content<'lua>(
     lua: &'lua Lua,
     args: (String, String, String),
 ) -> LuaResult<LuaValue<'lua>> {
-    ContentsMessage {
-        remote: args.0,
-        hash: args.1,
-        path: args.2,
-    }
-    .request(lua)
+    let remote = args.0;
+    let hash = args.1;
+    let path = args.2;
+
+    let rt = tokio::runtime::Runtime::new().to_lua_err()?;
+    let remote_file = rt
+        .block_on(async { sg::get_remote_file_contents(&remote, &hash, &path).await })
+        .to_lua_err()
+        .expect("get_remote_file_content");
+
+    to_lua(lua, &remote_file)
 }
 
 fn get_remote_file<'lua>(lua: &'lua Lua, args: (String,)) -> LuaResult<LuaValue<'lua>> {
-    RemoteFileMessage { path: args.0 }.request(lua)
+    let path = args.0;
+    let rt = tokio::runtime::Runtime::new().to_lua_err()?;
+    let remote_file = rt
+        .block_on(async { uri_from_link(path.as_str(), get_commit_hash).await })
+        .to_lua_err()
+        .expect("remote_file: uri_from_link");
+
+    // to_lua(lua, &remote_file)
+    remote_file.to_lua(lua)
 }
 
 #[mlua::lua_module]
@@ -58,45 +74,12 @@ fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
     let exports = lua.create_table()?;
 
     exports.set("get_remote_hash", lua.create_function(get_remote_hash)?)?;
-
     exports.set(
         "get_remote_file_contents",
         lua.create_function(get_remote_file_content)?,
     )?;
 
     exports.set("get_remote_file", lua.create_function(get_remote_file)?)?;
-
-    // TODO: Understand this at some point would be good.
-    exports.set(
-        "docs",
-        lua.create_function(|lua, func: Function| {
-            let rt = tokio::runtime::Runtime::new().to_lua_err()?;
-            rt.block_on(async {
-                let lua: &'static Lua = unsafe { std::mem::transmute(lua) };
-                let tasks = Arc::new(Mutex::new(Vec::new()));
-                let tasks2 = tasks.clone();
-
-                let get = lua.create_function(move |_, (uri, cb): (String, Function)| {
-                    let mut inner_tasks = tasks2.lock().unwrap();
-                    inner_tasks.push(tokio::task::spawn_local(async move {
-                        let res = reqwest::get(&uri).await.and_then(|r| r.error_for_status());
-                        let body = res.to_lua_err()?.text().await.to_lua_err()?;
-                        cb.call::<_, ()>(body)
-                    }));
-                    Ok(())
-                })?;
-
-                let local = tokio::task::LocalSet::new();
-                local
-                    .run_until(async move {
-                        func.call(get)?;
-                        futures::future::join_all(&mut *tasks.lock().unwrap()).await;
-                        Ok(())
-                    })
-                    .await
-            })
-        })?,
-    )?;
 
     Ok(exports)
 }

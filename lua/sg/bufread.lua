@@ -1,30 +1,33 @@
 local filetype = require "plenary.filetype"
 local log = require "sg.log"
+local lsp = require "sg.lsp"
 
 local lib = require "libsg_nvim"
 
 local M = {}
 
 -- TODO: I don't know how to turn off this https://* stuff and not make netrw users mad
-pcall(
-  vim.cmd,
-  [[
-  autocmd! Network BufReadCmd https://*
-]]
-)
+pcall(vim.api.nvim_clear_autocmds, {
+  group = "Network",
+  event = "BufReadCmd",
+  pattern = "https://*",
+})
 
-vim.cmd [[
-  augroup Sourcegraph
-    au!
-    autocmd BufReadCmd sg://* lua (R or require)("sg.bufread").edit(vim.fn.expand("<amatch>"))
-    autocmd BufReadCmd https://sourcegraph.com/* lua (R or require)("sg.bufread").edit(vim.fn.expand("<amatch>"))
-  augroup END
-]]
+vim.api.nvim_create_autocmd("BufReadCmd", {
+  group = vim.api.nvim_create_augroup("sourcegraph-bufread", { clear = true }),
+  pattern = { "sg://*", "https://sourcegraph.com/*" },
+  callback = function()
+    M.edit(vim.fn.expand "<amatch>")
+  end,
+})
 
 M.edit = function(path)
-  log.info("BufReadCmd: ", path)
+  local remote_file = lsp.get_remote_file(path)
+  if not remote_file then
+    log.info "Failed to read remote file"
+    return
+  end
 
-  local remote_file = lib.get_remote_file(path)
   local bufnr = vim.api.nvim_get_current_buf()
 
   local normalized_bufname = remote_file:bufname()
@@ -34,7 +37,6 @@ M.edit = function(path)
     vim.api.nvim_win_set_buf(0, existing_bufnr)
     vim.api.nvim_buf_delete(bufnr, { force = true })
   else
-    log.info "... Make a new one"
     if path ~= normalized_bufname then
       vim.api.nvim_buf_set_name(bufnr, normalized_bufname)
     end

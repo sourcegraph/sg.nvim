@@ -12,6 +12,7 @@ use {
 };
 
 pub mod definition;
+pub mod references;
 
 static CLIENT: Lazy<Client> = Lazy::new(|| {
     if let Ok(sourcegraph_access_token) = std::env::var("SRC_ACCESS_TOKEN") {
@@ -197,7 +198,7 @@ impl RemoteFile {
     // }
 }
 
-fn normalize_url(url: &str) -> String {
+pub fn normalize_url(url: &str) -> String {
     // TODO: This is a bit ugly atm
     let re = Regex::new(r"^/").unwrap();
 
@@ -223,7 +224,7 @@ pub async fn uri_from_link<Fut>(
 where
     Fut: Future<Output = Result<String>>,
 {
-    let url = normalize_url(url);
+    // let url = normalize_url(url);
 
     let split: Vec<&str> = url.split("/-/").collect();
     if split.len() != 2 {

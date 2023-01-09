@@ -41,6 +41,7 @@
 //!
 //! {"jsonrpc": "2.0", "method": "exit", "params": null}
 //! ```
+
 use {
     log::{info, LevelFilter},
     log4rs::{
@@ -50,32 +51,32 @@ use {
     },
     lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response},
     lsp_types::{
-        request::GotoDefinition, GotoDefinitionResponse, InitializeParams, ServerCapabilities,
+        request::{GotoDefinition, References},
+        GotoDefinitionResponse, InitializeParams, ServerCapabilities,
     },
+    serde::{Deserialize, Serialize},
     std::error::Error,
 };
 
-// #[derive(Debug)]
-// pub enum SourcegraphRead {}
-//
-// #[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize)]
-// #[serde(rename_all = "camelCase")]
-// pub struct SourcegraphReadParams {
-//     #[serde(flatten)]
-//     pub name: String,
-// }
-//
-// #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-// #[serde(untagged)]
-// pub enum SourcegraphReadResponse {
-//     Something(String),
-// }
-//
-// impl Request for SourcegraphRead {
-//     type Params = SourcegraphReadParams;
-//     type Result = Option<SourceReadResponse>;
-//     const METHOD: &'static str = "$sourcegraph/read";
-// }
+#[derive(Debug)]
+pub enum SourcegraphRead {}
+
+#[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SourcegraphReadParams {
+    pub path: String,
+}
+
+#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+pub struct SourcegraphReadResponse {
+    pub normalized: String,
+}
+
+impl lsp_types::request::Request for SourcegraphRead {
+    type Params = SourcegraphReadParams;
+    type Result = Option<SourcegraphReadResponse>;
+    const METHOD: &'static str = "$sourcegraph/get_remote_file";
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
@@ -105,6 +106,7 @@ async fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
 
     // Note that  we must have our logging only write out to stderr.
     info!("starting generic LSP server");
+    info!("... just confirming this logs");
 
     // Create the transport. Includes the stdio (stdin and stdout) versions but this could
     // also be implemented to use sockets or HTTP.
@@ -113,9 +115,16 @@ async fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     // Run the server and wait for the two threads to end (typically by trigger LSP Exit event).
     let mut capabilities = ServerCapabilities::default();
     capabilities.definition_provider = Some(lsp_types::OneOf::Left(true));
+    capabilities.references_provider = Some(lsp_types::OneOf::Left(true));
 
     let server_capabilities = serde_json::to_value(&capabilities).unwrap();
-    let initialization_params = connection.initialize(server_capabilities)?;
+    let initialization_params = match connection.initialize(server_capabilities) {
+        Ok(params) => params,
+        Err(err) => {
+            info!("Failed with err: {:?}", err);
+            panic!("oh no no")
+        }
+    };
 
     main_loop(connection, initialization_params).await?;
     io_threads.join()?;
@@ -141,11 +150,8 @@ async fn main_loop(
                     return Ok(());
                 }
 
-                info!("got request: {:?}", req);
-                match cast::<GotoDefinition>(req) {
+                let req = match cast::<GotoDefinition>(req) {
                     Ok((id, params)) => {
-                        info!("===========================");
-                        info!("got gotoDefinition request #{}: {:?}", id, params);
                         let params = params.text_document_position_params;
                         let uri = params.text_document.uri;
                         let definitions = sg::definition::get_definitions(
@@ -154,8 +160,6 @@ async fn main_loop(
                             params.position.character as i64,
                         )
                         .await?;
-
-                        info!("Made it past defintiions");
 
                         let result = Some(GotoDefinitionResponse::Array(definitions));
                         let result = serde_json::to_value(&result).unwrap();
@@ -167,8 +171,55 @@ async fn main_loop(
                         connection.sender.send(Message::Response(resp))?;
                         continue;
                     }
-                    Err(req) => req,
+                    Err(ExtractError::MethodMismatch(req)) => req,
+                    Err(req) => panic!("error: {:?}", req),
                 };
+
+                let req = match cast::<References>(req) {
+                    Ok((id, params)) => {
+                        let params = params.text_document_position;
+                        let uri = params.text_document.uri;
+                        let references = sg::references::get_references(
+                            uri.to_string(),
+                            params.position.line as i64,
+                            params.position.character as i64,
+                        )
+                        .await?;
+
+                        let result = Some(references);
+                        let result = serde_json::to_value(&result).unwrap();
+                        let resp = Response {
+                            id,
+                            result: Some(result),
+                            error: None,
+                        };
+                        connection.sender.send(Message::Response(resp))?;
+                        continue;
+                    }
+                    Err(ExtractError::MethodMismatch(req)) => req,
+                    Err(req) => panic!("error: {:?}", req),
+                };
+
+                match cast::<SourcegraphRead>(req) {
+                    Ok((id, params)) => {
+                        info!("===========================");
+                        info!("got sourcegraph read request #{}: {:?}", id, params);
+                        let resp = Some(SourcegraphReadResponse {
+                            normalized: sg::normalize_url(&params.path),
+                        });
+                        let resp = serde_json::to_value(&resp).unwrap();
+                        let resp = Response {
+                            id,
+                            result: Some(resp),
+                            error: None,
+                        };
+                        connection.sender.send(Message::Response(resp))?;
+                        continue;
+                    }
+                    // Err(ExtractError::MethodMismatch(req)) => req,
+                    Err(req) => info!("Failed to parse sg msg with: {:?}", req),
+                };
+
                 // ...
             }
             Message::Response(resp) => {
@@ -179,6 +230,8 @@ async fn main_loop(
             }
         }
     }
+
+    info!("ALL DONE");
     Ok(())
 }
 
