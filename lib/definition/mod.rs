@@ -1,19 +1,14 @@
-use anyhow::Context;
-use anyhow::Result;
-use graphql_client::reqwest::post_graphql;
-use graphql_client::GraphQLQuery;
-use interprocess::local_socket::LocalSocketStream;
-use log::info;
-use lsp_types::Location;
-use lsp_types::Url;
-
-use crate::get_commit_hash;
-use crate::uri_from_link;
-use crate::RemoteFile;
-use crate::RemoteFileMessage;
-use crate::RemoteMessage;
-use crate::CLIENT;
-use crate::DAEMON_SOCKET;
+use {
+    crate::{
+        get_commit_hash, uri_from_link, RemoteFile, RemoteFileMessage, RemoteMessage, CLIENT,
+        DAEMON_SOCKET,
+    },
+    anyhow::{Context, Result},
+    graphql_client::{reqwest::post_graphql, GraphQLQuery},
+    interprocess::local_socket::LocalSocketStream,
+    log::info,
+    lsp_types::{Location, Url},
+};
 
 #[derive(GraphQLQuery)]
 #[graphql(
@@ -100,7 +95,9 @@ pub async fn get_definitions(uri: String, line: i64, character: i64) -> Result<V
     let mut definitions: Vec<Location> = Vec::new();
     for node in nodes {
         info!("Checking out node: {:?}", node);
-        let range = node.range.context("Missing range for some IDIOTIC reason??? ME???")?;
+        let range = node
+            .range
+            .context("Missing range for some IDIOTIC reason??? ME???")?;
 
         let sg_url = format!("sg:/{}", node.url);
 

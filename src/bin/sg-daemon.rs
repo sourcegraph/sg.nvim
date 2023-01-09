@@ -1,16 +1,11 @@
 extern crate rmp;
 
-use std::error::Error;
-use std::io;
-
-use interprocess::local_socket::LocalSocketListener;
-use interprocess::local_socket::LocalSocketStream;
-use rmpv;
-use sg::ContentsMessage;
-use sg::HashMessage;
-use sg::RemoteFileMessage;
-use sg::RemoteMessage;
-use sg::DAEMON_SOCKET;
+use {
+    interprocess::local_socket::{LocalSocketListener, LocalSocketStream},
+    rmpv,
+    sg::{ContentsMessage, HashMessage, RemoteFileMessage, RemoteMessage, DAEMON_SOCKET},
+    std::{error::Error, io},
+};
 
 fn handle_error(conn: io::Result<LocalSocketStream>) -> Option<LocalSocketStream> {
     match conn {
@@ -60,7 +55,12 @@ async fn main() -> Result<(), Box<dyn Error>> {
                 //     println!("Complete: {:?} {:?}", ContentsMessage::NAME, res);
                 //   }
                 // }
-                match_messages!(conn, arr, command, [HashMessage, ContentsMessage, RemoteFileMessage]);
+                match_messages!(
+                    conn,
+                    arr,
+                    command,
+                    [HashMessage, ContentsMessage, RemoteFileMessage]
+                );
             }
 
             _ => {

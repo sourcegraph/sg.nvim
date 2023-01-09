@@ -1,5 +1,5 @@
-max_width = 120
-imports_granularity = "Item"
+max_width = 100
+imports_granularity = "One"
 reorder_imports = true
 group_imports = "StdExternalCrate"
 tab_spaces = 4

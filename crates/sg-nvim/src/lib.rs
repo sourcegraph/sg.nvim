@@ -1,20 +1,12 @@
 // use once_cell::sync::OnceCell;
 
-use std::sync::Arc;
-use std::sync::Mutex;
-
-use mlua::prelude::*;
-use mlua::Function;
-use mlua::LuaSerdeExt;
-use mlua::SerializeOptions;
-use mlua::Value;
-use reqwest;
-use serde::Serialize;
-use sg;
-use sg::ContentsMessage;
-use sg::HashMessage;
-use sg::RemoteFileMessage;
-use sg::RemoteMessage;
+use {
+    mlua::{prelude::*, Function, LuaSerdeExt, SerializeOptions, Value},
+    reqwest,
+    serde::Serialize,
+    sg::{self, ContentsMessage, HashMessage, RemoteFileMessage, RemoteMessage},
+    std::sync::{Arc, Mutex},
+};
 
 // TODO: I would like to be able to do something like this and make a constant.
 // but that is apparently impossible
@@ -42,7 +34,10 @@ fn get_remote_hash<'lua>(lua: &'lua Lua, args: (String, String)) -> LuaResult<Lu
     HashMessage { remote, hash }.request(lua)
 }
 
-fn get_remote_file_content<'lua>(lua: &'lua Lua, args: (String, String, String)) -> LuaResult<LuaValue<'lua>> {
+fn get_remote_file_content<'lua>(
+    lua: &'lua Lua,
+    args: (String, String, String),
+) -> LuaResult<LuaValue<'lua>> {
     ContentsMessage {
         remote: args.0,
         hash: args.1,

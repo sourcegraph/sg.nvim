@@ -1,18 +1,15 @@
-use std::future::Future;
-use std::sync::Arc;
-
-use ::reqwest::Client;
-use anyhow::Context;
-use anyhow::Result;
-use async_trait::async_trait;
-use graphql_client::reqwest::post_graphql;
-use graphql_client::GraphQLQuery;
-use interprocess::local_socket::LocalSocketStream;
-use mlua::prelude::*;
-use mlua::UserData;
-use once_cell::sync::Lazy;
-use regex::Regex;
-use serde;
+use {
+    ::reqwest::Client,
+    anyhow::{Context, Result},
+    async_trait::async_trait,
+    graphql_client::{reqwest::post_graphql, GraphQLQuery},
+    interprocess::local_socket::LocalSocketStream,
+    mlua::{prelude::*, UserData},
+    once_cell::sync::Lazy,
+    regex::Regex,
+    serde,
+    std::{future::Future, sync::Arc},
+};
 
 pub mod definition;
 
@@ -22,14 +19,20 @@ static CLIENT: Lazy<Client> = Lazy::new(|| {
             .default_headers(
                 std::iter::once((
                     reqwest::header::AUTHORIZATION,
-                    reqwest::header::HeaderValue::from_str(&format!("Bearer {}", sourcegraph_access_token)).unwrap(),
+                    reqwest::header::HeaderValue::from_str(&format!(
+                        "Bearer {}",
+                        sourcegraph_access_token
+                    ))
+                    .unwrap(),
                 ))
                 .collect(),
             )
             .build()
             .expect("to be able to create the client")
     } else {
-        Client::builder().build().expect("to be able to create the client")
+        Client::builder()
+            .build()
+            .expect("to be able to create the client")
     }
 });
 
@@ -49,7 +52,9 @@ impl UserData for RemoteFile {
         let r = Arc::new(tokio::runtime::Runtime::new().unwrap());
 
         methods.add_method("bufname", |lua, t, ()| t.bufname().to_lua(lua));
-        methods.add_method("sourcegraph_url", |lua, t, ()| t.sourcegraph_url().to_lua(lua));
+        methods.add_method("sourcegraph_url", |lua, t, ()| {
+            t.sourcegraph_url().to_lua(lua)
+        });
 
         let read_runtime = r.clone();
         methods.add_method("read", move |_, remote_file, ()| {
@@ -124,7 +129,11 @@ pub async fn get_commit_hash(remote: String, revision: String) -> Result<String>
         .oid)
 }
 
-pub async fn get_remote_file_contents(remote: &str, commit: &str, path: &str) -> Result<Vec<String>> {
+pub async fn get_remote_file_contents(
+    remote: &str,
+    commit: &str,
+    path: &str,
+) -> Result<Vec<String>> {
     let response_body = post_graphql::<FileQuery, _>(
         &CLIENT,
         "https://sourcegraph.com/.api/graphql",
@@ -207,7 +216,10 @@ fn normalize_url(url: &str) -> String {
 //   Ok(commit.to_string())
 // }
 
-pub async fn uri_from_link<Fut>(url: &str, converter: fn(String, String) -> Fut) -> Result<RemoteFile>
+pub async fn uri_from_link<Fut>(
+    url: &str,
+    converter: fn(String, String) -> Fut,
+) -> Result<RemoteFile>
 where
     Fut: Future<Output = Result<String>>,
 {
@@ -236,7 +248,9 @@ where
     let path_and_args: Vec<&str> = replaced_path.split("?").collect();
 
     if path_and_args.len() > 2 {
-        return Err(anyhow::anyhow!("Too many question marks. Please don't do that"));
+        return Err(anyhow::anyhow!(
+            "Too many question marks. Please don't do that"
+        ));
     }
 
     // TODO: Check out split_once for some stuff here.
@@ -520,7 +534,8 @@ mod test {
 
     #[tokio::test]
     async fn can_get_lines_and_columns() -> Result<()> {
-        let test_case = "sg://github.com/sourcegraph/sourcegraph@main/-/blob/dev/sg/rfc.go?L29:2".to_string();
+        let test_case =
+            "sg://github.com/sourcegraph/sourcegraph@main/-/blob/dev/sg/rfc.go?L29:2".to_string();
 
         let remote_file = uri_from_link(&test_case, return_raw_commit).await?;
         assert_eq!(remote_file.remote, "github.com/sourcegraph/sourcegraph");

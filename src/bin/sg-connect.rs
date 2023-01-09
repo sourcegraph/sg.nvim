@@ -1,13 +1,13 @@
 extern crate rmp;
 
-use std::env;
-use std::error::Error;
-
 // use std::io::prelude::*;
 // use std::io::BufReader;
 use interprocess::local_socket::LocalSocketStream;
-use rmpv;
-use sg::DAEMON_SOCKET;
+use {
+    rmpv,
+    sg::DAEMON_SOCKET,
+    std::{env, error::Error},
+};
 
 fn main() -> Result<(), Box<dyn Error>> {
     let args: Vec<String> = env::args().collect();
@@ -18,7 +18,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         "hash" => {
             println!("Getting the hash...");
 
-            let val = rmpv::Value::Array(vec!["hash".into(), args[2].clone().into(), args[3].clone().into()]);
+            let val = rmpv::Value::Array(vec![
+                "hash".into(),
+                args[2].clone().into(),
+                args[3].clone().into(),
+            ]);
 
             // Send request
             rmpv::encode::write_value(&mut conn, &val)?;

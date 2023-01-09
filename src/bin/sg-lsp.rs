@@ -41,24 +41,41 @@
 //!
 //! {"jsonrpc": "2.0", "method": "exit", "params": null}
 //! ```
-use std::error::Error;
+use {
+    log::{info, LevelFilter},
+    log4rs::{
+        append::file::FileAppender,
+        config::{Appender, Config, Root},
+        encode::pattern::PatternEncoder,
+    },
+    lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response},
+    lsp_types::{
+        request::GotoDefinition, GotoDefinitionResponse, InitializeParams, ServerCapabilities,
+    },
+    std::error::Error,
+};
 
-use log::info;
-use log::LevelFilter;
-use log4rs::append::file::FileAppender;
-use log4rs::config::Appender;
-use log4rs::config::Config;
-use log4rs::config::Root;
-use log4rs::encode::pattern::PatternEncoder;
-use lsp_server::Connection;
-use lsp_server::Message;
-use lsp_server::Request;
-use lsp_server::RequestId;
-use lsp_server::Response;
-use lsp_types::request::GotoDefinition;
-use lsp_types::GotoDefinitionResponse;
-use lsp_types::InitializeParams;
-use lsp_types::ServerCapabilities;
+// #[derive(Debug)]
+// pub enum SourcegraphRead {}
+//
+// #[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize)]
+// #[serde(rename_all = "camelCase")]
+// pub struct SourcegraphReadParams {
+//     #[serde(flatten)]
+//     pub name: String,
+// }
+//
+// #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+// #[serde(untagged)]
+// pub enum SourcegraphReadResponse {
+//     Something(String),
+// }
+//
+// impl Request for SourcegraphRead {
+//     type Params = SourcegraphReadParams;
+//     type Result = Option<SourceReadResponse>;
+//     const METHOD: &'static str = "$sourcegraph/read";
+// }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
@@ -73,7 +90,11 @@ async fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
 
     let config = Config::builder()
         .appender(Appender::builder().build("logfile", Box::new(logfile)))
-        .build(Root::builder().appender("logfile").build(LevelFilter::Trace))
+        .build(
+            Root::builder()
+                .appender("logfile")
+                .build(LevelFilter::Trace),
+        )
         .unwrap();
 
     // Use this to change log levels at runtime.
@@ -104,7 +125,10 @@ async fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     Ok(())
 }
 
-async fn main_loop(connection: Connection, params: serde_json::Value) -> Result<(), Box<dyn Error + Sync + Send>> {
+async fn main_loop(
+    connection: Connection,
+    params: serde_json::Value,
+) -> Result<(), Box<dyn Error + Sync + Send>> {
     let _params: InitializeParams = serde_json::from_value(params).unwrap();
     // info!("starting example main loop {:?}", params);
     info!("Starting main loop...");
@@ -158,7 +182,7 @@ async fn main_loop(connection: Connection, params: serde_json::Value) -> Result<
     Ok(())
 }
 
-fn cast<R>(req: Request) -> Result<(RequestId, R::Params), Request>
+fn cast<R>(req: Request) -> Result<(RequestId, R::Params), ExtractError<Request>>
 where
     R: lsp_types::request::Request,
     R::Params: serde::de::DeserializeOwned,

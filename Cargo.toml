@@ -6,25 +6,31 @@ edition = "2018"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-anyhow = "1.0.40"
-graphql_client = { version = "0.10.0", features = ["reqwest", "reqwest-blocking"] }
-memoize = "0.1.7"
+mlua.workspace = true
+tokio.workspace = true
+rmp.workspace = true
+rmpv.workspace = true
+
+anyhow = "1"
+graphql_client = { version = "0.11.0", features = ["reqwest", "reqwest-blocking"] }
 regex = "1.4.6"
 reqwest = "0.11.3"
 serde = "1.0.125"
-tokio = { version = "1", features = ["full"] }
-mlua = { version = "0.6", features = ["luajit", "vendored", "module", "serialize", "async"] }
 interprocess = { version = "1.1.1", features = ["nonblocking"] }
-rmp = "0.8.10"
-rmpv = "0.4.7"
 futures = "0.3.17"
 async-trait = "0.1.51"
-lsp-server = "0.5.2"
-lsp-types = "0.89.2"
-serde_json = "1.0.68"
-log4rs = "1.0.0"
-log = "0.4.14"
-once_cell = "1.9.0"
+lsp-server = "0.6.0"
+lsp-types = "0.93.2"
+serde_json = "1.0"
+log4rs = "1.2"
+log = "0.4"
+once_cell = "1"
+
+[workspace.dependencies]
+mlua = { version = "0.8", features = ["luajit", "vendored", "module", "serialize", "async"] }
+rmp = "0.8.10"
+rmpv = "1.0.0"
+tokio = { version = "1", features = ["full"] }
 
 [lib]
 name = "sg"
