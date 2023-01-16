@@ -3,7 +3,7 @@
 use {
     mlua::{prelude::*, Function, LuaSerdeExt, SerializeOptions, Value},
     serde::Serialize,
-    sg::{self, get_commit_hash, search, uri_from_link, HashMessage},
+    sg::{self, get_commit_hash, search, uri_from_link},
 };
 
 // TODO: I would like to be able to do something like this and make a constant.

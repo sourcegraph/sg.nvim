@@ -289,7 +289,7 @@ mod test {
     use super::*;
 
     async fn return_raw_commit(_remote: String, commit: String) -> Result<String> {
-        Ok(commit.to_string())
+        Ok(commit)
     }
 
     #[tokio::test]

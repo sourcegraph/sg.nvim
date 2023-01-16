@@ -2,7 +2,6 @@ use {
     crate::CLIENT,
     anyhow::{Context, Result},
     graphql_client::{reqwest::post_graphql, GraphQLQuery},
-    lsp_types::Location,
 };
 
 #[derive(GraphQLQuery)]

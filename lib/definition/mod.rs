@@ -65,7 +65,7 @@ pub async fn get_definitions(uri: String, line: i64, character: i64) -> Result<V
         // let sg_url = format!("sg:/{}", node.url);
 
         let (_, sg_url) = node.url.split_at(1);
-        let node_remote = uri_from_link(&sg_url, get_commit_hash).await?;
+        let node_remote = uri_from_link(sg_url, get_commit_hash).await?;
         info!("Node Remote: {:?}", node_remote);
 
         definitions.push(Location {
