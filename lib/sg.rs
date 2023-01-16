@@ -12,27 +12,53 @@ pub mod definition;
 pub mod references;
 pub mod search;
 
-static CLIENT: Lazy<Client> = Lazy::new(|| {
-    if let Ok(sourcegraph_access_token) = std::env::var("SRC_ACCESS_TOKEN") {
-        Client::builder()
-            .default_headers(
-                std::iter::once((
-                    reqwest::header::AUTHORIZATION,
-                    reqwest::header::HeaderValue::from_str(&format!(
-                        "Bearer {sourcegraph_access_token}",
+mod graphql {
+    use super::*;
+
+    static GRAPHQL_ENDPOINT: Lazy<String> = Lazy::new(|| {
+        let endpoint = get_endpoint().unwrap_or("https://sourcegraph.com/".to_string());
+        format!("{endpoint}/.api/graphql")
+    });
+
+    static CLIENT: Lazy<Client> = Lazy::new(|| {
+        if let Ok(sourcegraph_access_token) = get_access_token() {
+            Client::builder()
+                .default_headers(
+                    std::iter::once((
+                        reqwest::header::AUTHORIZATION,
+                        reqwest::header::HeaderValue::from_str(&format!(
+                            "Bearer {sourcegraph_access_token}",
+                        ))
+                        .unwrap(),
                     ))
-                    .unwrap(),
-                ))
-                .collect(),
-            )
-            .build()
-            .expect("to be able to create the client")
-    } else {
-        Client::builder()
-            .build()
-            .expect("to be able to create the client")
+                    .collect(),
+                )
+                .build()
+                .expect("to be able to create the client")
+        } else {
+            Client::builder()
+                .build()
+                .expect("to be able to create the client")
+        }
+    });
+
+    pub async fn get_graphql<Q: GraphQLQuery>(variables: Q::Variables) -> Result<Q::ResponseData> {
+        post_graphql::<Q, _>(&CLIENT, GRAPHQL_ENDPOINT.to_string(), variables)
+            .await?
+            .data
+            .context("get_graphql -> data")
     }
-});
+}
+
+pub use graphql::get_graphql;
+
+pub fn get_access_token() -> Result<String> {
+    std::env::var("SOURCEGRAPH_ACCESS_TOKEN").context("No access token found")
+}
+
+pub fn get_endpoint() -> Result<String> {
+    std::env::var("SRC_ENDPOINT").context("No endpoint found")
+}
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
 pub struct RemoteFile {
@@ -103,19 +129,13 @@ pub async fn get_commit_hash(remote: String, revision: String) -> Result<String>
         return Ok(revision.to_owned());
     }
 
-    let response_body = post_graphql::<CommitQuery, _>(
-        &CLIENT,
-        "https://sourcegraph.com/.api/graphql",
-        commit_query::Variables {
-            name: remote.to_string(),
-            rev: revision.to_string(),
-        },
-    )
+    let response_body = get_graphql::<CommitQuery>(commit_query::Variables {
+        name: remote.to_string(),
+        rev: revision.to_string(),
+    })
     .await?;
 
     Ok(response_body
-        .data
-        .context("No data")?
         .repository
         .context("No matching repository found")?
         .commit
@@ -128,20 +148,14 @@ pub async fn get_remote_file_contents(
     commit: &str,
     path: &str,
 ) -> Result<Vec<String>> {
-    let response_body = post_graphql::<FileQuery, _>(
-        &CLIENT,
-        "https://sourcegraph.com/.api/graphql",
-        file_query::Variables {
-            name: remote.to_string(),
-            rev: commit.to_string(),
-            path: path.to_string(),
-        },
-    )
+    let response_body = get_graphql::<FileQuery>(file_query::Variables {
+        name: remote.to_string(),
+        rev: commit.to_string(),
+        path: path.to_string(),
+    })
     .await?;
 
     Ok(response_body
-        .data
-        .context("No data")?
         .repository
         .context("No matching repository found")?
         .commit

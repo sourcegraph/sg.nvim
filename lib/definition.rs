@@ -1,7 +1,7 @@
 use {
-    crate::{get_commit_hash, uri_from_link, CLIENT},
+    crate::{get_commit_hash, get_graphql, uri_from_link},
     anyhow::{Context, Result},
-    graphql_client::{reqwest::post_graphql, GraphQLQuery},
+    graphql_client::GraphQLQuery,
     log::info,
     lsp_types::{Location, Url},
 };
@@ -27,23 +27,17 @@ pub async fn get_definitions(uri: String, line: i64, character: i64) -> Result<V
     let remote_file = uri_from_link(&uri, get_commit_hash).await?;
     info!("Remote File: {:?}", remote_file);
 
-    let response_body = post_graphql::<DefinitionQuery, _>(
-        &CLIENT,
-        "https://sourcegraph.com/.api/graphql",
-        definition_query::Variables {
-            repository: remote_file.remote,
-            revision: remote_file.commit,
-            path: remote_file.path,
-            line,
-            character,
-        },
-    )
+    let response_body = get_graphql::<DefinitionQuery>(definition_query::Variables {
+        repository: remote_file.remote,
+        revision: remote_file.commit,
+        path: remote_file.path,
+        line,
+        character,
+    })
     .await?;
 
     info!("Got a responsew!");
     let nodes = response_body
-        .data
-        .context("definition.data")?
         .repository
         .context("No matching repository")?
         .commit

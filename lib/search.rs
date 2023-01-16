@@ -1,7 +1,7 @@
 use {
-    crate::CLIENT,
+    crate::get_graphql,
     anyhow::{Context, Result},
-    graphql_client::{reqwest::post_graphql, GraphQLQuery},
+    graphql_client::GraphQLQuery,
 };
 
 #[derive(GraphQLQuery)]
@@ -23,20 +23,8 @@ pub struct SearchResult {
 pub async fn get_search(query: &str) -> Result<Vec<SearchResult>> {
     let query = query.to_string();
 
-    let response_body = post_graphql::<SearchQuery, _>(
-        &CLIENT,
-        "https://sourcegraph.com/.api/graphql",
-        search_query::Variables { query },
-    )
-    .await?;
-
-    let results = response_body
-        .data
-        .context("data")?
-        .search
-        .context("search")?
-        .results
-        .results;
+    let response_body = get_graphql::<SearchQuery>(search_query::Variables { query }).await?;
+    let results = response_body.search.context("search")?.results.results;
 
     let mut matches = vec![];
     for result in results {
