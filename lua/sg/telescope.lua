@@ -1,9 +1,13 @@
 local defaulter = require("telescope.utils").make_default_callable
+local from_entry = require "telescope.from_entry"
 local previewers = require "telescope.previewers"
 local putils = require "telescope.previewers.utils"
-local from_entry = require "telescope.from_entry"
-
-local log = require "sg.log"
+local conf = require("telescope.config").values
+local finders = require "telescope.finders"
+local entry_display = require "telescope.pickers.entry_display"
+local actions = require "telescope.actions"
+local action_state = require "telescope.actions.state"
+local action_set = require "telescope.actions.set"
 
 local telescope = {}
 
@@ -67,5 +71,63 @@ telescope.sg_references = function(opts)
     layout_strategy = "vertical",
   }
 end
+
+telescope.fuzzy_search_results = function(opts)
+  opts = opts or {}
+  local input = opts.input or vim.fn.input "Search > "
+  local search_results = require("libsg_nvim").get_search(input)
+
+  local displayer = entry_display.create {
+    separator = "|",
+    items = {
+      { width = 10 },
+      { width = 15 },
+      { remaining = true },
+    },
+  }
+
+  local display = function(entry)
+    entry = entry.value
+
+    return displayer {
+      { entry.repo, "TelescopeResultsLineNr" },
+      { entry.file, "TelescopeResultsIdentifier" },
+      entry.preview,
+    }
+  end
+
+  require("telescope.pickers")
+    .new({
+      sorter = conf.file_sorter(opts),
+
+      finder = finders.new_table {
+        results = search_results,
+        entry_maker = function(entry)
+          print(string.format("sg://%s/-/%s", entry.repo, entry.file))
+          return {
+            value = entry,
+            ordinal = string.format("%s %s", entry.file, entry.preview),
+            display = display,
+            filename = string.format("sg://%s/-/%s", entry.repo, entry.file),
+            row = entry.line + 1,
+          }
+        end,
+      },
+      attach_mappings = function()
+        --       actions.select_default:replace(function(prompt_bufnr)
+        --         local selection = action_state.get_selected_entry()
+        --         local entry = selection.value
+        --         local uri =
+        -- return action_set.edit(prompt_bufnr, "edit")
+        --         vim.cmd.edit(uri)
+        --       end)
+
+        return true
+      end,
+    }, {})
+    :find()
+end
+
+telescope.fuzzy_search_results {}
 
 return telescope

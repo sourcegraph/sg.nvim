@@ -2,13 +2,8 @@
 
 use {
     mlua::{prelude::*, Function, LuaSerdeExt, SerializeOptions, Value},
-    reqwest,
     serde::Serialize,
-    sg::{
-        self, get_commit_hash, uri_from_link, ContentsMessage, HashMessage, RemoteFileMessage,
-        RemoteMessage,
-    },
-    std::sync::{Arc, Mutex},
+    sg::{self, get_commit_hash, search, uri_from_link, HashMessage, RemoteMessage},
 };
 
 // TODO: I would like to be able to do something like this and make a constant.
@@ -23,6 +18,7 @@ where
 }
 
 // This is how you can print easily
+#[allow(unused)]
 fn lua_print(lua: &Lua, str: &str) -> LuaResult<()> {
     let print: Function = lua.globals().get("print")?;
     print.call::<_, ()>(str.to_lua(lua))?;
@@ -30,17 +26,14 @@ fn lua_print(lua: &Lua, str: &str) -> LuaResult<()> {
     Ok(())
 }
 
-fn get_remote_hash<'lua>(lua: &'lua Lua, args: (String, String)) -> LuaResult<LuaValue<'lua>> {
+fn get_remote_hash(lua: &Lua, args: (String, String)) -> LuaResult<LuaValue> {
     let remote = args.0.clone();
-    let hash = args.1.clone();
+    let hash = args.1;
 
     HashMessage { remote, hash }.request(lua)
 }
 
-fn get_remote_file_content<'lua>(
-    lua: &'lua Lua,
-    args: (String, String, String),
-) -> LuaResult<LuaValue<'lua>> {
+fn get_remote_file_content(lua: &Lua, args: (String, String, String)) -> LuaResult<LuaValue> {
     let remote = args.0;
     let hash = args.1;
     let path = args.2;
@@ -54,7 +47,7 @@ fn get_remote_file_content<'lua>(
     to_lua(lua, &remote_file)
 }
 
-fn get_remote_file<'lua>(lua: &'lua Lua, args: (String,)) -> LuaResult<LuaValue<'lua>> {
+fn get_remote_file(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
     let path = args.0;
     let rt = tokio::runtime::Runtime::new().to_lua_err()?;
     let remote_file = rt
@@ -64,6 +57,29 @@ fn get_remote_file<'lua>(lua: &'lua Lua, args: (String,)) -> LuaResult<LuaValue<
 
     // to_lua(lua, &remote_file)
     remote_file.to_lua(lua)
+}
+
+fn get_search(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
+    let path = args.0;
+    let rt = tokio::runtime::Runtime::new().to_lua_err()?;
+    let search_results = rt
+        .block_on(async { search::get_search(path.as_str()).await })
+        .to_lua_err()
+        .expect("remote_file: uri_from_link");
+
+    Ok(search_results
+        .into_iter()
+        .map(|res| {
+            let mapped = lua.create_table().unwrap();
+            mapped.set("repo", res.repo).unwrap();
+            mapped.set("file", res.file).unwrap();
+            mapped.set("preview", res.preview).unwrap();
+            mapped.set("line", res.line).unwrap();
+            mapped
+        })
+        .collect::<Vec<_>>()
+        .to_lua(lua)
+        .unwrap())
 }
 
 #[mlua::lua_module]
@@ -80,6 +96,7 @@ fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
     )?;
 
     exports.set("get_remote_file", lua.create_function(get_remote_file)?)?;
+    exports.set("get_search", lua.create_function(get_search)?)?;
 
     Ok(exports)
 }

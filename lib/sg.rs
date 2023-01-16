@@ -13,6 +13,7 @@ use {
 
 pub mod definition;
 pub mod references;
+pub mod search;
 
 static CLIENT: Lazy<Client> = Lazy::new(|| {
     if let Ok(sourcegraph_access_token) = std::env::var("SRC_ACCESS_TOKEN") {
@@ -203,8 +204,7 @@ pub fn normalize_url(url: &str) -> String {
     let re = Regex::new(r"^/").unwrap();
 
     re.replace_all(
-        &url.clone()
-            .to_string()
+        &url.to_string()
             .replace("//gh/", "//github.com/")
             .replace("https://sourcegraph.com/", "")
             .replace("sg://", ""),
@@ -232,7 +232,7 @@ where
     }
 
     let remote_with_commit = split[0].to_string();
-    let mut split_remote: Vec<&str> = remote_with_commit.split("@").collect();
+    let mut split_remote: Vec<&str> = remote_with_commit.split('@').collect();
     let remote = split_remote.remove(0).to_string();
     let commit = converter(
         remote.clone(),
@@ -246,7 +246,7 @@ where
 
     let prefix_regex = Regex::new("^(blob|tree)/")?;
     let replaced_path = prefix_regex.replace(split[1], "");
-    let path_and_args: Vec<&str> = replaced_path.split("?").collect();
+    let path_and_args: Vec<&str> = replaced_path.split('?').collect();
 
     if path_and_args.len() > 2 {
         return Err(anyhow::anyhow!(

@@ -106,7 +106,6 @@ async fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
 
     // Note that  we must have our logging only write out to stderr.
     info!("starting generic LSP server");
-    info!("... just confirming this logs");
 
     // Create the transport. Includes the stdio (stdin and stdout) versions but this could
     // also be implemented to use sockets or HTTP.
@@ -121,8 +120,11 @@ async fn main() -> Result<(), Box<dyn Error + Sync + Send>> {
     let initialization_params = match connection.initialize(server_capabilities) {
         Ok(params) => params,
         Err(err) => {
+            // Yes, leave the log in since the panic message is often lost when running
+            // the lsp
             info!("Failed with err: {:?}", err);
-            panic!("oh no no")
+
+            panic!("Failed with err: {:?}", err)
         }
     };
 
@@ -139,7 +141,6 @@ async fn main_loop(
     params: serde_json::Value,
 ) -> Result<(), Box<dyn Error + Sync + Send>> {
     let _params: InitializeParams = serde_json::from_value(params).unwrap();
-    // info!("starting example main loop {:?}", params);
     info!("Starting main loop...");
 
     for msg in &connection.receiver {
@@ -200,10 +201,9 @@ async fn main_loop(
                     Err(req) => panic!("error: {:?}", req),
                 };
 
-                match cast::<SourcegraphRead>(req) {
+                let req = match cast::<SourcegraphRead>(req) {
                     Ok((id, params)) => {
-                        info!("===========================");
-                        info!("got sourcegraph read request #{}: {:?}", id, params);
+                        info!("Reading sg:// -> {} ", params.path);
                         let resp = Some(SourcegraphReadResponse {
                             normalized: sg::normalize_url(&params.path),
                         });
@@ -216,9 +216,11 @@ async fn main_loop(
                         connection.sender.send(Message::Response(resp))?;
                         continue;
                     }
-                    // Err(ExtractError::MethodMismatch(req)) => req,
-                    Err(req) => info!("Failed to parse sg msg with: {:?}", req),
+                    Err(ExtractError::MethodMismatch(req)) => req,
+                    Err(req) => panic!("Failed to parse sg msg with: {:?}", req),
                 };
+
+                _ = req
 
                 // ...
             }

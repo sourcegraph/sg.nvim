@@ -1,0 +1,21 @@
+query SearchQuery($query: String!) {
+    search(query: $query, version: V2) {
+        results {
+            results {
+                __typename
+                ... on FileMatch {
+                    file {
+                        path
+                    }
+                    repository {
+                        name
+                    }
+                    lineMatches {
+                        preview
+                        lineNumber
+                    }
+                }
+            }
+        }
+    }
+}
