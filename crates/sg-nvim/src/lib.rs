@@ -3,7 +3,7 @@
 use {
     mlua::{prelude::*, Function, LuaSerdeExt, SerializeOptions, Value},
     serde::Serialize,
-    sg::{self, get_commit_hash, search, uri_from_link, HashMessage, RemoteMessage},
+    sg::{self, get_commit_hash, search, uri_from_link, HashMessage},
 };
 
 // TODO: I would like to be able to do something like this and make a constant.
@@ -24,13 +24,6 @@ fn lua_print(lua: &Lua, str: &str) -> LuaResult<()> {
     print.call::<_, ()>(str.to_lua(lua))?;
 
     Ok(())
-}
-
-fn get_remote_hash(lua: &Lua, args: (String, String)) -> LuaResult<LuaValue> {
-    let remote = args.0.clone();
-    let hash = args.1;
-
-    HashMessage { remote, hash }.request(lua)
 }
 
 fn get_remote_file_content(lua: &Lua, args: (String, String, String)) -> LuaResult<LuaValue> {
@@ -89,7 +82,6 @@ fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
 
     let exports = lua.create_table()?;
 
-    exports.set("get_remote_hash", lua.create_function(get_remote_hash)?)?;
     exports.set(
         "get_remote_file_contents",
         lua.create_function(get_remote_file_content)?,
