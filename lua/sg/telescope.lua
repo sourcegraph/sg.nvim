@@ -80,8 +80,8 @@ telescope.fuzzy_search_results = function(opts)
   local displayer = entry_display.create {
     separator = "|",
     items = {
-      { width = 10 },
-      { width = 15 },
+      { width = 20 },
+      { width = 20 },
       { remaining = true },
     },
   }
@@ -127,7 +127,5 @@ telescope.fuzzy_search_results = function(opts)
     }, {})
     :find()
 end
-
-telescope.fuzzy_search_results {}
 
 return telescope

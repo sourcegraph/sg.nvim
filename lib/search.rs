@@ -55,6 +55,15 @@ pub async fn get_search(query: &str) -> Result<Vec<SearchResult>> {
                         line: line.line_number as usize,
                     });
                 }
+
+                for symbol in m.symbols {
+                    matches.push(SearchResult {
+                        repo: m.repository.name.clone(),
+                        file: m.file.path.clone(),
+                        preview: symbol.name,
+                        line: symbol.location.range.expect("range").start.line as usize,
+                    });
+                }
             }
             CommitSearchResult => continue,
             Repository => continue,
