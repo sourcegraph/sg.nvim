@@ -22,7 +22,12 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
 })
 
 M.edit = function(path)
-  local remote_file = lsp.get_remote_file(path)
+  local ok, remote_file = pcall(lsp.get_remote_file, path)
+  if not ok then
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "failed to load file" })
+    return
+  end
+
   if not remote_file then
     log.info "Failed to read remote file"
     return
@@ -41,13 +46,24 @@ M.edit = function(path)
       vim.api.nvim_buf_set_name(bufnr, normalized_bufname)
     end
 
-    local contents = lib.get_remote_file_contents(remote_file.remote, remote_file.commit, remote_file.path)
+    local ok, contents = pcall(lib.get_remote_file_contents, remote_file.remote, remote_file.commit, remote_file.path)
+    if not ok then
+      vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "failed to get contents" })
+      vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
+      return
+    end
+
     vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
     vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
 
     vim.cmd [[doautocmd BufRead]]
     vim.api.nvim_buf_set_option(bufnr, "filetype", filetype.detect(remote_file.path))
+
+    -- TODO: I don't love calling this directly here...
+    --  But I'm not sure *why* it doesn't attach using autocmds and listening
+    require("sg.lsp").attach(bufnr)
   end
 
   if remote_file.line then

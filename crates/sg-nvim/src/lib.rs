@@ -34,8 +34,7 @@ fn get_remote_file_content(lua: &Lua, args: (String, String, String)) -> LuaResu
     let rt = tokio::runtime::Runtime::new().to_lua_err()?;
     let remote_file = rt
         .block_on(async { sg::get_remote_file_contents(&remote, &hash, &path).await })
-        .to_lua_err()
-        .expect("get_remote_file_content");
+        .to_lua_err()?;
 
     to_lua(lua, &remote_file)
 }
@@ -45,8 +44,7 @@ fn get_remote_file(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
     let rt = tokio::runtime::Runtime::new().to_lua_err()?;
     let remote_file = rt
         .block_on(async { uri_from_link(path.as_str(), get_commit_hash).await })
-        .to_lua_err()
-        .expect("remote_file: uri_from_link");
+        .to_lua_err()?;
 
     // to_lua(lua, &remote_file)
     remote_file.to_lua(lua)

@@ -17,7 +17,7 @@ mod graphql {
 
     static GRAPHQL_ENDPOINT: Lazy<String> = Lazy::new(|| {
         let endpoint = get_endpoint().unwrap_or("https://sourcegraph.com/".to_string());
-        format!("{endpoint}/.api/graphql")
+        format!("{endpoint}.api/graphql")
     });
 
     static CLIENT: Lazy<Client> = Lazy::new(|| {
@@ -43,10 +43,18 @@ mod graphql {
     });
 
     pub async fn get_graphql<Q: GraphQLQuery>(variables: Q::Variables) -> Result<Q::ResponseData> {
-        post_graphql::<Q, _>(&CLIENT, GRAPHQL_ENDPOINT.to_string(), variables)
-            .await?
-            .data
-            .context("get_graphql -> data")
+        let response =
+            match post_graphql::<Q, _>(&CLIENT, GRAPHQL_ENDPOINT.to_string(), variables).await {
+                Ok(response) => response,
+                Err(err) => {
+                    return Err(anyhow::anyhow!(
+                        "Failed with status: {:?} || {err:?}",
+                        err.status()
+                    ))
+                }
+            };
+
+        response.data.context("get_graphql -> data")
     }
 }
 

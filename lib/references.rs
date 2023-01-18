@@ -60,11 +60,11 @@ pub async fn get_references(uri: String, line: i64, character: i64) -> Result<Ve
             range: lsp_types::Range {
                 start: lsp_types::Position {
                     line: range.start.line as u32,
-                    character: range.start.character as u32,
+                    character: 0,
                 },
                 end: lsp_types::Position {
                     line: range.end.line as u32,
-                    character: range.end.character as u32,
+                    character: 0,
                 },
             },
         })
