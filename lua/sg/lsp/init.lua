@@ -27,7 +27,7 @@ end
 M.get_client_id = function()
   -- TODO: Restart the client if it is no longer active?
   if not M._client then
-    local root_dir = vim.fn.fnamemodify(require("plenary.debug_utils").sourced_filepath(), ":p:h:h:h")
+    local root_dir = vim.fn.fnamemodify(require("plenary.debug_utils").sourced_filepath(), ":p:h:h:h:h")
 
     M._client = vim.lsp.start_client {
       cmd = { root_dir .. "/target/debug/sg-lsp" },
