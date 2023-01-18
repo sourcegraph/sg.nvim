@@ -47,13 +47,11 @@ M.get_remote_file = function(path)
   local client = vim.lsp.get_client_by_id(M.get_client_id())
   local response, err = client.request_sync("$sourcegraph/get_remote_file", { path = path }, 10000)
   if err then
-    print("Failed to get_remote_file with error:", vim.inspect(err))
-    return
+    error("Failed to get_remote_file with error:" .. vim.inspect(err))
   end
 
   if response.err then
-    print("Failed to get_remote_file with response.error:", vim.inspect(err))
-    return
+    error("Failed to get_remote_file with response.error: " .. vim.inspect(err))
   end
 
   local normalized = response.result.normalized
