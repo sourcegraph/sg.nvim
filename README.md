@@ -2,47 +2,57 @@
 
 sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com into Neovim.
 
-## Implemented Features:
+## Features:
 
-- Reading files by pasting sourcegraph.com links into nvim
-  - Will currently cache the files locally so that the next time you read them it will be fast.
-- Jump-to-definition using builtin LSP + src-cli (documentation pending)
-- References using builtin LSP + src-cli (documentation pending)
-
-
-## Demos:
-
-- Short clip of cross repository jumpt to definition: [Clip](https://clips.twitch.tv/AmazonianSullenSwordBloodTrail-l8H5WKEd8sNpEdIT)
-
-- Demo v2: [YouTube](https://www.youtube.com/watch?v=RCyBnAx-4Q4)
-- Demo v1: [YouTube](https://youtu.be/iCdsD6MiLQs)
+- [x] Read files:
+  - [x] Directly from sourcegraph links: `:edit <sourcegraph url>`
+    - `sg.nvim` will automatically add protocols for handling `https://sourcegraph.com/*` links.
+  - [x] Directly from buffer names: `:edit sg://github.com/tjdevries/sam.py/-/src/test.cs`
+- [ ] Reading non-files:
+  - [ ] Repository roots
+  - [ ] Folders
+- [x] Use builtin LSP client to connect to SG
+  - [x] Goto Definition
+  - [ ] Goto References
+    - [x] <20 references
+    - [ ] kind of broken right now for lots of references
+- [x] Basic Search
+  - [x] literal, regexp and structural search support
+  - [x] `type:symbol` support
+  - [ ] repo support
+- [ ] Advanced Search Features
+  - [ ] Autocompletion
+  - [ ] Memory of last searches
+- More ??
 
 ## Installation
 
-Don't install it yet. I will fix up a few things and then write installation
-and setup instructions (including how to connect builtin LSP to this).
-
-### Installation
-
-Ok, so I said don't install it but you are welcome to try it out, it just probably won't work for you yet.
-
-Requirements:
-- [src-cli](https://github.com/sourcegraph/src-cli)
-- [plenary.nvim](https://github.com/nvim-lua/plenary.nvim)
-
-Setup:
+```lua
+-- Use your favorite package manager to install, for example in lazy.nvim
+return {
+  {
+    "tjdevries/sg.nvim",
+    build = "cargo build --workspace",
+    dependencies = { "nvim-lua/plenary.nvim" },
+  },
+}
+```
+### Setup:
 
 ```lua
 -- Setup the LSP server to attach when you edit an sg:// buffer
-require("sg.lsp").setup {
-  ... -- whatever you normally pass to your LSP configuration. on_attach, etc.
+require("sg").setup {
+  -- Pass your own custom attach function
+  --    If you do not pass your own attach function, then the following maps are provide:
+  --        - gd -> goto definition
+  --        - gr -> goto references
+  on_attach = your_custom_lsp_attach_function
 }
 ```
 
-`sg.nvim` will automatically add protocols for handling
-`https://sourcegraph.com/*` links.
+## Old Demos:
 
-You should be able to paste in a link like:
-- https://sourcegraph.com/github.com/sourcegraph/sourcegraph/-/blob/internal/conf/reposource/jvm_packages.go?L50:6
+- Short clip of cross repository jumpt to definition: [Clip](https://clips.twitch.tv/AmazonianSullenSwordBloodTrail-l8H5WKEd8sNpEdIT)
+- Demo v2: [YouTube](https://www.youtube.com/watch?v=RCyBnAx-4Q4)
+- Demo v1: [YouTube](https://youtu.be/iCdsD6MiLQs)
 
-and have that just open up the file. You can try out different patterns and tell me what stuff doesn't work.

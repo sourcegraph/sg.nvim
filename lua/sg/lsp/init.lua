@@ -1,8 +1,10 @@
 local lib = require "libsg_nvim"
 
 local config = {
-  -- TODO: Perhaps we can provide some reasonable defaults here for people
-  on_attach = function() end,
+  on_attach = function(_, bufnr)
+    vim.keymap.set("n", "gd", vim.lsp.buf.definition, { buffer = bufnr })
+    vim.keymap.set("n", "gr", vim.lsp.buf.references, { buffer = bufnr })
+  end,
 }
 
 local M = {}
