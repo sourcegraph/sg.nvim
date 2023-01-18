@@ -7,7 +7,7 @@ sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com 
 - [x] Read files:
   - [x] Directly from sourcegraph links: `:edit <sourcegraph url>`
     - `sg.nvim` will automatically add protocols for handling `https://sourcegraph.com/*` links.
-  - [x] Directly from buffer names: `:edit sg://github.com/tjdevries/sam.py/-/src/test.cs`
+  - [x] Directly from buffer names: `:edit sg://github.com/tjdevries/sam.py/-/src/sam.py`
 - [ ] Reading non-files:
   - [ ] Repository roots
   - [ ] Folders
