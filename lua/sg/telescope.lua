@@ -75,7 +75,7 @@ end
 telescope.fuzzy_search_results = function(opts)
   opts = opts or {}
   local input = opts.input or vim.fn.input "Search > "
-  local search_results = require("libsg_nvim").get_search(input)
+  local search_results = require("sg.lib").get_search(input)
 
   local displayer = entry_display.create {
     separator = "|",

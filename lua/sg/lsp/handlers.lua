@@ -1,5 +1,5 @@
 local cli = require "sg.cli"
-local lib = require "libsg_nvim"
+local lib = require "sg.lib"
 local log = require "sg.log"
 local rpc = require "sg.lsp.rpc"
 local transform = require "sg.lsp.transform"

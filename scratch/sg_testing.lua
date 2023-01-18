@@ -1,4 +1,4 @@
-local lib = R "libsg_nvim"
+local lib = R "sg.lib"
 
 local commit = lib.get_remote_hash("github.com/neovim/neovim", "HEAD~8")
 print("Commit:", commit)

@@ -1,8 +1,7 @@
 local filetype = require "plenary.filetype"
 local log = require "sg.log"
 local lsp = require "sg.lsp"
-
-local lib = require "libsg_nvim"
+local lib = require "sg.lib"
 
 local M = {}
 

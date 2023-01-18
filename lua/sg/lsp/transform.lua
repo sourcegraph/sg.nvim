@@ -1,4 +1,4 @@
-local lib = require "libsg_nvim"
+local lib = require "sg.lib"
 
 local transform = {}
 
