@@ -1343,6 +1343,7 @@ dependencies = [
  "serde",
  "serde_json",
  "tokio",
+ "userdata_defaults",
 ]
 
 [[package]]
@@ -1629,6 +1630,14 @@ dependencies = [
  "matches",
  "percent-encoding",
  "serde",
+]
+
+[[package]]
+name = "userdata_defaults"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn",
 ]
 
 [[package]]

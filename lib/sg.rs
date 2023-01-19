@@ -9,6 +9,7 @@ use {
 };
 
 pub mod definition;
+pub mod entry;
 pub mod references;
 pub mod search;
 

@@ -24,6 +24,8 @@ log4rs = "1.2"
 log = "0.4"
 once_cell = "1"
 
+userdata_defaults = { path = "crates/userdata_defaults/" }
+
 [workspace.dependencies]
 mlua = { version = "0.8", features = ["luajit", "vendored", "module", "serialize", "async"] }
 rmp = "0.8.10"
@@ -36,5 +38,6 @@ path = "lib/sg.rs"
 
 [workspace]
 members = [
-    "crates/sg-nvim",
+    "crates/sg-nvim/",
+    "crates/userdata_defaults/",
 ]
