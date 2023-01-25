@@ -3,7 +3,7 @@
 use {
     mlua::{prelude::*, Function, LuaSerdeExt, SerializeOptions, Value},
     serde::Serialize,
-    sg::{self, get_commit_hash, search, uri_from_link},
+    sg::{self, entry::Entry, get_commit_hash, search, uri_from_link},
 };
 
 // TODO: I would like to be able to do something like this and make a constant.
@@ -17,7 +17,6 @@ where
     l.to_value_with(&t, SerializeOptions::new().serialize_none_to_null(false))
 }
 
-// This is how you can print easily
 #[allow(unused)]
 fn lua_print(lua: &Lua, str: &str) -> LuaResult<()> {
     let print: Function = lua.globals().get("print")?;
@@ -73,6 +72,18 @@ fn get_search(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
         .unwrap())
 }
 
+fn lua_get_path_info(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
+    let path = args.0;
+
+    let rt = tokio::runtime::Runtime::new().to_lua_err()?;
+    let search_results = rt
+        .block_on(async { Entry::new(&path).await })
+        .to_lua_err()
+        .expect("get_path_info");
+
+    search_results.to_lua(lua)
+}
+
 #[mlua::lua_module]
 fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
     // TODO: Consider putting mlua_null as a global so we can compare with that
@@ -85,6 +96,7 @@ fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
         lua.create_function(get_remote_file_content)?,
     )?;
 
+    exports.set("get_path_info", lua.create_function(lua_get_path_info)?)?;
     exports.set("get_remote_file", lua.create_function(get_remote_file)?)?;
     exports.set("get_search", lua.create_function(get_search)?)?;
 

@@ -7,9 +7,9 @@ use {
     },
     lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response},
     lsp_types::{
-        request::{GotoDefinition, References},
-        GotoDefinitionParams, GotoDefinitionResponse, InitializeParams, ReferenceParams,
-        ServerCapabilities,
+        request::{GotoDefinition, HoverRequest, References},
+        GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams, InitializeParams,
+        ReferenceParams, ServerCapabilities,
     },
     serde::{Deserialize, Serialize},
     std::{error::Error, path::Path},
@@ -18,24 +18,28 @@ use {
 type BoxErr = Box<dyn Error + Sync + Send>;
 type Res<T> = Result<T, BoxErr>;
 
-#[derive(Debug)]
-pub enum SourcegraphRead {}
+mod sg_read {
+    use super::*;
 
-#[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct SourcegraphReadParams {
-    pub path: String,
-}
+    #[derive(Debug)]
+    pub enum Request {}
 
-#[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
-pub struct SourcegraphReadResponse {
-    pub normalized: String,
-}
+    #[derive(Debug, Eq, PartialEq, Clone, Deserialize, Serialize)]
+    #[serde(rename_all = "camelCase")]
+    pub struct Params {
+        pub path: String,
+    }
 
-impl lsp_types::request::Request for SourcegraphRead {
-    type Params = SourcegraphReadParams;
-    type Result = Option<SourcegraphReadResponse>;
-    const METHOD: &'static str = "$sourcegraph/get_remote_file";
+    #[derive(Debug, PartialEq, Serialize, Deserialize, Clone)]
+    pub struct Response {
+        pub normalized: String,
+    }
+
+    impl lsp_types::request::Request for Request {
+        type Params = Params;
+        type Result = Option<Response>;
+        const METHOD: &'static str = "$sourcegraph/get_remote_file";
+    }
 }
 
 #[tokio::main]
@@ -78,6 +82,7 @@ async fn main() -> Res<()> {
     let capabilities = ServerCapabilities {
         definition_provider: Some(lsp_types::OneOf::Left(true)),
         references_provider: Some(lsp_types::OneOf::Left(true)),
+        hover_provider: Some(lsp_types::HoverProviderCapability::Simple(true)),
         ..Default::default()
     };
 
@@ -126,6 +131,32 @@ async fn handle_definition(
     Ok(())
 }
 
+async fn handle_hover(connection: &Connection, id: RequestId, params: HoverParams) -> Res<()> {
+    let params = params.text_document_position_params;
+    let hover = sg::hover::get_hover(
+        params.text_document.uri.to_string(),
+        params.position.line as i64,
+        params.position.character as i64,
+    )
+    .await?;
+
+    let result = Some(Hover {
+        contents: lsp_types::HoverContents::Markup(lsp_types::MarkupContent {
+            kind: lsp_types::MarkupKind::Markdown,
+            value: hover,
+        }),
+        range: None,
+    });
+    let result = serde_json::to_value(&result).unwrap();
+    let resp = Response {
+        id,
+        result: Some(result),
+        error: None,
+    };
+    connection.sender.send(Message::Response(resp))?;
+    Ok(())
+}
+
 async fn handle_references(
     connection: &Connection,
     id: RequestId,
@@ -160,10 +191,10 @@ async fn handle_references(
 async fn handle_sourcegraph_read(
     connection: &Connection,
     id: RequestId,
-    params: SourcegraphReadParams,
+    params: sg_read::Params,
 ) -> Res<()> {
     info!("Reading sg:// -> {} ", params.path);
-    let resp = Some(SourcegraphReadResponse {
+    let resp = Some(sg_read::Response {
         normalized: sg::normalize_url(&params.path),
     });
     let resp = serde_json::to_value(&resp).unwrap();
@@ -246,7 +277,12 @@ async fn handle_request(connection: &Connection, req: Request) -> Res<()> {
 
     handle_one!(connection, req, GotoDefinition, handle_definition);
     handle_one!(connection, req, References, handle_references);
-    handle_one!(connection, req, SourcegraphRead, handle_sourcegraph_read);
+    handle_one!(connection, req, HoverRequest, handle_hover);
+
+    // Useful requests for other clients, that don't have a way to easily use FFI
+    //      You will have to implement handlers for these in your client
+    //      (same as you would via FFI, except you incur the cost of mixing LSP w/ non-LSP stuff)
+    handle_one!(connection, req, sg_read::Request, handle_sourcegraph_read);
 
     Ok(())
 }

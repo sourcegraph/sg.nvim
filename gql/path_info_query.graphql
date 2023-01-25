@@ -1,0 +1,20 @@
+query PathInfoQuery($name: String!, $revision: String!, $path: String!) {
+  repository(name: $name) {
+    name
+    commit(rev: $revision) {
+      abbreviatedOID
+      path(path: $path) {
+        __typename
+        ... on GitBlob {
+          path
+          isDirectory
+        }
+        ... on GitTree {
+          path
+          isDirectory
+        }
+      }
+    }
+  }
+}
+

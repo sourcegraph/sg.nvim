@@ -10,6 +10,7 @@ use {
 
 pub mod definition;
 pub mod entry;
+pub mod hover;
 pub mod references;
 pub mod search;
 
@@ -113,6 +114,8 @@ impl UserData for RemoteFile {
     }
 }
 
+type GitObjectID = String;
+
 #[derive(GraphQLQuery)]
 #[graphql(
     schema_path = "gql/schema.graphql",
@@ -128,6 +131,61 @@ pub struct FileQuery;
     response_derives = "Debug"
 )]
 pub struct CommitQuery;
+
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "gql/schema.graphql",
+    query_path = "gql/path_info_query.graphql",
+    response_derives = "Debug"
+)]
+pub struct PathInfoQuery;
+
+pub struct PathInfo {
+    pub remote: String,
+    pub oid: String,
+    pub path: String,
+    pub is_directory: bool,
+}
+
+pub async fn get_path_info(remote: String, revision: String, path: String) -> Result<PathInfo> {
+    use path_info_query::*;
+    let failure = format!("Failed with {}, {}, {}", &remote, &revision, &path);
+
+    let response_body = get_graphql::<PathInfoQuery>(Variables {
+        name: remote.to_string(),
+        revision,
+        path,
+    })
+    .await?;
+
+    let repository = response_body
+        .repository
+        .context("No matching repository found")?;
+
+    let commit = repository.commit.context("No matching commit found")?;
+    let oid = commit.abbreviated_oid;
+
+    let gql_path = commit
+        .path
+        .ok_or_else(|| anyhow::anyhow!(failure + ": path"))?;
+
+    let is_directory = match &gql_path {
+        PathInfoQueryRepositoryCommitPath::GitTree(tree) => tree.is_directory,
+        PathInfoQueryRepositoryCommitPath::GitBlob(blob) => blob.is_directory,
+    };
+
+    let path = match gql_path {
+        PathInfoQueryRepositoryCommitPath::GitTree(tree) => tree.path,
+        PathInfoQueryRepositoryCommitPath::GitBlob(blob) => blob.path,
+    };
+
+    Ok(PathInfo {
+        remote: repository.name,
+        oid,
+        path,
+        is_directory,
+    })
+}
 
 // TODO: Memoize... :)
 //  Noah says learn about:
