@@ -1,5 +1,3 @@
-#![feature(async_closure)]
-
 use {
     log::{info, LevelFilter},
     log4rs::{
