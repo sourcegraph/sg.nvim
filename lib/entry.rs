@@ -101,6 +101,15 @@ impl<'lua> ToLua<'lua> for Entry {
         )?;
 
         tbl.set(
+            "bufname",
+            match &self {
+                Entry::File(file) => file.bufname(),
+                Entry::Directory(dir) => dir.bufname(),
+                Entry::Repo(_) => todo!(),
+            },
+        )?;
+
+        tbl.set(
             "data",
             match self {
                 Entry::File(file) => file.to_lua(lua)?,
@@ -206,8 +215,6 @@ impl File {
 impl UserData for File {
     fn add_fields<'lua, F: mlua::UserDataFields<'lua, Self>>(fields: &mut F) {
         File::generate_default_fields(fields);
-
-        fields.add_field_method_get("bufname", |lua, file| file.bufname().to_lua(lua))
     }
 }
 
@@ -227,8 +234,6 @@ impl Directory {
 impl UserData for Directory {
     fn add_fields<'lua, F: mlua::UserDataFields<'lua, Self>>(fields: &mut F) {
         Directory::generate_default_fields(fields);
-
-        fields.add_field_method_get("bufname", |lua, dir| dir.bufname().to_lua(lua))
     }
 }
 

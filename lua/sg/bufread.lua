@@ -42,9 +42,9 @@ M.edit = function(path)
   local bufnr = vim.api.nvim_get_current_buf()
 
   if entry.type == "directory" then
-    return M._open_remote_folder(bufnr, entry.data --[[@as SgDirectory]])
+    return M._open_remote_folder(bufnr, entry.bufname, entry.data --[[@as SgDirectory]])
   elseif entry.type == "file" then
-    return M._open_remote_file(bufnr, entry.data --[[@as SgFile]])
+    return M._open_remote_file(bufnr, entry.bufname, entry.data --[[@as SgFile]])
   else
     error("unknown path type: " .. entry.type)
   end
@@ -66,43 +66,47 @@ end
 
 --- Open a remote file
 ---@param bufnr number
+---@param bufname string
 ---@param data SgDirectory
-M._open_remote_folder = function(bufnr, data)
-  with_modifiable(bufnr, function()
+M._open_remote_folder = function(bufnr, bufname, data)
+  manage_new_buffer(bufnr, bufname, function()
     ---@type boolean, SgEntry[]
     local ok, entries = pcall(lib.get_remote_directory_contents, data.remote, data.oid, data.path)
     if not ok then
       error(entries)
     end
 
-    vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
-    for idx, entry in ipairs(entries) do
-      -- TODO: Highlights
-      local line, highlights = transform_path(entry.data.path, entry.type == "directory")
+    with_modifiable(bufnr, function()
+      vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+      for idx, entry in ipairs(entries) do
+        -- TODO: Highlights
+        local line, highlights = transform_path(entry.data.path, entry.type == "directory")
 
-      local start = -1
-      if idx == 1 then
-        start = 0
+        local start = -1
+        if idx == 1 then
+          start = 0
+        end
+
+        vim.api.nvim_buf_set_lines(bufnr, start, -1, false, { line })
+        vim.api.nvim_buf_add_highlight(bufnr, ns, highlights, idx - 1, 1, 3)
       end
-
-      vim.api.nvim_buf_set_lines(bufnr, start, -1, false, { line })
-      vim.api.nvim_buf_add_highlight(bufnr, ns, highlights, idx - 1, 1, 3)
-    end
+    end)
 
     -- Sets <CR> to open the file
     vim.keymap.set("n", "<CR>", function()
       local cursor = vim.api.nvim_win_get_cursor(0)
       local row = cursor[1]
       local selected = entries[row]
-      vim.cmd.edit(selected.data.bufname)
+      vim.cmd.edit(selected.bufname)
     end, { buffer = bufnr })
   end)
 end
 
+--- Opens a remote file
 ---@param bufnr number
+---@param bufname string
 ---@param data SgFile
-M._open_remote_file = function(bufnr, data)
-  local bufname = data.bufname
+M._open_remote_file = function(bufnr, bufname, data)
   manage_new_buffer(bufnr, bufname, function()
     local ok, contents = pcall(lib.get_remote_file_contents, data.remote, data.oid, data.path)
     if not ok then
