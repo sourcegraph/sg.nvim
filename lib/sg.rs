@@ -61,6 +61,7 @@ mod graphql {
 }
 
 pub use graphql::get_graphql;
+use serde::Serialize;
 
 pub fn get_access_token() -> Result<String> {
     std::env::var("SOURCEGRAPH_ACCESS_TOKEN").context("No access token found")
@@ -140,9 +141,13 @@ pub struct CommitQuery;
 )]
 pub struct PathInfoQuery;
 
+#[derive(Serialize)]
 pub struct PathInfo {
     pub remote: String,
     pub oid: String,
+    // TODO: Maybe should split out path and name...
+    //          Or just always include path, don't just include name
+    //          Just do the string manipulation to show the end of the path
     pub path: String,
     pub is_directory: bool,
 }
@@ -185,6 +190,47 @@ pub async fn get_path_info(remote: String, revision: String, path: String) -> Re
         path,
         is_directory,
     })
+}
+
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "gql/schema.graphql",
+    query_path = "gql/list_files.graphql",
+    response_derives = "Debug"
+)]
+pub struct ListFilesQuery;
+
+pub async fn get_remote_directory_contents(
+    remote: &str,
+    commit: &str,
+    path: &str,
+) -> Result<Vec<PathInfo>> {
+    let response_body = get_graphql::<ListFilesQuery>(list_files_query::Variables {
+        name: remote.to_string(),
+        rev: commit.to_string(),
+        path: path.to_string(),
+    })
+    .await?;
+
+    let commit = response_body
+        .repository
+        .context("No matching repository found")?
+        .commit
+        .context("No matching commit found")?;
+
+    let oid = commit.abbreviated_oid;
+    Ok(commit
+        .tree
+        .context("expected tree")?
+        .entries
+        .into_iter()
+        .map(|e| PathInfo {
+            remote: remote.to_string(),
+            oid: oid.clone(),
+            path: e.path,
+            is_directory: e.is_directory,
+        })
+        .collect())
 }
 
 // TODO: Memoize... :)

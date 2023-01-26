@@ -2,20 +2,31 @@ local filetype = require "plenary.filetype"
 local log = require "sg.log"
 local lib = require "sg.lib"
 
-local M = {}
+local transform_path = require("sg.directory").transform_path
 
-local get_path_info = function(path)
-  return lib.get_path_info(path)
+local ns = vim.api.nvim_create_namespace "sg-bufread"
+
+--- Temporarily allows modifying the buffer, and then sets nomodifiable
+---@param bufnr number
+---@param cb function
+local with_modifiable = function(bufnr, cb)
+  vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+  local res = cb()
+  vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
+  return res
 end
 
+local M = {}
+
 M.edit = function(path)
-  local ok, path_info = pcall(get_path_info, path)
+  ---@type boolean, SgEntry
+  local ok, entry = pcall(lib.get_entry, path)
   if not ok then
     local contents = {}
-    if type(path_info) == "string" then
-      contents = vim.split(path_info, "\n")
+    if type(entry) == "string" then
+      contents = vim.split(entry, "\n")
     else
-      table.insert(contents, tostring(path_info))
+      table.insert(contents, tostring(entry))
     end
 
     table.insert(contents, 1, "failed to load file")
@@ -23,31 +34,77 @@ M.edit = function(path)
     return
   end
 
-  if not path_info then
+  if not entry then
     log.info "Failed to retrieve path info"
     return
   end
 
   local bufnr = vim.api.nvim_get_current_buf()
 
-  if path_info.type == "directory" then
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "not yet handling directories..." })
-    return
+  if entry.type == "directory" then
+    return M._open_remote_folder(bufnr, entry.data --[[@as SgDirectory]])
+  elseif entry.type == "file" then
+    return M._open_remote_file(bufnr, entry.data --[[@as SgFile]])
+  else
+    error("unknown path type: " .. entry.type)
   end
+end
 
-  local remote_file = path_info.data
-  local bufname = remote_file.bufname
+local manage_new_buffer = function(bufnr, bufname, create)
   local existing_bufnr = vim.fn.bufnr(bufname)
+
+  -- If we have an existing buffer, then set the current buffer
+  -- to that buffer and then quit
   if existing_bufnr ~= -1 and bufnr ~= existing_bufnr then
-    log.debug("... Already exists", existing_bufnr, bufname)
     vim.api.nvim_win_set_buf(0, existing_bufnr)
     vim.api.nvim_buf_delete(bufnr, { force = true })
   else
-    if path ~= bufname then
-      vim.api.nvim_buf_set_name(bufnr, bufname)
+    vim.api.nvim_buf_set_name(bufnr, bufname)
+    create()
+  end
+end
+
+--- Open a remote file
+---@param bufnr number
+---@param data SgDirectory
+M._open_remote_folder = function(bufnr, data)
+  with_modifiable(bufnr, function()
+    ---@type boolean, SgEntry[]
+    local ok, entries = pcall(lib.get_remote_directory_contents, data.remote, data.oid, data.path)
+    if not ok then
+      error(entries)
     end
 
-    local ok, contents = pcall(lib.get_remote_file_contents, remote_file.remote, remote_file.oid, remote_file.path)
+    vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+    for idx, entry in ipairs(entries) do
+      -- TODO: Highlights
+      local line, highlights = transform_path(entry.data.path, entry.type == "directory")
+
+      local start = -1
+      if idx == 1 then
+        start = 0
+      end
+
+      vim.api.nvim_buf_set_lines(bufnr, start, -1, false, { line })
+      vim.api.nvim_buf_add_highlight(bufnr, ns, highlights, idx - 1, 1, 3)
+    end
+
+    -- Sets <CR> to open the file
+    vim.keymap.set("n", "<CR>", function()
+      local cursor = vim.api.nvim_win_get_cursor(0)
+      local row = cursor[1]
+      local selected = entries[row]
+      vim.cmd.edit(selected.data.bufname)
+    end, { buffer = bufnr })
+  end)
+end
+
+---@param bufnr number
+---@param data SgFile
+M._open_remote_file = function(bufnr, data)
+  local bufname = data.bufname
+  manage_new_buffer(bufnr, bufname, function()
+    local ok, contents = pcall(lib.get_remote_file_contents, data.remote, data.oid, data.path)
     if not ok then
       local errmsg
       if type(contents) == "string" then
@@ -58,25 +115,26 @@ M.edit = function(path)
 
       table.insert(errmsg, 1, "failed to get contents")
 
-      vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
-      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, errmsg)
-      vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
-      return
+      return with_modifiable(bufnr, function()
+        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, errmsg)
+      end)
     end
 
-    vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
-    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
-    vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
+    with_modifiable(bufnr, function()
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
+    end)
 
     vim.cmd [[doautocmd BufRead]]
-    vim.api.nvim_buf_set_option(bufnr, "filetype", filetype.detect(remote_file.path, {}))
+    vim.api.nvim_buf_set_option(bufnr, "filetype", filetype.detect(data.path, {}))
+  end)
 
-    -- TODO: I don't love calling this directly here...
-    --  But I'm not sure *why* it doesn't attach using autocmds and listening
-    require("sg.lsp").attach(bufnr)
-  end
-
-  if remote_file.position then
+  -- TODO: I don't love calling this directly here...
+  --  But I'm not sure *why* it doesn't attach using autocmds and listening
+  --
+  -- This should be free to call multiple times on the same buffer
+  --    So I'm not worried about that for now (but we should check later)
+  require("sg.lsp").attach(bufnr)
+  if data.position then
     error "TODO: handle position"
     -- pcall(vim.api.nvim_win_set_cursor, 0, { remote_file.line, remote_file.col or 0 })
   end

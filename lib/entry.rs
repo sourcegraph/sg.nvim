@@ -33,14 +33,19 @@ impl Entry {
 
         // TODO: Not sure if you can have question marks in filepaths for github...
         //      Will need to test that out later
-        let (path, args) = path.split_once('?').unwrap_or((&path, ""));
+        let (path, _) = path.split_once('?').unwrap_or((&path, ""));
 
+        let info = get_path_info(remote.to_string(), commit.to_string(), path.to_string()).await?;
+        Self::from_info(info)
+    }
+
+    pub fn from_info(info: PathInfo) -> Result<Self> {
         let PathInfo {
             remote,
             oid,
             path,
             is_directory,
-        } = get_path_info(remote.to_string(), commit.to_string(), path.to_string()).await?;
+        } = info;
 
         if is_directory {
             Ok(Self::Directory(Directory {
@@ -112,6 +117,17 @@ impl<'lua> ToLua<'lua> for Entry {
 pub struct Remote {
     inner: String,
 }
+
+impl Remote {
+    pub fn shortened(&self) -> String {
+        if self.inner == "github.com" {
+            "gh".to_string()
+        } else {
+            self.inner.to_owned()
+        }
+    }
+}
+
 impl<'lua> ToLua<'lua> for Remote {
     fn to_lua(self, lua: &'lua mlua::Lua) -> mlua::Result<mlua::Value<'lua>> {
         self.inner.to_lua(lua)
@@ -132,6 +148,13 @@ impl FromStr for Remote {
 pub struct OID {
     inner: String,
 }
+
+impl OID {
+    pub fn shortened(&self) -> String {
+        self.inner[..5].to_string()
+    }
+}
+
 impl<'lua> ToLua<'lua> for OID {
     fn to_lua(self, lua: &'lua mlua::Lua) -> mlua::Result<mlua::Value<'lua>> {
         self.inner.to_lua(lua)
@@ -162,6 +185,10 @@ impl<'lua> ToLua<'lua> for Position {
     }
 }
 
+fn make_bufname(remote: &Remote, oid: &OID, path: &str) -> String {
+    format!("sg://{}@{}/-/{}", remote.shortened(), oid.shortened(), path)
+}
+
 #[derive(LuaDefaults)]
 pub struct File {
     pub remote: Remote,
@@ -171,25 +198,8 @@ pub struct File {
 }
 
 impl File {
-    fn shortened_remote(&self) -> String {
-        if self.remote.inner == "github.com" {
-            "gh".to_string()
-        } else {
-            self.remote.inner.to_owned()
-        }
-    }
-
-    fn shortened_commit(&self) -> String {
-        self.oid.inner[..5].to_string()
-    }
-
     pub fn bufname(&self) -> String {
-        format!(
-            "sg://{}@{}/-/{}",
-            self.shortened_remote(),
-            self.shortened_commit(),
-            self.path
-        )
+        make_bufname(&self.remote, &self.oid, &self.path)
     }
 }
 
@@ -208,9 +218,17 @@ pub struct Directory {
     pub path: String,
 }
 
+impl Directory {
+    pub fn bufname(&self) -> String {
+        make_bufname(&self.remote, &self.oid, &self.path)
+    }
+}
+
 impl UserData for Directory {
     fn add_fields<'lua, F: mlua::UserDataFields<'lua, Self>>(fields: &mut F) {
         Directory::generate_default_fields(fields);
+
+        fields.add_field_method_get("bufname", |lua, dir| dir.bufname().to_lua(lua))
     }
 }
 

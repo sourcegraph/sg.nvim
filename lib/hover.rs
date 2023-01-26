@@ -3,7 +3,6 @@ use {
     anyhow::{Context, Result},
     graphql_client::GraphQLQuery,
     log::info,
-    lsp_types::{Location, Url},
 };
 
 #[derive(GraphQLQuery)]

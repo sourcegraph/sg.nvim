@@ -25,7 +25,7 @@ fn lua_print(lua: &Lua, str: &str) -> LuaResult<()> {
     Ok(())
 }
 
-fn get_remote_file_content(lua: &Lua, args: (String, String, String)) -> LuaResult<LuaValue> {
+fn get_remote_file_contents(lua: &Lua, args: (String, String, String)) -> LuaResult<LuaValue> {
     let remote = args.0;
     let hash = args.1;
     let path = args.2;
@@ -36,6 +36,27 @@ fn get_remote_file_content(lua: &Lua, args: (String, String, String)) -> LuaResu
         .to_lua_err()?;
 
     to_lua(lua, &remote_file)
+}
+
+fn get_remote_directory_contents(lua: &Lua, args: (String, String, String)) -> LuaResult<LuaValue> {
+    let remote = args.0;
+    let hash = args.1;
+    let path = args.2;
+
+    let rt = tokio::runtime::Runtime::new().to_lua_err()?;
+    let directory_contents = rt
+        .block_on(async {
+            sg::get_remote_directory_contents(&remote, &hash, &path)
+                .await
+                .map(|v| {
+                    v.into_iter()
+                        .map(|e| Entry::from_info(e).expect("these better convert"))
+                        .collect::<Vec<_>>()
+                })
+        })
+        .to_lua_err()?;
+
+    directory_contents.to_lua(lua)
 }
 
 fn get_remote_file(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
@@ -72,14 +93,14 @@ fn get_search(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
         .unwrap())
 }
 
-fn lua_get_path_info(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
+fn lua_get_entry(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
     let path = args.0;
 
     let rt = tokio::runtime::Runtime::new().to_lua_err()?;
     let search_results = rt
         .block_on(async { Entry::new(&path).await })
         .to_lua_err()
-        .expect("get_path_info");
+        .expect("get_entry");
 
     search_results.to_lua(lua)
 }
@@ -93,10 +114,15 @@ fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
 
     exports.set(
         "get_remote_file_contents",
-        lua.create_function(get_remote_file_content)?,
+        lua.create_function(get_remote_file_contents)?,
     )?;
 
-    exports.set("get_path_info", lua.create_function(lua_get_path_info)?)?;
+    exports.set(
+        "get_remote_directory_contents",
+        lua.create_function(get_remote_directory_contents)?,
+    )?;
+
+    exports.set("get_entry", lua.create_function(lua_get_entry)?)?;
     exports.set("get_remote_file", lua.create_function(get_remote_file)?)?;
     exports.set("get_search", lua.create_function(get_search)?)?;
 

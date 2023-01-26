@@ -1,0 +1,15 @@
+query ListFilesQuery($name: String!, $rev: String!, $path: String!) {
+  repository(name: $name) {
+    commit(rev: $rev) {
+      abbreviatedOID
+      tree(path: $path, recursive: false) {
+        entries {
+          __typename
+          path
+          isDirectory
+          url
+        }
+      }
+    }
+  }
+}
