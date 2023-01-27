@@ -63,6 +63,11 @@ require("sg").setup {
   --        - gr -> goto references
   on_attach = your_custom_lsp_attach_function
 }
+
+
+```vim
+" Example mapping for doing searches from within neovim (may change)
+nnoremap <space>ss <cmd>lua require('sg.telescope').fuzzy_search_results()<CR>
 ```
 
 ## Old Demos:
