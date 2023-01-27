@@ -2,15 +2,30 @@
 
 sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com into Neovim.
 
+**Status**: Alpha (see #Features for currently supported features)
+
+## Setup
+
+### Connection
+
+You can connect to an existing Sourcegraph instance using the same environment variables
+that are used for `src-cli`. See [this](https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance) for more information.
+
+If you have these environment variables set when opening Neovim, you'll connect to your
+instance of Sourcegraph
+
 ## Features:
 
 - [x] Read files:
   - [x] Directly from sourcegraph links: `:edit <sourcegraph url>`
     - `sg.nvim` will automatically add protocols for handling `https://sourcegraph.com/*` links.
   - [x] Directly from buffer names: `:edit sg://github.com/tjdevries/sam.py/-/src/sam.py`
-- [ ] Reading non-files:
+- [x] Reading non-files:
   - [ ] Repository roots
-  - [ ] Folders
+  - [x] Folders
+    - [x] Expand Folders
+    - [x] Unexpand Folders
+    - [x] Open file from folder
 - [x] Use builtin LSP client to connect to SG
   - [x] Goto Definition
   - [ ] Goto References
