@@ -70,6 +70,8 @@ end
 ---@param data SgDirectory
 M._open_remote_folder = function(bufnr, bufname, data)
   manage_new_buffer(bufnr, bufname, function()
+    vim.api.nvim_buf_set_option(bufnr, "buftype", "nofile")
+
     ---@type boolean, SgEntry[]
     local ok, entries = pcall(lib.get_remote_directory_contents, data.remote, data.oid, data.path)
     if not ok then
@@ -92,13 +94,66 @@ M._open_remote_folder = function(bufnr, bufname, data)
       end
     end)
 
+    local get_row = function()
+      local cursor = vim.api.nvim_win_get_cursor(0)
+      return cursor[1]
+    end
+
+    local get_entry = function()
+      local row = get_row()
+      return entries[row]
+    end
+
     -- Sets <CR> to open the file
     vim.keymap.set("n", "<CR>", function()
-      local cursor = vim.api.nvim_win_get_cursor(0)
-      local row = cursor[1]
-      local selected = entries[row]
+      local selected = get_entry()
       vim.cmd.edit(selected.bufname)
     end, { buffer = bufnr })
+
+    -- Sets <tab> to expand a directory
+    vim.keymap.set("n", "<tab>", function()
+      local selected = get_entry()
+      if selected.type ~= "directory" then
+        return
+      end
+
+      local row = get_row()
+      local current_line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1]
+      local indent = #(string.match(current_line, "^(%s+)") or "") / 2
+
+      local children = lib.get_remote_directory_contents(selected.data.remote, selected.data.oid, selected.data.path)
+      with_modifiable(bufnr, function()
+        for idx, entry in ipairs(children) do
+          -- TODO: Highlights
+          local line, highlights = transform_path(entry.data.path, entry.type == "directory")
+          line = string.rep("  ", indent + 1) .. line
+
+          local idx_row = row + idx - 1
+          vim.api.nvim_buf_set_lines(bufnr, idx_row, idx_row, false, { line })
+          vim.api.nvim_buf_add_highlight(bufnr, ns, highlights, idx_row, 1 + indent * 2, 3 + indent * 2)
+
+          table.insert(entries, row + idx, entry)
+        end
+      end)
+    end)
+
+    -- Sets <S-tab> to collapse a directory
+    vim.keymap.set("n", "<S-tab>", function()
+      local selected = get_entry()
+      if selected.type ~= "directory" then
+        return
+      end
+
+      -- TODO: Could possibly do this only using indents, but it's fine
+      local row = get_row()
+      local children = lib.get_remote_directory_contents(selected.data.remote, selected.data.oid, selected.data.path)
+      with_modifiable(bufnr, function()
+        for idx, _ in ipairs(children) do
+          vim.api.nvim_buf_set_lines(bufnr, row, row + 1, false, {})
+          table.remove(entries, row + 1)
+        end
+      end)
+    end)
   end)
 end
 
