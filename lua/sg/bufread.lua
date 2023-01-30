@@ -90,7 +90,9 @@ M._open_remote_folder = function(bufnr, bufname, data)
         end
 
         vim.api.nvim_buf_set_lines(bufnr, start, -1, false, { line })
-        vim.api.nvim_buf_add_highlight(bufnr, ns, highlights, idx - 1, 1, 3)
+        if highlights then
+          vim.api.nvim_buf_add_highlight(bufnr, ns, highlights, idx - 1, 1, 3)
+        end
       end
     end)
 
