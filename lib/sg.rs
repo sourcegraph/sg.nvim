@@ -18,8 +18,8 @@ mod graphql {
     use super::*;
 
     static GRAPHQL_ENDPOINT: Lazy<String> = Lazy::new(|| {
-        let endpoint = get_endpoint().unwrap_or("https://sourcegraph.com/".to_string());
-        format!("{endpoint}.api/graphql")
+        let endpoint = get_endpoint();
+        format!("{endpoint}/.api/graphql")
     });
 
     static CLIENT: Lazy<Client> = Lazy::new(|| {
@@ -64,11 +64,14 @@ pub use graphql::get_graphql;
 use serde::Serialize;
 
 pub fn get_access_token() -> Result<String> {
-    std::env::var("SOURCEGRAPH_ACCESS_TOKEN").context("No access token found")
+    std::env::var("SRC_ACCESS_TOKEN").context("No access token found")
 }
 
-pub fn get_endpoint() -> Result<String> {
-    std::env::var("SRC_ENDPOINT").context("No endpoint found")
+pub fn get_endpoint() -> String {
+    std::env::var("SRC_ENDPOINT")
+        .unwrap_or("https://sourcegraph.com".to_string())
+        .trim_end_matches('/')
+        .to_string()
 }
 
 #[derive(serde::Serialize, serde::Deserialize, Clone, Debug)]
@@ -305,8 +308,11 @@ impl RemoteFile {
 
     pub fn sourcegraph_url(&self) -> String {
         format!(
-            "https://sourcegraph.com/{}@{}/-/blob/{}",
-            self.remote, self.commit, self.path
+            "{}/{}@{}/-/blob/{}",
+            get_endpoint(),
+            self.remote,
+            self.commit,
+            self.path
         )
     }
 
@@ -322,7 +328,7 @@ pub fn normalize_url(url: &str) -> String {
     re.replace_all(
         &url.to_string()
             .replace("//gh/", "//github.com/")
-            .replace("https://sourcegraph.com/", "")
+            .replace(&get_endpoint(), "")
             .replace("sg://", ""),
         "",
     )
