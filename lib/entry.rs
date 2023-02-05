@@ -7,6 +7,7 @@ use {
     userdata_defaults::LuaDefaults,
 };
 
+#[derive(Debug)]
 pub enum Entry {
     File(File),
     Directory(Directory),
@@ -85,6 +86,48 @@ impl Entry {
             }))
         }
     }
+
+    fn bufname(&self) -> String {
+        match self {
+            Entry::File(file) => file.bufname(),
+            Entry::Directory(dir) => dir.bufname(),
+            Entry::Repo(_) => todo!(),
+        }
+    }
+
+    fn position(&self) -> Option<Position> {
+        match self {
+            Entry::File(file) => Some(file.position.clone()),
+            Entry::Directory(_) => None,
+            Entry::Repo(_) => None,
+        }
+    }
+}
+
+impl std::convert::TryFrom<Entry> for lsp_types::Location {
+    type Error = anyhow::Error;
+
+    fn try_from(value: Entry) -> Result<Self, Self::Error> {
+        use lsp_types::Url;
+
+        let (start, end) = if let Some(_) = value.position() {
+            // TODO: Do this part later :)
+            (
+                lsp_types::Position::default(),
+                lsp_types::Position::default(),
+            )
+        } else {
+            (
+                lsp_types::Position::default(),
+                lsp_types::Position::default(),
+            )
+        };
+
+        Ok(Self {
+            uri: Url::parse(&value.bufname())?,
+            range: lsp_types::Range { start, end },
+        })
+    }
 }
 
 impl<'lua> ToLua<'lua> for Entry {
@@ -100,14 +143,7 @@ impl<'lua> ToLua<'lua> for Entry {
             },
         )?;
 
-        tbl.set(
-            "bufname",
-            match &self {
-                Entry::File(file) => file.bufname(),
-                Entry::Directory(dir) => dir.bufname(),
-                Entry::Repo(_) => todo!(),
-            },
-        )?;
+        tbl.set("bufname", self.bufname())?;
 
         tbl.set(
             "data",
@@ -122,24 +158,29 @@ impl<'lua> ToLua<'lua> for Entry {
     }
 }
 
-#[derive(Clone)]
-pub struct Remote {
-    inner: String,
-}
+#[derive(Debug, Clone, sqlx::Type)]
+#[sqlx(transparent)]
+pub struct Remote(pub String);
 
 impl Remote {
     pub fn shortened(&self) -> String {
-        if self.inner == "github.com" {
+        if self.0 == "github.com" {
             "gh".to_string()
         } else {
-            self.inner.to_owned()
+            self.0.to_owned()
         }
+    }
+}
+
+impl From<String> for Remote {
+    fn from(value: String) -> Self {
+        Self(value)
     }
 }
 
 impl<'lua> ToLua<'lua> for Remote {
     fn to_lua(self, lua: &'lua mlua::Lua) -> mlua::Result<mlua::Value<'lua>> {
-        self.inner.to_lua(lua)
+        self.0.to_lua(lua)
     }
 }
 
@@ -147,26 +188,29 @@ impl FromStr for Remote {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self {
-            inner: s.to_string(),
-        })
+        Ok(Self(s.to_string()))
     }
 }
 
-#[derive(Clone)]
-pub struct OID {
-    inner: String,
-}
+#[derive(Debug, Clone, sqlx::Type)]
+#[sqlx(transparent)]
+pub struct OID(pub String);
 
 impl OID {
     pub fn shortened(&self) -> String {
-        self.inner[..5].to_string()
+        self.0[..5].to_string()
+    }
+}
+
+impl From<String> for OID {
+    fn from(value: String) -> Self {
+        Self(value)
     }
 }
 
 impl<'lua> ToLua<'lua> for OID {
     fn to_lua(self, lua: &'lua mlua::Lua) -> mlua::Result<mlua::Value<'lua>> {
-        self.inner.to_lua(lua)
+        self.0.to_lua(lua)
     }
 }
 
@@ -174,16 +218,14 @@ impl FromStr for OID {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self {
-            inner: s.to_string(),
-        })
+        Ok(Self(s.to_string()))
     }
 }
 
-#[derive(Clone, Default)]
+#[derive(Debug, Clone, Default)]
 pub struct Position {
-    line: Option<usize>,
-    col: Option<usize>,
+    pub line: Option<usize>,
+    pub col: Option<usize>,
 }
 impl<'lua> ToLua<'lua> for Position {
     fn to_lua(self, _lua: &'lua mlua::Lua) -> mlua::Result<mlua::Value<'lua>> {
@@ -198,7 +240,7 @@ fn make_bufname(remote: &Remote, oid: &OID, path: &str) -> String {
     format!("sg://{}@{}/-/{}", remote.shortened(), oid.shortened(), path)
 }
 
-#[derive(LuaDefaults)]
+#[derive(Debug, LuaDefaults)]
 pub struct File {
     pub remote: Remote,
     pub oid: OID,
@@ -218,7 +260,7 @@ impl UserData for File {
     }
 }
 
-#[derive(LuaDefaults)]
+#[derive(Debug, LuaDefaults)]
 pub struct Directory {
     pub remote: Remote,
     pub oid: OID,
@@ -237,6 +279,7 @@ impl UserData for Directory {
     }
 }
 
+#[derive(Debug)]
 pub struct Repo {
     pub remote: Remote,
 }

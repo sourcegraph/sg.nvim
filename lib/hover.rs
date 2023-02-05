@@ -1,5 +1,5 @@
 use {
-    crate::{get_commit_hash, get_graphql, uri_from_link},
+    crate::{entry, get_graphql},
     anyhow::{Context, Result},
     graphql_client::GraphQLQuery,
     log::info,
@@ -22,13 +22,15 @@ pub struct HoverQuery;
 // pub struct SearchHoverQuery;
 
 pub async fn get_hover(uri: String, line: i64, character: i64) -> Result<String> {
-    let uri = crate::normalize_url(&uri);
-    let remote_file = uri_from_link(&uri, get_commit_hash).await?;
-    info!("Remote File: {:?}", remote_file);
+    let remote_file = entry::Entry::new(&uri).await?;
+    let remote_file = match remote_file {
+        entry::Entry::File(file) => file,
+        _ => return Err(anyhow::anyhow!("Can only get references of a file")),
+    };
 
     let response_body = get_graphql::<HoverQuery>(hover_query::Variables {
-        repository: remote_file.remote,
-        revision: remote_file.commit,
+        repository: remote_file.remote.0,
+        revision: remote_file.oid.0,
         path: remote_file.path,
         line,
         character,

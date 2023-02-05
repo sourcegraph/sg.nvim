@@ -2,13 +2,17 @@ query DefinitionQuery($repository: String!, $revision: String!, $path: String!, 
   repository(name: $repository) {
     commit(rev: $revision) {
       blob(path: $path) {
-        name
-        path
         lsif {
           definitions(line: $line, character: $character) {
             nodes {
-              url
               resource {
+                url
+                repository {
+                  name
+                }
+                commit {
+                  oid
+                }
                 path
               }
               range {

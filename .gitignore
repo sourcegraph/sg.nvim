@@ -1,1 +1,5 @@
 /target
+
+.env
+data.db
+data.db*

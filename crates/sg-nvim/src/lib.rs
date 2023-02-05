@@ -3,7 +3,7 @@
 use {
     mlua::{prelude::*, Function, LuaSerdeExt, SerializeOptions, Value},
     serde::Serialize,
-    sg::{self, entry::Entry, get_commit_hash, search, uri_from_link},
+    sg::{self, entry::Entry, get_commit_hash, search},
 };
 
 // TODO: I would like to be able to do something like this and make a constant.
@@ -32,10 +32,16 @@ fn get_remote_file_contents(lua: &Lua, args: (String, String, String)) -> LuaRes
 
     let rt = tokio::runtime::Runtime::new().to_lua_err()?;
     let remote_file = rt
-        .block_on(async { sg::get_remote_file_contents(&remote, &hash, &path).await })
+        .block_on(async { sg::maybe_read_stuff(&remote, &hash, &path).await })
         .to_lua_err()?;
 
-    to_lua(lua, &remote_file)
+    to_lua(
+        lua,
+        &remote_file
+            .split('\n')
+            .map(|s| s.to_string())
+            .collect::<Vec<String>>(),
+    )
 }
 
 fn get_remote_directory_contents(lua: &Lua, args: (String, String, String)) -> LuaResult<LuaValue> {
@@ -57,17 +63,6 @@ fn get_remote_directory_contents(lua: &Lua, args: (String, String, String)) -> L
         .to_lua_err()?;
 
     directory_contents.to_lua(lua)
-}
-
-fn get_remote_file(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
-    let path = args.0;
-    let rt = tokio::runtime::Runtime::new().to_lua_err()?;
-    let remote_file = rt
-        .block_on(async { uri_from_link(path.as_str(), get_commit_hash).await })
-        .to_lua_err()?;
-
-    // to_lua(lua, &remote_file)
-    remote_file.to_lua(lua)
 }
 
 fn get_search(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
@@ -107,9 +102,6 @@ fn lua_get_entry(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
 
 #[mlua::lua_module]
 fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
-    // TODO: Consider putting mlua_null as a global so we can compare with that
-    // Patatas_del_papa: I was going to ask if doing something like lua.globals().set("null", lua.null())? could be the solution
-
     let exports = lua.create_table()?;
 
     exports.set(
@@ -123,7 +115,6 @@ fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
     )?;
 
     exports.set("get_entry", lua.create_function(lua_get_entry)?)?;
-    exports.set("get_remote_file", lua.create_function(get_remote_file)?)?;
     exports.set("get_search", lua.create_function(get_search)?)?;
 
     Ok(exports)
