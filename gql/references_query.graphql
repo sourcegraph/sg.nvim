@@ -2,13 +2,17 @@ query ReferencesQuery($repository: String!, $revision: String!, $path: String!, 
   repository(name: $repository) {
     commit(rev: $revision) {
       blob(path: $path) {
-        name
-        path
         lsif {
           references(line: $line, character: $character) {
             nodes {
-              url
               resource {
+                url
+                repository {
+                  name
+                }
+                commit {
+                  oid
+                }
                 path
               }
               range {
