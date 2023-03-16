@@ -126,6 +126,31 @@ fn get_info(lua: &Lua, _: ()) -> LuaResult<LuaValue> {
     tbl.to_lua(lua)
 }
 
+fn get_link(lua: &Lua, (bufname, line, col): (String, usize, usize)) -> LuaResult<LuaValue> {
+    let rt = tokio::runtime::Runtime::new().to_lua_err()?;
+    match rt
+        .block_on(async { Entry::new(&bufname).await })
+        .to_lua_err()?
+    {
+        Entry::File(file) => {
+            let endpoint = get_endpoint();
+            let remote = file.remote.0;
+            let path = file.path;
+
+            format!("{endpoint}/{remote}/-/blob/{path}?L{line}:{col}")
+        }
+        Entry::Directory(dir) => {
+            let endpoint = get_endpoint();
+            let remote = dir.remote.0;
+            let path = dir.path;
+
+            format!("{endpoint}/{remote}/-/tree/{path}")
+        }
+        Entry::Repo(_) => todo!("repo: not yet implemented"),
+    }
+    .to_lua(lua)
+}
+
 #[mlua::lua_module]
 fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
     let exports = lua.create_table()?;
@@ -142,8 +167,8 @@ fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
 
     exports.set("get_entry", lua.create_function(lua_get_entry)?)?;
     exports.set("get_search", lua.create_function(get_search)?)?;
-
     exports.set("get_info", lua.create_function(get_info)?)?;
+    exports.set("get_link", lua.create_function(get_link)?)?;
 
     Ok(exports)
 }

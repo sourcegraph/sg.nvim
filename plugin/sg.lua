@@ -31,3 +31,15 @@ vim.api.nvim_create_user_command("SourcegraphInfo", function()
     print "... got sourcegraph info"
   end)
 end, {})
+
+vim.api.nvim_create_user_command("SourcegraphLink", function()
+  local cursor = vim.api.nvim_win_get_cursor(0)
+  local ok, link = pcall(require("sg.lib").get_link, vim.api.nvim_buf_get_name(0), cursor[1], cursor[2] + 1)
+  if not ok then
+    print("Failed to get link:", link)
+    return
+  end
+
+  print("Setting '+' register to:", link)
+  vim.fn.setreg("+", link)
+end, {})

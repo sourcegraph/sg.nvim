@@ -25,6 +25,7 @@ instance of Sourcegraph
   - [x] Directly from sourcegraph links: `:edit <sourcegraph url>`
     - `sg.nvim` will automatically add protocols for handling `https://sourcegraph.com/*` links.
   - [x] Directly from buffer names: `:edit sg://github.com/tjdevries/sam.py/-/src/sam.py`
+  - [x] Use `:SourcegraphLink` to get a link for the location under your cursor
 - [x] Reading non-files:
   - [ ] Repository roots
   - [x] Folders
