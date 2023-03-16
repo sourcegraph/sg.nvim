@@ -3,7 +3,7 @@
 use {
     mlua::{prelude::*, Function, LuaSerdeExt, SerializeOptions, Value},
     serde::Serialize,
-    sg::{self, entry::Entry, search},
+    sg::{self, entry::Entry, get_access_token, get_endpoint, get_sourcegraph_version, search},
 };
 
 // TODO: I would like to be able to do something like this and make a constant.
@@ -100,6 +100,32 @@ fn lua_get_entry(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
     search_results.to_lua(lua)
 }
 
+fn get_info(lua: &Lua, _: ()) -> LuaResult<LuaValue> {
+    let rt = tokio::runtime::Runtime::new().to_lua_err()?;
+
+    let tbl = lua.create_table()?;
+
+    tbl.set(
+        "sourcegraph_version",
+        match rt.block_on(async { get_sourcegraph_version().await }) {
+            Ok(version) => {
+                let version_tbl = lua.create_table()?;
+                version_tbl.set("build", version.build)?;
+                version_tbl.set("product", version.product)?;
+
+                version_tbl.to_lua(lua)?
+            }
+            Err(err) => format!("error while retrieving version: {}", err).to_lua(lua)?,
+        },
+    )?;
+
+    tbl.set("sg_nvim_version", env!("CARGO_PKG_VERSION"))?;
+    tbl.set("endpoint", get_endpoint())?;
+    tbl.set("access_token_set", get_access_token().is_ok())?;
+
+    tbl.to_lua(lua)
+}
+
 #[mlua::lua_module]
 fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
     let exports = lua.create_table()?;
@@ -116,6 +142,8 @@ fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
 
     exports.set("get_entry", lua.create_function(lua_get_entry)?)?;
     exports.set("get_search", lua.create_function(get_search)?)?;
+
+    exports.set("get_info", lua.create_function(get_info)?)?;
 
     Ok(exports)
 }

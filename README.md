@@ -4,6 +4,11 @@ sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com 
 
 **Status**: Alpha (see #Features for currently supported features)
 
+## Bug Reporting
+
+If you encounter a bug, please run `:SourcegraphInfo` and copy the contents of the information into your bug report.
+It will greatly help in debugging what is happening (and there will probably be some bugs to start... Sorry!)
+
 ## Setup
 
 ### Connection

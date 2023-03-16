@@ -258,3 +258,28 @@ pub fn normalize_url(url: &str) -> String {
     )
     .to_string()
 }
+
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "gql/schema.graphql",
+    query_path = "gql/version_query.graphql",
+    response_derives = "Debug"
+)]
+pub struct VersionQuery;
+
+pub struct SourcegraphVersion {
+    pub product: String,
+    pub build: String,
+}
+
+pub async fn get_sourcegraph_version() -> Result<SourcegraphVersion> {
+    get_graphql::<VersionQuery>(version_query::Variables {})
+        .await
+        .map(|response_body| {
+            let version = response_body.site;
+            SourcegraphVersion {
+                product: version.product_version,
+                build: version.build_version,
+            }
+        })
+}

@@ -1,0 +1,6 @@
+query VersionQuery {
+  site {
+    productVersion
+    buildVersion
+  }
+}
