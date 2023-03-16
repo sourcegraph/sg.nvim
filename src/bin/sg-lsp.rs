@@ -121,7 +121,7 @@ async fn handle_definition(
     .await?;
 
     let result = Some(GotoDefinitionResponse::Array(definitions));
-    let result = serde_json::to_value(&result).unwrap();
+    let result = serde_json::to_value(result).unwrap();
     let resp = Response {
         id,
         result: Some(result),
