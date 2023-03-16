@@ -16,8 +16,8 @@ mod graphql {
     use super::*;
 
     static GRAPHQL_ENDPOINT: Lazy<String> = Lazy::new(|| {
-        let endpoint = get_endpoint().unwrap_or("https://sourcegraph.com/".to_string());
-        format!("{endpoint}.api/graphql")
+        let endpoint = get_endpoint();
+        format!("{endpoint}/.api/graphql")
     });
 
     static CLIENT: Lazy<Client> = Lazy::new(|| {
@@ -27,7 +27,7 @@ mod graphql {
                     std::iter::once((
                         reqwest::header::AUTHORIZATION,
                         reqwest::header::HeaderValue::from_str(&format!(
-                            "Bearer {sourcegraph_access_token}",
+                            "token {sourcegraph_access_token}",
                         ))
                         .unwrap(),
                     ))
@@ -43,13 +43,15 @@ mod graphql {
     });
 
     pub async fn get_graphql<Q: GraphQLQuery>(variables: Q::Variables) -> Result<Q::ResponseData> {
+        let vars_ser = serde_json::to_string(&variables);
         let response =
             match post_graphql::<Q, _>(&CLIENT, GRAPHQL_ENDPOINT.to_string(), variables).await {
                 Ok(response) => response,
                 Err(err) => {
                     return Err(anyhow::anyhow!(
-                        "Failed with status: {:?} || {err:?}",
-                        err.status()
+                        "Failed with (OH NO) status: {:?} || {err:?} TESTING: {}",
+                        err.status(),
+                        vars_ser.expect("valid json")
                     ))
                 }
             };
@@ -62,11 +64,14 @@ pub use graphql::get_graphql;
 use serde::Serialize;
 
 pub fn get_access_token() -> Result<String> {
-    std::env::var("SOURCEGRAPH_ACCESS_TOKEN").context("No access token found")
+    std::env::var("SRC_ACCESS_TOKEN").context("No access token found")
 }
 
-pub fn get_endpoint() -> Result<String> {
-    std::env::var("SRC_ENDPOINT").context("No endpoint found")
+pub fn get_endpoint() -> String {
+    std::env::var("SRC_ENDPOINT")
+        .unwrap_or_else(|_| "https://sourcegraph.com/".to_string())
+        .trim_end_matches('/')
+        .to_string()
 }
 
 pub type GitObjectID = String;
@@ -246,71 +251,10 @@ pub fn normalize_url(url: &str) -> String {
 
     re.replace_all(
         &url.to_string()
+            .replace(&get_endpoint(), "")
             .replace("//gh/", "//github.com/")
-            .replace("https://sourcegraph.com/", "")
             .replace("sg://", ""),
         "",
     )
     .to_string()
 }
-
-// pub async fn uri_from_link(url: &str) -> Result<File> {
-//     let split: Vec<&str> = url.split("/-/").collect();
-//     if split.len() != 2 {
-//         return Err(anyhow::anyhow!("Expected url to be split by /-/"));
-//     }
-//
-//     let remote_with_commit = split[0].to_string();
-//     let mut split_remote: Vec<&str> = remote_with_commit.split('@').collect();
-//     let remote = split_remote.remove(0).to_string();
-//     let commit = get_commit_hash(
-//         remote.clone(),
-//         if split_remote.is_empty() {
-//             "HEAD".to_string()
-//         } else {
-//             split_remote.remove(0).to_string()
-//         },
-//     )
-//     .await?;
-//
-//     let prefix_regex = Regex::new("^(blob|tree)/")?;
-//     let replaced_path = prefix_regex.replace(split[1], "");
-//     let path_and_args: Vec<&str> = replaced_path.split('?').collect();
-//
-//     if path_and_args.len() > 2 {
-//         return Err(anyhow::anyhow!(
-//             "Too many question marks. Please don't do that"
-//         ));
-//     }
-//
-//     // TODO: Check out split_once for some stuff here.
-//     let path = path_and_args[0].to_string();
-//     let (line, col) = if path_and_args.len() == 2 {
-//         // TODO: We could probably handle a few more cases here :)
-//         let arg_split: Vec<&str> = path_and_args[1].split(':').collect();
-//
-//         if arg_split.len() == 2 {
-//             (
-//                 Some(arg_split[0][1..].parse().unwrap_or(1)),
-//                 Some(arg_split[1].parse().unwrap_or(1)),
-//             )
-//         } else if arg_split.len() == 1 {
-//             match arg_split[0][1..].parse() {
-//                 Ok(val) => (Some(val), None),
-//                 Err(_) => (None, None),
-//             }
-//         } else {
-//             (None, None)
-//         }
-//     } else {
-//         (None, None)
-//     };
-//
-//     Ok(RemoteFile {
-//         remote,
-//         commit,
-//         path,
-//         line,
-//         col,
-//     })
-// }

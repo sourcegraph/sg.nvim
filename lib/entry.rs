@@ -110,22 +110,24 @@ impl std::convert::TryFrom<Entry> for lsp_types::Location {
     fn try_from(value: Entry) -> Result<Self, Self::Error> {
         use lsp_types::Url;
 
-        let (start, end) = if let Some(_) = value.position() {
-            // TODO: Do this part later :)
-            (
-                lsp_types::Position::default(),
-                lsp_types::Position::default(),
-            )
-        } else {
-            (
-                lsp_types::Position::default(),
-                lsp_types::Position::default(),
-            )
+        let position = match value.position() {
+            Some(Position {
+                line: Some(line),
+                col: Some(col),
+            }) => lsp_types::Position::new(line as u32, col as u32),
+            Some(Position {
+                line: Some(line),
+                col: None,
+            }) => lsp_types::Position::new(line as u32, 0),
+            _ => lsp_types::Position::default(),
         };
 
         Ok(Self {
             uri: Url::parse(&value.bufname())?,
-            range: lsp_types::Range { start, end },
+            range: lsp_types::Range {
+                start: position,
+                end: position,
+            },
         })
     }
 }
