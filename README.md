@@ -46,7 +46,7 @@ instance of Sourcegraph
 -- Use your favorite package manager to install, for example in lazy.nvim
 return {
   {
-    "tjdevries/sg.nvim",
+    "sourcegraph/sg.nvim",
     build = "cargo build --workspace",
     dependencies = { "nvim-lua/plenary.nvim" },
   },
@@ -70,9 +70,10 @@ require("sg").setup {
 nnoremap <space>ss <cmd>lua require('sg.telescope').fuzzy_search_results()<CR>
 ```
 
-## Old Demos:
+## Demos:
 
-- Short clip of cross repository jumpt to definition: [Clip](https://clips.twitch.tv/AmazonianSullenSwordBloodTrail-l8H5WKEd8sNpEdIT)
+- Latest Demo: [Alpha Release](https://youtu.be/j5sfHG3z3ao)
+- Short clip of cross repository jump to definition: [Clip](https://clips.twitch.tv/AmazonianSullenSwordBloodTrail-l8H5WKEd8sNpEdIT)
 - Demo v2: [YouTube](https://www.youtube.com/watch?v=RCyBnAx-4Q4)
 - Demo v1: [YouTube](https://youtu.be/iCdsD6MiLQs)
 
