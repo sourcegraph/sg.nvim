@@ -58,6 +58,23 @@ return {
   },
 }
 ```
+
+### Nix(OS)
+
+The project is packaged as a [Nix Flake][nix-flakes]. Consume it as you normally would. In your Nix configuration,
+*make sure* that sg-nvim is included *both* as a Neovim plugin *and* as an environment/user package
+(because `sg-lsp` needs to be on your PATH).
+
+See https://nixos.wiki/wiki/Neovim for more details on configuring neovim using Nix.
+Or see https://github.com/willruggiano/neovim.drv for a practical example.
+
+For contributors and maintainers:
+
+- There should be nothing to do, nix-related, when changes are made to the Rust project
+- If you're Nix savvy and want to contribute, it would be nice to use [crate2nix] instead
+  of the generic `buildRustPackage`. A github workflow would be needed to autoupdate the
+  generated crate2nix files.
+
 ### Setup:
 
 ```lua
@@ -83,3 +100,5 @@ nnoremap <space>ss <cmd>lua require('sg.telescope').fuzzy_search_results()<CR>
 - Demo v2: [YouTube](https://www.youtube.com/watch?v=RCyBnAx-4Q4)
 - Demo v1: [YouTube](https://youtu.be/iCdsD6MiLQs)
 
+[nix-flakes]: https://nixos.wiki/wiki/Flakes
+[crate2nix]: https://github.com/kolloch/crate2nix
