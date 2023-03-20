@@ -1,4 +1,5 @@
 use {
+    anyhow::{Context, Result},
     log::{info, LevelFilter},
     log4rs::{
         append::file::FileAppender,
@@ -12,11 +13,8 @@ use {
         ReferenceParams, ServerCapabilities,
     },
     serde::{Deserialize, Serialize},
-    std::{error::Error, path::Path},
+    std::path::Path,
 };
-
-type BoxErr = Box<dyn Error + Sync + Send>;
-type Res<T> = Result<T, BoxErr>;
 
 mod sg_read {
     use super::*;
@@ -43,7 +41,7 @@ mod sg_read {
 }
 
 #[tokio::main]
-async fn main() -> Res<()> {
+async fn main() -> Result<()> {
     let file_path = "/home/tjdevries/.cache/nvim/sg-lsp.log";
 
     // TODO: Make logging work for everyone and configurable,
@@ -52,8 +50,7 @@ async fn main() -> Res<()> {
         let logfile = FileAppender::builder()
             // Pattern: https://docs.rs/log4rs/*/log4rs/encode/pattern/index.html
             .encoder(Box::new(PatternEncoder::new("{l} - {m}\n")))
-            .build(file_path)
-            .unwrap();
+            .build(file_path)?;
 
         let config = Config::builder()
             .appender(Appender::builder().build("logfile", Box::new(logfile)))
@@ -61,8 +58,7 @@ async fn main() -> Res<()> {
                 Root::builder()
                     .appender("logfile")
                     .build(LevelFilter::Trace),
-            )
-            .unwrap();
+            )?;
 
         // Use this to change log levels at runtime.
         // This means you can change the default log level to trace
@@ -86,7 +82,7 @@ async fn main() -> Res<()> {
         ..Default::default()
     };
 
-    let server_capabilities = serde_json::to_value(&capabilities).unwrap();
+    let server_capabilities = serde_json::to_value(&capabilities)?;
     let initialization_params = match connection.initialize(server_capabilities) {
         Ok(params) => params,
         Err(err) => {
@@ -110,7 +106,7 @@ async fn handle_definition(
     connection: &Connection,
     id: RequestId,
     params: GotoDefinitionParams,
-) -> Res<()> {
+) -> Result<()> {
     let params = params.text_document_position_params;
     let uri = params.text_document.uri;
     let definitions = sg::definition::get_definitions(
@@ -121,7 +117,7 @@ async fn handle_definition(
     .await?;
 
     let result = Some(GotoDefinitionResponse::Array(definitions));
-    let result = serde_json::to_value(result).unwrap();
+    let result = serde_json::to_value(result)?;
     let resp = Response {
         id,
         result: Some(result),
@@ -131,7 +127,7 @@ async fn handle_definition(
     Ok(())
 }
 
-async fn handle_hover(connection: &Connection, id: RequestId, params: HoverParams) -> Res<()> {
+async fn handle_hover(connection: &Connection, id: RequestId, params: HoverParams) -> Result<()> {
     let params = params.text_document_position_params;
     let hover = sg::hover::get_hover(
         params.text_document.uri.to_string(),
@@ -147,7 +143,7 @@ async fn handle_hover(connection: &Connection, id: RequestId, params: HoverParam
         }),
         range: None,
     });
-    let result = serde_json::to_value(&result).unwrap();
+    let result = serde_json::to_value(result)?;
     let resp = Response {
         id,
         result: Some(result),
@@ -161,7 +157,7 @@ async fn handle_references(
     connection: &Connection,
     id: RequestId,
     params: ReferenceParams,
-) -> Res<()> {
+) -> Result<()> {
     let params = params.text_document_position;
     let uri = params.text_document.uri;
     let references = sg::references::get_references(
@@ -172,7 +168,7 @@ async fn handle_references(
     .await?;
 
     let result = Some(references);
-    let result = serde_json::to_value(&result).unwrap();
+    let result = serde_json::to_value(result)?;
     let resp = Response {
         id,
         result: Some(result),
@@ -192,12 +188,12 @@ async fn handle_sourcegraph_read(
     connection: &Connection,
     id: RequestId,
     params: sg_read::Params,
-) -> Res<()> {
+) -> Result<()> {
     info!("Reading sg:// -> {} ", params.path);
     let resp = Some(sg_read::Response {
         normalized: sg::normalize_url(&params.path),
     });
-    let resp = serde_json::to_value(&resp).unwrap();
+    let resp = serde_json::to_value(resp)?;
     let resp = Response {
         id,
         result: Some(resp),
@@ -207,8 +203,8 @@ async fn handle_sourcegraph_read(
     Ok(())
 }
 
-async fn main_loop(connection: Connection, params: serde_json::Value) -> Res<()> {
-    let _params: InitializeParams = serde_json::from_value(params).unwrap();
+async fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
+    let _params: InitializeParams = serde_json::from_value(params)?;
     info!("Starting main loop...");
 
     for msg in &connection.receiver {
@@ -219,7 +215,10 @@ async fn main_loop(connection: Connection, params: serde_json::Value) -> Res<()>
                     return Ok(());
                 }
 
-                handle_request(&connection, req).await?;
+                if let Err(err) = handle_request(&connection, req).await {
+                    // TODO: What to do with the error?
+                    info!("failed to handle: {:?}", err);
+                }
             }
             Message::Response(resp) => {
                 info!("got response: {:?}", resp);
@@ -234,7 +233,7 @@ async fn main_loop(connection: Connection, params: serde_json::Value) -> Res<()>
     Ok(())
 }
 
-fn send_error(connection: &Connection, id: RequestId, err: BoxErr) {
+fn send_error(connection: &Connection, id: RequestId, err: anyhow::Error) -> Result<()> {
     connection
         .sender
         .send(Message::Response(Response {
@@ -246,10 +245,10 @@ fn send_error(connection: &Connection, id: RequestId, err: BoxErr) {
                 data: None,
             }),
         }))
-        .expect("Failed to send response");
+        .context("Failed to send error")
 }
 
-async fn handle_request(connection: &Connection, req: Request) -> Res<()> {
+async fn handle_request(connection: &Connection, req: Request) -> Result<()> {
     // Make sure that we don't crash the server just because some requests aren't handled
     // correctly.
     //
@@ -262,14 +261,12 @@ async fn handle_request(connection: &Connection, req: Request) -> Res<()> {
                 Ok((id, params)) => match $handler($connection, id.clone(), params).await {
                     Ok(_) => return Ok(()),
                     Err(err) => {
-                        send_error($connection, id, err);
-                        return Ok(());
+                        return send_error($connection, id, err);
                     }
                 },
                 Err(ExtractError::MethodMismatch(req)) => req,
                 Err(err) => {
-                    send_error($connection, id, err.into());
-                    return Ok(());
+                    return send_error($connection, id, err.into());
                 }
             }
         }};
@@ -287,7 +284,7 @@ async fn handle_request(connection: &Connection, req: Request) -> Res<()> {
     Ok(())
 }
 
-fn cast<R>(req: Request) -> Result<(RequestId, R::Params), ExtractError<Request>>
+fn cast<R>(req: Request) -> std::result::Result<(RequestId, R::Params), ExtractError<Request>>
 where
     R: lsp_types::request::Request,
     R::Params: serde::de::DeserializeOwned,

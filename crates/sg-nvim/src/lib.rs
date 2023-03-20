@@ -56,7 +56,7 @@ fn get_remote_directory_contents(lua: &Lua, args: (String, String, String)) -> L
                 .await
                 .map(|v| {
                     v.into_iter()
-                        .map(|e| Entry::from_info(e).expect("these better convert"))
+                        .filter_map(|e| Entry::from_info(e).ok())
                         .collect::<Vec<_>>()
                 })
         })
@@ -70,22 +70,25 @@ fn get_search(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
     let rt = tokio::runtime::Runtime::new().to_lua_err()?;
     let search_results = rt
         .block_on(async { search::get_search(path.as_str()).await })
-        .to_lua_err()
-        .expect("remote_file: uri_from_link");
+        .to_lua_err()?;
 
-    Ok(search_results
+    // TODO: We kind of silently skip the ones that fail here...
+    // which seems a bit weird. I do wonder what I should be doing with that
+    //
+    // I don't think they can really fail because it's just setting values
+    // in lua... so if this fails, we are kinda in trouble.
+    search_results
         .into_iter()
-        .map(|res| {
-            let mapped = lua.create_table().unwrap();
-            mapped.set("repo", res.repo).unwrap();
-            mapped.set("file", res.file).unwrap();
-            mapped.set("preview", res.preview).unwrap();
-            mapped.set("line", res.line).unwrap();
-            mapped
+        .filter_map(|res| {
+            let mapped = lua.create_table().ok()?;
+            mapped.set("repo", res.repo).ok()?;
+            mapped.set("file", res.file).ok()?;
+            mapped.set("preview", res.preview).ok()?;
+            mapped.set("line", res.line).ok()?;
+            Some(mapped)
         })
         .collect::<Vec<_>>()
         .to_lua(lua)
-        .unwrap())
 }
 
 fn lua_get_entry(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
@@ -94,8 +97,7 @@ fn lua_get_entry(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
     let rt = tokio::runtime::Runtime::new().to_lua_err()?;
     let search_results = rt
         .block_on(async { Entry::new(&path).await })
-        .to_lua_err()
-        .expect("get_entry");
+        .to_lua_err()?;
 
     search_results.to_lua(lua)
 }

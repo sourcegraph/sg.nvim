@@ -29,7 +29,7 @@ mod graphql {
                         reqwest::header::HeaderValue::from_str(&format!(
                             "token {sourcegraph_access_token}",
                         ))
-                        .unwrap(),
+                        .expect("to be able to create the header value"),
                     ))
                     .collect(),
                 )
@@ -43,7 +43,7 @@ mod graphql {
     });
 
     pub async fn get_graphql<Q: GraphQLQuery>(variables: Q::Variables) -> Result<Q::ResponseData> {
-        let vars_ser = serde_json::to_string(&variables);
+        let vars_ser = serde_json::to_string(&variables)?;
         let response =
             match post_graphql::<Q, _>(&CLIENT, GRAPHQL_ENDPOINT.to_string(), variables).await {
                 Ok(response) => response,
@@ -51,7 +51,7 @@ mod graphql {
                     return Err(anyhow::anyhow!(
                         "Failed with (OH NO) status: {:?} || {err:?} TESTING: {}",
                         err.status(),
-                        vars_ser.expect("valid json")
+                        vars_ser
                     ))
                 }
             };
@@ -245,7 +245,6 @@ pub async fn maybe_read_stuff(remote: &str, commit: &str, path: &str) -> Result<
     get_remote_file_contents(remote, commit, path).await
 }
 
-// TODO: Create some new data types, don't just pass strings please
 pub fn normalize_url(url: &str) -> String {
     let re = Regex::new(r"^/").unwrap();
 

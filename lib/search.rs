@@ -21,6 +21,8 @@ pub struct SearchResult {
 }
 
 pub async fn get_search(query: &str) -> Result<Vec<SearchResult>> {
+    use search_query::SearchQuerySearchResultsResults::*;
+
     let query = query.to_string();
 
     let response_body = get_graphql::<SearchQuery>(search_query::Variables { query }).await?;
@@ -28,10 +30,7 @@ pub async fn get_search(query: &str) -> Result<Vec<SearchResult>> {
 
     let mut matches = vec![];
     for result in results {
-        use search_query::SearchQuerySearchResultsResults::*;
-        // for m in result
         // println!("{result:?}");
-
         match result {
             FileMatch(m) => {
                 for line in m.line_matches {
@@ -44,11 +43,16 @@ pub async fn get_search(query: &str) -> Result<Vec<SearchResult>> {
                 }
 
                 for symbol in m.symbols {
+                    let line = match &symbol.location.range {
+                        Some(range) => range.start.line as usize,
+                        None => continue,
+                    };
+
                     matches.push(SearchResult {
                         repo: m.repository.name.clone(),
                         file: m.file.path.clone(),
                         preview: symbol.name,
-                        line: symbol.location.range.expect("range").start.line as usize,
+                        line,
                     });
                 }
             }
