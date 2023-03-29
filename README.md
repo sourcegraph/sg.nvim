@@ -59,6 +59,8 @@ return {
 }
 ```
 
+You also need to have the appropriate environment variables to log in to your sourcegraph instance, as described in https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance
+
 ### Nix(OS)
 
 The project is packaged as a [Nix Flake][nix-flakes]. Consume it as you normally would. In your Nix configuration,
