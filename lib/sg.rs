@@ -6,6 +6,7 @@ use {
     regex::Regex,
 };
 
+pub mod cody;
 pub mod definition;
 pub mod entry;
 pub mod hover;

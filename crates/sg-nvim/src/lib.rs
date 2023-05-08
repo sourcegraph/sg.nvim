@@ -128,6 +128,13 @@ fn get_info(lua: &Lua, _: ()) -> LuaResult<LuaValue> {
     tbl.to_lua(lua)
 }
 
+fn get_completions(lua: &Lua, (text, temp): (String, Option<f64>)) -> LuaResult<LuaValue> {
+    let rt = tokio::runtime::Runtime::new().to_lua_err()?;
+    rt.block_on(async { sg::cody::get_completions(text, temp).await })
+        .to_lua_err()?
+        .to_lua(lua)
+}
+
 fn get_link(lua: &Lua, (bufname, line, col): (String, usize, usize)) -> LuaResult<LuaValue> {
     let rt = tokio::runtime::Runtime::new().to_lua_err()?;
     match rt
@@ -171,6 +178,8 @@ fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
     exports.set("get_search", lua.create_function(get_search)?)?;
     exports.set("get_info", lua.create_function(get_info)?)?;
     exports.set("get_link", lua.create_function(get_link)?)?;
+
+    exports.set("get_completions", lua.create_function(get_completions)?)?;
 
     Ok(exports)
 }

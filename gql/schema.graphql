@@ -1,4 +1,63 @@
 """
+Provides a scalar specification URL for specifying the behavior of custom scalar types.
+"""
+directive @specifiedBy(
+  """
+  The URL should point to a human-readable specification of the data format, serialization, and coercion rules.
+  """
+  url: String!
+) on SCALAR
+
+type _Service {
+  sdl: String!
+}
+
+"""Access request"""
+type AccessRequest implements Node {
+  """The unique identifier of the secret."""
+  id: ID!
+
+  """Name of a person requested access"""
+  name: String!
+
+  """Email of a person requested access"""
+  email: String!
+
+  """The date and time when request access was created"""
+  createdAt: DateTime!
+
+  """Additional information submitted by person requested access"""
+  additionalInfo: String
+
+  """Access request status"""
+  status: AccessRequestStatus!
+}
+
+"""A list of access requests"""
+type AccessRequestConnection {
+  """Total count of access requests"""
+  totalCount: Int!
+
+  """A list of access requests"""
+  nodes: [AccessRequest!]!
+
+  """Pagination information."""
+  pageInfo: BidirectionalPageInfo!
+}
+
+"""Access request status enum"""
+enum AccessRequestStatus {
+  """Access request is submitted and waiting for actions"""
+  PENDING
+
+  """Access request was approved"""
+  APPROVED
+
+  """Access request was rejected"""
+  REJECTED
+}
+
+"""
 An access token that grants to the holder the privileges of the user who created it.
 """
 type AccessToken implements Node {
@@ -468,6 +527,64 @@ type AutocompleteMemberSearchItem {
   inOrg: Boolean
 }
 
+"""A description of an auto-indexing job inferred by the instance."""
+type AutoIndexJobDescription {
+  """The project root."""
+  root: String!
+
+  """The target indexer."""
+  indexer: CodeIntelIndexer
+
+  """
+  A hash of the root and indexer values.
+  
+  This value can be used to quickly compare whether or not explicit configuration and inferred configuration
+  refer to the same "project" in a given repository. See `RootWithKey.comparisonKey`.
+  """
+  comparisonKey: String!
+
+  """The particular steps inferred for indexing."""
+  steps: IndexSteps!
+}
+
+"""
+BackfillQueueOrderBy enumerates the ways a backfill queue list can be ordered.
+"""
+enum BackfillQueueOrderBy {
+  STATE
+  QUEUE_POSITION
+}
+
+"""The status of an insights backfill"""
+type BackfillStatus {
+  """The current backfill queue state"""
+  state: InsightQueueItemState!
+
+  """If the item is queued the position in the queue of"""
+  queuePosition: Int
+
+  """A list of errors that have occurred during backfilling"""
+  errors: [String!]
+
+  """The estimated cost of the backfill process"""
+  cost: Int
+
+  """The percent complete of the backfill"""
+  percentComplete: Int
+
+  """The date/time when the backfill was created"""
+  createdAt: DateTime
+
+  """The date/time when the backfill started processing"""
+  startedAt: DateTime
+
+  """The date/time when the backfill completed processing"""
+  completedAt: DateTime
+
+  """The actual runtime duration spent processing the backfill"""
+  runtime: String
+}
+
 """A single background job."""
 type BackgroundJob implements Node {
   """The background job ID."""
@@ -666,7 +783,11 @@ type BatchChange implements Node {
     """
     onlyClosable: Boolean
 
-    """Only include changesets with the given review state."""
+    """
+    Only include changesets with the given review state.
+    
+    Note: The COMMENTED and DISMISSED review states are not yet implemented.
+    """
     reviewState: ChangesetReviewState
 
     """Only include changesets with the given check state."""
@@ -1525,8 +1646,8 @@ type BatchSpecWorkspaceStep {
     first: Int = 500
 
     """Return the log lines after N lines."""
-    after: Int
-  ): [String!]
+    after: String
+  ): BatchSpecWorkspaceStepOutputLineConnection!
 
   """The time when the step started processing. Null, if not yet started."""
   startedAt: DateTime
@@ -1548,6 +1669,18 @@ type BatchSpecWorkspaceStep {
 
   """The generated diff from this step. Null, if not yet finished."""
   diff: PreviewRepositoryComparison
+}
+
+"""A list of Output lines from a Batch spec workspace."""
+type BatchSpecWorkspaceStepOutputLineConnection {
+  """The total number of output lines in the connection."""
+  totalCount: Int!
+
+  """Pagination information."""
+  pageInfo: PageInfo!
+
+  """A list of output lines."""
+  nodes: [String!]!
 }
 
 """A set of Git behind/ahead counts for one commit relative to another."""
@@ -1718,6 +1851,13 @@ enum BulkOperationType {
 
   """Bulk publish changesets."""
   PUBLISH
+}
+
+"""A status message of a permissions sync job cancellation."""
+enum CancelPermissionsSyncJobResultMessage {
+  SUCCESS
+  NOT_FOUND
+  ERROR
 }
 
 """A changeset on a codehost."""
@@ -2219,6 +2359,16 @@ type ChangesetsStats {
 
   """The count of all changesets."""
   total: Int!
+
+  """
+  If true, then all changesets are either merged or closed. This indicates that the batch change is completed.
+  """
+  isCompleted: Boolean!
+
+  """
+  The count of changesets that are complete (i.e in a merged or closed state) and not archived or deleted.
+  """
+  percentComplete: Int!
 }
 
 """The visual state a changeset is currently in."""
@@ -2333,6 +2483,31 @@ type CloningProgress {
   message: String!
 }
 
+"""
+Describes the state of a provider (code host) during a permission sync job.
+"""
+type CodeHostState {
+  """ID of a permissions provider (code host)."""
+  providerID: String!
+
+  """Permissions provider (code host) type."""
+  providerType: String!
+
+  """Status of permission sync of a given provider."""
+  status: CodeHostStatus!
+
+  """Status message."""
+  message: String!
+}
+
+"""
+Describes the status of a permissions sync for a given provider (code host).
+"""
+enum CodeHostStatus {
+  SUCCESS
+  ERROR
+}
+
 """A Code Intel Commit."""
 type CodeIntelCommit {
   """The globally addressable ID for this commit."""
@@ -2351,6 +2526,24 @@ type CodeIntelCommit {
 
   """The repository that contains this commit."""
   repository: CodeIntelRepository!
+}
+
+"""
+A repository on an external service (such as GitHub, GitLab, Phabricator, etc.).
+"""
+type CodeIntelExternalRepository {
+  """
+  The type of external service where this repository resides.
+  Example: "github", "gitlab", etc.
+  """
+  serviceType: String!
+
+  """
+  The particular instance of the external service where this repository resides. Its value is
+  opaque but typically consists of the canonical base URL to the service.
+  Example: For GitHub.com, this is "https://github.com/".
+  """
+  serviceID: String!
 }
 
 """A gitblob resolver specific to code intel."""
@@ -2384,6 +2577,21 @@ type CodeIntelGitBlob {
     """
     endLine: Int
   ): String!
+}
+
+"""
+A git object that matches a git object type and glob pattern. This type is used by
+the UI to preview what names match a code intelligence policy in a given repository.
+"""
+type CodeIntelGitObject {
+  """The relevant branch or tag name."""
+  name: String!
+
+  """The full 40-char revhash."""
+  rev: String!
+
+  """The time that the underlying commit was created."""
+  committedAt: DateTime!
 }
 
 """A Code Intel Git Tree."""
@@ -2421,6 +2629,9 @@ type CodeIntelGitTree {
 
 """Describes a precise code-intel indexer."""
 type CodeIntelIndexer {
+  """The language ecosystem that this indexer supports."""
+  key: String!
+
   """Name of the precise code-intel indexer."""
   name: String!
 
@@ -2428,6 +2639,11 @@ type CodeIntelIndexer {
   URL to the source of the indexer e.g. https://github.com/sourcegraph/lsif-go
   """
   url: String!
+
+  """
+  A Docker image name used to distribute the indexer to the executor for via auto-indexing.
+  """
+  imageName: String
 }
 
 """
@@ -2588,23 +2804,22 @@ type CodeIntelRepository {
 
   """The URL to this repository."""
   url: String!
+
+  """
+  Information about this repository from the external service that it originates from (such as GitHub, GitLab,
+  Phabricator, etc.). Only populated when used as part of repository list previews for configuration policies.
+  """
+  externalRepository: CodeIntelExternalRepository
 }
 
-"""A summary of the most reecent upload and index status."""
+"""A summary of the most recent upload and index status."""
 type CodeIntelRepositorySummary {
   """
-  A list of recent uploads for a specific repository. This list contains processing,
-  recently queued, and the most recently processed uploads for each distinct indexer
+  A list of recent precise indexes for a specific repository. This list contains processing,
+  recently queued, and the most recently processed precise indexes for each distinct indexer
   and root.
   """
-  recentUploads: [LSIFUploadsWithRepositoryNamespace!]!
-
-  """
-  A list of recent indexes for a specific repository. This list contains processing,
-  recently queued, and the most recently processed indexes for each distinct indexer
-  and root.
-  """
-  recentIndexes: [LSIFIndexesWithRepositoryNamespace!]!
+  recentActivity: [PreciseIndex!]!
 
   """
   The last time uploads of this repository were checked against data retention policies.
@@ -2620,15 +2835,171 @@ type CodeIntelRepositorySummary {
   The additionally available indexers that could be indexed but haven't been indexed.
   """
   availableIndexers: [InferredAvailableIndexers!]!
+
+  """
+  If inference of the repository contents hit a limit its error description will available here.
+  """
+  limitError: String
 }
 
-"""Details the types, tools and levels of code-intel support."""
-type CodeIntelSupport {
-  """Search-based code-intel support overview."""
-  searchBasedSupport: SearchBasedCodeIntelSupport
+"""
+A repository paired with a list of precise indexers (used by CodeIntelSummary).
+"""
+type CodeIntelRepositoryWithConfiguration {
+  """The repository."""
+  repository: CodeIntelRepository!
 
-  """Precise code-intel support overview."""
-  preciseSupport: PreciseCodeIntelSupport
+  """The precise indexers available for the repository."""
+  indexers: [IndexerWithCount!]!
+}
+
+"""
+A list of repositories paired with a list of precise indexers (used by CodeIntelSummary).
+"""
+type CodeIntelRepositoryWithConfigurationConnection {
+  """The repository and indexer count."""
+  nodes: [CodeIntelRepositoryWithConfiguration!]!
+
+  """The total number of results (over all pages) in this list."""
+  totalCount: Int
+
+  """Metadata about the current page of results."""
+  pageInfo: PageInfo!
+}
+
+"""
+A repository paired with a count of precise indexing errors (used by CodeIntelSummary).
+"""
+type CodeIntelRepositoryWithError {
+  """The repository."""
+  repository: CodeIntelRepository!
+
+  """The number of precise indexing errors in the repository."""
+  count: Int!
+}
+
+"""
+A list of repositories paired with a count of precise indexing errors (used by CodeIntelSummary).
+"""
+type CodeIntelRepositoryWithErrorConnection {
+  """The repository and error count."""
+  nodes: [CodeIntelRepositoryWithError!]!
+
+  """The total number of results (over all pages) in this list."""
+  totalCount: Int
+
+  """Metadata about the current page of results."""
+  pageInfo: PageInfo!
+}
+
+"""A summary of code intelligence on the instance."""
+type CodeIntelSummary {
+  """The number of repositories with precise index records."""
+  numRepositoriesWithCodeIntelligence: Int!
+
+  """A list of repositories with precise index errors."""
+  repositoriesWithErrors(
+    """
+    When specified, indicates that this request should be paginated and
+    the first N results (relative to the cursor) should be returned. i.e.
+    how many results to return per page.
+    """
+    first: Int
+
+    """
+    When specified, indicates that this request should be paginated and
+    to fetch results starting at this cursor.
+    
+    A future request can be made for more results by passing in the
+    'CodeIntelRepositoryWithErrorConnection.pageInfo.endCursor'
+    that is returned.
+    """
+    after: String
+  ): CodeIntelRepositoryWithErrorConnection!
+
+  """A list of repositories with configurable auto-indexing jobs."""
+  repositoriesWithConfiguration(
+    """
+    When specified, indicates that this request should be paginated and
+    the first N results (relative to the cursor) should be returned. i.e.
+    how many results to return per page.
+    """
+    first: Int
+
+    """
+    When specified, indicates that this request should be paginated and
+    to fetch results starting at this cursor.
+    
+    A future request can be made for more results by passing in the
+    'CodeIntelRepositoryWithErrorConnection.pageInfo.endCursor'
+    that is returned.
+    """
+    after: String
+  ): CodeIntelRepositoryWithConfigurationConnection
+}
+
+"""
+The entity is an owner because they were mentioned on a codeowners file.
+"""
+type CodeownersFileEntry {
+  """Descriptive title to display in the UI for the determination."""
+  title: String!
+
+  """More detailed description to display in the UI for the determination."""
+  description: String!
+
+  """
+  Either GitBlob or VirtualFile. This points to the CODEOWNERS file that yielded the
+  determination.
+  """
+  codeownersFile: File2!
+
+  """The line in the CODEOWNERS file that matched for this determination."""
+  ruleLineMatch: Int!
+}
+
+"""
+CodeownersFileInput represents the input for ingesting codeowners files
+"""
+input CodeownersFileInput {
+  """fileContents is the text of the codeowners file"""
+  fileContents: String!
+
+  """The repo ID to ingest the file for. Cannot be set with repositoryName."""
+  repoID: ID
+
+  """The repo name to ingest the file for. Cannot be set with repositoryID."""
+  repoName: String
+}
+
+"""CodeownersIngestedFile represents a manually ingested Codeowners file."""
+type CodeownersIngestedFile implements Node {
+  """A graphql ID for this file."""
+  id: ID!
+
+  """The string contents of the codeowners file."""
+  contents: String!
+
+  """The repository this codeowners file has been manually ingested for."""
+  repository: Repository!
+
+  """The creation date of this codeowners file."""
+  createdAt: DateTime!
+
+  """The last updated date of this codeowners file."""
+  updatedAt: DateTime!
+}
+
+"""A list of CodeownersIngestedFiles."""
+type CodeownersIngestedFileConnection {
+  """The total count of items in the connection."""
+  totalCount: Int!
+
+  """The pagination info for the connection."""
+  pageInfo: PageInfo!
+
+  """The current page of codeowners files in this connection."""
+  nodes: [CodeownersIngestedFile!]!
 }
 
 """A search result that is a Git commit."""
@@ -2659,6 +3030,24 @@ type CommitSearchResult implements GenericSearchResultInterface {
 
   """The matching portion of the diff, if any."""
   diffPreview: HighlightedString
+}
+
+"""Input wrapper for completions"""
+input CompletionsInput {
+  """List of conversation messages"""
+  messages: [Message!]!
+
+  """Temperature for sampling - higher means more random completions"""
+  temperature: Float!
+
+  """Maximum number of tokens to sample"""
+  maxTokensToSample: Int!
+
+  """Number of highest probability completions to return"""
+  topK: Int!
+
+  """Probability threshold for inclusion in results"""
+  topP: Int!
 }
 
 """
@@ -2958,6 +3347,18 @@ type DefaultSettings implements SettingsSubject {
   configurationCascade: ConfigurationCascade! @deprecated(reason: "Use settingsCascade instead. This field is a deprecated alias for it and will be removed in a future release.")
 }
 
+"""
+A repository to pass to the deleteCodeownersFiles mutation. Either repoID or repoName
+must be provided.
+"""
+input DeleteCodeownersFilesInput {
+  """The repo ID to ingest the file for. Cannot be set with repositoryName."""
+  repoID: ID
+
+  """The repo name to ingest the file for. Cannot be set with repositoryID."""
+  repoName: String
+}
+
 """Represents a diagnostic, such as a compiler error or warning."""
 type Diagnostic {
   """The location at which the message applies."""
@@ -2987,7 +3388,7 @@ type DiagnosticConnection {
   """
   The total count of diagnostics (which may be larger than nodes.length if the connection is paginated).
   """
-  totalCount: Int!
+  totalCount: Int
 
   """Pagination information."""
   pageInfo: PageInfo!
@@ -3122,6 +3523,32 @@ type DotcomQuery {
     """Returns only product licenses associated with the given subscription"""
     productSubscriptionID: ID
   ): ProductLicenseConnection!
+}
+
+"""A single embeddings search result."""
+type EmbeddingsSearchResult {
+  """The search result file name."""
+  fileName: String!
+
+  """The start line of the content (inclusive)."""
+  startLine: Int!
+
+  """The end line of the content (exclusive)."""
+  endLine: Int!
+
+  """The content of the file from start line to end line."""
+  content: String!
+}
+
+"""
+Embeddings search results. Contains a list of code results and a list of text results.
+"""
+type EmbeddingsSearchResults {
+  """A list of code file results."""
+  codeResults: [EmbeddingsSearchResult!]!
+
+  """A list of text file results."""
+  textResults: [EmbeddingsSearchResult!]!
 }
 
 """Represents a null return value."""
@@ -3303,6 +3730,7 @@ enum EventSource {
   BACKEND
   STATICWEB
   IDEEXTENSION
+  CODY
 }
 
 """Supported status of monitor events."""
@@ -3578,39 +4006,6 @@ type ExistingChangesetReference {
   externalID: String!
 }
 
-"""
-A description of the extension, how to run or access it, and when to activate it.
-"""
-type ExtensionManifest {
-  """
-  The raw JSON (or JSONC) contents of the manifest. This value may be large (because many
-  manifests contain README and icon data), and it is JSONC (not strict JSON), which means
-  it must be parsed with a JSON parser that supports trailing commas and comments. Consider
-  using jsonFields instead.
-  """
-  raw: String!
-
-  """
-  The manifest as JSON (not JSONC, even if the raw manifest is JSONC) with only the
-  specified fields. This is useful for callers that only need certain fields and want
-  to avoid fetching a large amount of data (because many manifests contain README
-  and icon data).
-  """
-  jsonFields(fields: [String!]!): JSONValue!
-}
-
-"""An extension registry."""
-type ExtensionRegistry {
-  """A list of extensions published in the extension registry."""
-  extensions(
-    """Returns the first n extensions from the list."""
-    first: Int
-
-    """Returns only extensions with the given IDs."""
-    extensionIDs: [String!]
-  ): RegistryExtensionConnection!
-}
-
 """An external account associated with a user."""
 type ExternalAccount implements Node {
   """The unique ID for the external account."""
@@ -3713,6 +4108,11 @@ type ExternalChangeset implements Node & Changeset {
     viewerCanAdminister: Boolean
   ): BatchChangeConnection!
 
+  """
+  The batch change that "owns" this changeset: If this is null, it is imported/tracked by a batch change.
+  """
+  ownedByBatchChange: ID
+
   """The events belonging to this changeset."""
   events(first: Int = 50, after: String): ChangesetEventConnection!
 
@@ -3747,8 +4147,15 @@ type ExternalChangeset implements Node & Changeset {
   body: String
 
   """
-  The author of the changeset, or null if the data hasn't been synced from the code host yet,
-  or the changeset has not yet been published.
+  The author of the changeset, or null if the data is unavailable or hasn't been synced
+  from the code host yet.
+  
+  Note that author is not fully supported by some code host APIs:
+  * GitHub - only author.name
+  * GitLab - only author.name
+  * Bitbucket Server - author is not always available
+  * Bitbucket Cloud - author is never available
+  * Azure DevOps - author is always available
   """
   author: Person
 
@@ -3773,7 +4180,14 @@ type ExternalChangeset implements Node & Changeset {
   forkNamespace: String
 
   """
+  If the changeset was opened from a fork, this is the name of the fork repository.
+  """
+  forkName: String
+
+  """
   The review state of this changeset. This is only set once the changeset is published on the code host.
+  
+  Note: The COMMENTED and DISMISSED review states are not yet implemented.
   """
   reviewState: ChangesetReviewState
 
@@ -3920,8 +4334,8 @@ type ExternalService implements Node {
   
   Only site admins may access this field.
   
-  DEPRECATED: Webhook logs linked directly to an external service will be removed.
-  See https://docs.sourcegraph.com/admin/config/webhooks#deprecation-notice
+  DEPRECATED: Webhook logs linked directly to an external service will be removed. See
+  https://docs.sourcegraph.com/admin/config/webhooks/incoming#deprecation-notice
   """
   webhookLogs(
     """Returns the first n webhook logs."""
@@ -3938,7 +4352,7 @@ type ExternalService implements Node {
 
     """Only include webhook logs on or before this time."""
     until: DateTime
-  ): WebhookLogConnection! @deprecated(reason: "Webhook logs linked directly to an external service will be removed. See https://docs.sourcegraph.com/admin/config/webhooks#deprecation-notice")
+  ): WebhookLogConnection! @deprecated(reason: "Webhook logs linked directly to an external service will be removed. See https://docs.sourcegraph.com/admin/config/webhooks/incoming#deprecation-notice")
 
   """The list of recent sync jobs for this external service."""
   syncJobs(first: Int): ExternalServiceSyncJobConnection!
@@ -4021,6 +4435,77 @@ enum ExternalServiceKind {
   PYTHONPACKAGES
   RUSTPACKAGES
   RUBYPACKAGES
+}
+
+"""
+A namespace sourced from a defined external service (such as GitHub, GitLab, Phabricator, etc.) that can be discovered
+before any sync or mirror operations.
+"""
+type ExternalServiceNamespace {
+  """The unique identifier of the external service namespace."""
+  id: ID!
+
+  """The name of the external service namespace."""
+  name: String!
+
+  """
+  The Namespace's ID on the external service.
+  Example: For GitHub, this is the GitHub GraphQL API's node ID for the organization.
+  """
+  externalID: String!
+}
+
+"""A list of namespaces available to an external service configuration."""
+type ExternalServiceNamespaceConnection {
+  """
+  A list of namespaces available on the source.
+  Namespaces are used to organize which members and users can access repositories
+  and are defined by external service kind (e.g. Github organizations, Bitbucket projects, etc.)
+  """
+  nodes: [ExternalServiceNamespace!]!
+
+  """The total number of source repos in the connection."""
+  totalCount: Int!
+}
+
+"""
+A repository sourced from a defined external service (such as GitHub, GitLab, Phabricator, etc.) that can be discovered
+before any sync or mirror operations.
+"""
+type ExternalServiceRepository {
+  """The unique identifier of the external service repository."""
+  id: ID!
+
+  """The name of the external service repository."""
+  name: String!
+
+  """
+  The repository's ID on the external service.
+  Example: For GitHub, this is the GitHub GraphQL API's node ID for the repository.
+  """
+  externalID: String!
+}
+
+"""A list of repositories available to an external service configuration."""
+type ExternalServiceRepositoryConnection {
+  """A list of repositories available on the source."""
+  nodes: [ExternalServiceRepository!]!
+}
+
+"""
+External services count information includes a count of services for remote code host connections and a count of services
+for local code host connections (local is only supported for Sourcegraph App).
+"""
+type ExternalServicesCounts {
+  """
+  The count of external services configured for remote code host connections.
+  """
+  remoteExternalServicesCount: Int!
+
+  """
+  The count of external services configured for local code host connections.
+  """
+  localExternalServicesCount: Int!
 }
 
 """
@@ -4534,7 +5019,7 @@ interface GenericSearchResultInterface {
 }
 
 """A Git blob in a repository."""
-type GitBlob implements TreeEntry & File2 {
+type GitBlob implements TreeEntry & File2 & Ownable {
   """The full path (relative to the repository root) of this blob."""
   path: String!
 
@@ -4685,9 +5170,6 @@ type GitBlob implements TreeEntry & File2 {
     toolName: String
   ): GitBlobLSIFData
 
-  """Provides info on the level of code-intel support for this git blob."""
-  codeIntelSupport: CodeIntelSupport!
-
   """
   Provides code intelligence within the file.
   
@@ -4701,6 +5183,18 @@ type GitBlob implements TreeEntry & File2 {
   Experimental: This API is likely to change in the future.
   """
   symbolInfo(line: Int!, character: Int!): SymbolInfo
+
+  """Ownership summary for this file."""
+  ownership(
+    """Returns the first n ownership records from the list."""
+    first: Int
+
+    """Opaque pagination cursor."""
+    after: String
+
+    """Return only ownership for the given reasons."""
+    reasons: [OwnershipReasonType!]
+  ): OwnershipConnection!
 }
 
 """
@@ -4793,7 +5287,7 @@ type GitBlobLSIFData implements TreeEntryLSIFData {
     """
     first: Int
 
-    """When specified, it filters immplementations by filename."""
+    """When specified, it filters implementation by filename."""
     filter: String
   ): LocationConnection!
 
@@ -4812,9 +5306,14 @@ type GitBlobLSIFData implements TreeEntryLSIFData {
   diagnostics(first: Int): DiagnosticConnection!
 
   """
-  The list of LSIF uploads that may be used to service code-intel requests for this GitBlob.
+  The indexes that could provide precise code intelligence for the current blob.
   """
-  lsifUploads: [LSIFUpload!]!
+  visibleIndexes: [PreciseIndex!]
+
+  """
+  SCIP snapshot data (similar to the additional information from the `scip snapshot` command) for each SCIP Occurrence.
+  """
+  snapshot(indexID: ID!): [SnapshotData!]
 }
 
 """
@@ -5083,15 +5582,21 @@ type GitObject {
 }
 
 """
-A git object that matches a git object type and glob pattern. This type is used by
-the UI to preview what names match a code intelligence policy in a given repository.
+A decorated connection of Git objects resulting from 'previewGitObjectFilter'.
 """
 type GitObjectFilterPreview {
-  """The relevant branch or tag name."""
-  name: String!
+  """A list of Git objects composing the current page."""
+  nodes: [CodeIntelGitObject!]!
 
-  """The full 40-char revhash."""
-  rev: String!
+  """The total number of Git objects in this result set."""
+  totalCount: Int!
+
+  """
+  When countObjectsYoungerThanHours is supplied, this holds the total number of Git
+  objects in the result set that have an associated commit date younger than the
+  supplied threshold.
+  """
+  totalCountYoungerThanThreshold: Int
 }
 
 """A Git object ID (SHA-1 hash, 40 hexadecimal characters)."""
@@ -5344,23 +5849,6 @@ type GitTree implements TreeEntry {
     """
     toolName: String
   ): GitTreeLSIFData
-
-  """
-  Provides info on the level of code-intel support for the direct children of this git tree.
-  """
-  codeIntelInfo: GitTreeCodeIntelInfo
-}
-
-"""Details code-intel support for a group of files rooted at a tree."""
-type GitTreeCodeIntelInfo {
-  """Search-based coverage grouped by language."""
-  searchBasedSupport: [GitTreeSearchBasedCoverage!]
-
-  """
-  Precise coverage based on inference derived from the directory
-  structure and its files.
-  """
-  preciseSupport: [GitTreePreciseCoverage!]
 }
 
 """
@@ -5370,40 +5858,10 @@ null, no LSIF data is available for the git tree in question.
 type GitTreeLSIFData implements TreeEntryLSIFData {
   """Code diagnostics provided through LSIF."""
   diagnostics(first: Int): DiagnosticConnection!
-
-  """
-  The list of LSIF uploads that may be used to service code-intel requests for this TreeEntry.
-  """
-  lsifUploads: [LSIFUpload!]!
 }
 
 """Either a git tree or blob."""
 union GitTreeOrBlob = GitTree | GitBlob
-
-"""
-Precise code-intel support coverage grouped by LSIF indexer language
-support for a group of files.
-"""
-type GitTreePreciseCoverage {
-  """Overview of the level of support for this group of files."""
-  support: PreciseCodeIntelSupport!
-
-  """Level of confidence in the inference of an indexing target suggestion."""
-  confidence: InferedPreciseSupportLevel!
-}
-
-"""Search-based code-intel support coverage grouped by related files."""
-type GitTreeSearchBasedCoverage {
-  """
-  The files comprising this grouping of search-based support.
-  Each grouping consists of all the files of the same langauge e.g.
-  all .go files in one group, all .kt and .kts files in another.
-  """
-  coveredPaths: [String!]!
-
-  """Overview of the level of support for this group of files."""
-  support: SearchBasedCodeIntelSupport!
-}
 
 """
 FOR INTERNAL USE ONLY: A status message produced when disableAutoGitUpdates is
@@ -5795,10 +6253,26 @@ type IndexConfiguration {
   """The raw JSON-encoded index configuration."""
   configuration: String
 
+  """The parsed index configuration (decoded from the raw JSON version)."""
+  parsedConfiguration: [AutoIndexJobDescription!]
+
   """
-  The raw JSON-encoded index configuration as infered by the auto-indexer.
+  The raw JSON-encoded index configuration as inferred by the auto-indexer.
   """
-  inferredConfiguration: String
+  inferredConfiguration: InferredConfiguration
+}
+
+"""
+A precise indexer paired with a count of indexable projects in the repository (used by CodeIntelSummary).
+"""
+type IndexerWithCount {
+  """The repository."""
+  indexer: CodeIntelIndexer
+
+  """
+  The count of projects that could utilize the indexer in this repository.
+  """
+  count: Int!
 }
 
 """
@@ -5815,6 +6289,11 @@ type IndexingProgress {
 
 """The configuration and execution summary of the indexer."""
 type IndexStep {
+  """
+  Commands to run in the same image as the indexer but before the indexer is invoked.
+  """
+  commands: [String!]!
+
   """The arguments to supply to the indexer container."""
   indexerArgs: [String!]!
 
@@ -5822,6 +6301,11 @@ type IndexStep {
   The path to the index file relative to the root directory (dump.lsif by default).
   """
   outfile: String
+
+  """
+  A list of environment variables (VAR=VAL) that should be made available to the indexer.
+  """
+  requestedEnvVars: [String!]
 
   """The execution summary (if completed or errored) of the index command."""
   logEntry: ExecutionLogEntry
@@ -5853,45 +6337,32 @@ type IndexSteps {
 }
 
 """
-Denotes the confidence in the correctness of the proposed index target.
-"""
-enum InferedPreciseSupportLevel {
-  """
-  The language is known to have an LSIF indexer associated with it
-  but this may not be the directory from which it should be invoked.
-  Relevant build tool configuration may be available at a parent directory.
-  """
-  LANGUAGE_SUPPORTED
-
-  """
-  Relevant build tool configuration files were located that indicate
-  a good possibility of this directory being where an LSIF indexer
-  could be invoked, however we have or can not infer a potentially complete
-  auto indexing job configuration.
-  """
-  PROJECT_STRUCTURE_SUPPORTED
-
-  """
-  An auto-indexing job configuration was able to be infered for this
-  directory that has a high likelyhood of being complete enough to result
-  in an LSIF index.
-  """
-  INDEX_JOB_INFERED
-}
-
-"""
 The additionally available indexers that have been inferred from jobs and job
 hints that could be indexed but haven't been indexed.
 """
 type InferredAvailableIndexers {
-  """The indexer name."""
-  index: String!
+  """The indexer."""
+  indexer: CodeIntelIndexer!
 
   """The list of roots that could be indexed."""
   roots: [String!]!
 
-  """The url of the index repository."""
-  url: String!
+  """The list of roots that could be indexed."""
+  rootsWithKeys: [RootWithKey!]!
+}
+
+"""A wrapper around inferred configuration and a possible limit error."""
+type InferredConfiguration {
+  """The raw JSON-encoded inferred index configuration."""
+  configuration: String!
+
+  """The parsed index configuration (decoded from the raw JSON version)."""
+  parsedConfiguration: [AutoIndexJobDescription!]
+
+  """
+  If inference of the repository contents hit a limit its error description will available here.
+  """
+  limitError: String
 }
 
 """An insight about code."""
@@ -5907,6 +6378,41 @@ type Insight {
 
   """Unique identifier for this insight."""
   id: String!
+}
+
+"""Information about an item in the insights backfill queue"""
+type InsightBackfillQueueItem {
+  """The ID of the Backfill item"""
+  id: ID!
+
+  """The title of the insight view"""
+  insightViewTitle: String!
+
+  """The user that originally created the insight view"""
+  creator: User
+
+  """The name of the series on the associated insight view"""
+  seriesLabel: String!
+
+  """The search query for the series"""
+  seriesSearchQuery: String!
+
+  """Information on the current backfill status"""
+  backfillQueueStatus: BackfillStatus!
+}
+
+"""
+Returns information regarding the insights backfill queue to admin users.
+"""
+type InsightBackfillQueueItemConnection implements Connection {
+  """A list of insight backfill queue items."""
+  nodes: [InsightBackfillQueueItem!]!
+
+  """The total number of insight backfill queue items in the connection."""
+  totalCount: Int!
+
+  """Pagination information."""
+  pageInfo: ConnectionPageInfo!
 }
 
 """A code insight data point."""
@@ -5937,6 +6443,16 @@ type InsightIntervalTimeScope {
 
 """Defines presentation options for the insight."""
 union InsightPresentation = LineChartInsightViewPresentation | PieChartInsightViewPresentation
+
+"""Possible queue states"""
+enum InsightQueueItemState {
+  NEW
+  QUEUED
+  COMPLETED
+  PROCESSING
+  FAILED
+  UNKNOWN
+}
 
 """Defines how the scope of repositories was generated"""
 union InsightRepositoryDefinition = RepositorySearchScope | InsightRepositoryScope
@@ -6509,194 +7025,6 @@ type LocationConnection {
   pageInfo: PageInfo!
 }
 
-"""Metadata and status about an LSIF index."""
-type LSIFIndex implements Node {
-  """The ID."""
-  id: ID!
-
-  """The project for which this upload provides code intelligence."""
-  projectRoot: CodeIntelGitTree
-
-  """The original 40-character commit commit supplied at index time."""
-  inputCommit: String!
-
-  """The tags, if any, associated with this commit."""
-  tags: [String!]!
-
-  """The original root supplied at index schedule time."""
-  inputRoot: String!
-
-  """
-  The name of the target indexer Docker image (e.g., sourcegraph/lsif-go@sha256:...).
-  """
-  inputIndexer: String!
-
-  """The indexer used to produce the index artifact."""
-  indexer: CodeIntelIndexer
-
-  """The index's current state."""
-  state: LSIFIndexState!
-
-  """The time the index was queued."""
-  queuedAt: DateTime!
-
-  """The time the index was processed."""
-  startedAt: DateTime
-
-  """The time the index completed or errored."""
-  finishedAt: DateTime
-
-  """The processing error message (not set if state is not ERRORED)."""
-  failure: String
-
-  """
-  The configuration and execution summary (if completed or errored) of this index job.
-  """
-  steps: IndexSteps!
-
-  """
-  The rank of this index in the queue. The value of this field is null if the index has been processed.
-  """
-  placeInQueue: Int
-
-  """The LSIF upload created as part of this indexing job."""
-  associatedUpload: LSIFUpload
-
-  """Whether or not this index has been marked for reindexing."""
-  shouldReindex: Boolean!
-}
-
-"""A list of LSIF indexes."""
-type LSIFIndexConnection {
-  """A list of LSIF indexes."""
-  nodes: [LSIFIndex!]!
-
-  """The total number of indexes in this result set."""
-  totalCount: Int
-
-  """Pagination information."""
-  pageInfo: PageInfo!
-}
-
-"""A group of indexes that share the same root and indexer values."""
-type LSIFIndexesWithRepositoryNamespace {
-  """The root of all indexes in the associated connection."""
-  root: String!
-
-  """The configured indexer of each index in the associated connection."""
-  indexer: CodeIntelIndexer!
-
-  """A list of indexes."""
-  indexes: [LSIFIndex!]!
-}
-
-"""The state an LSIF index can be in."""
-enum LSIFIndexState {
-  """This index is being processed."""
-  PROCESSING
-
-  """This index failed to be processed."""
-  ERRORED
-
-  """This index was processed successfully."""
-  COMPLETED
-
-  """This index is queued to be processed later."""
-  QUEUED
-}
-
-"""Metadata and status about an LSIF upload."""
-type LSIFUpload implements Node {
-  """The ID."""
-  id: ID!
-
-  """The project for which this upload provides code intelligence."""
-  projectRoot: CodeIntelGitTree
-
-  """The original 40-character commit commit supplied at upload time."""
-  inputCommit: String!
-
-  """The tags, if any, associated with this commit."""
-  tags: [String!]!
-
-  """The original root supplied at upload time."""
-  inputRoot: String!
-
-  """The original indexer name supplied at upload time."""
-  inputIndexer: String!
-
-  """The indexer used to produce this index."""
-  indexer: CodeIntelIndexer
-
-  """The upload's current state."""
-  state: LSIFUploadState!
-
-  """The time the upload was uploaded."""
-  uploadedAt: DateTime!
-
-  """The time the upload was processed."""
-  startedAt: DateTime
-
-  """The time the upload completed or errored."""
-  finishedAt: DateTime
-
-  """The processing error message (not set if state is not ERRORED)."""
-  failure: String
-
-  """
-  Whether or not this upload provides intelligence for the tip of the default branch. Find reference
-  queries will return symbols from remote repositories only when this property is true. This property
-  is updated asynchronously and is eventually consistent with the git data known by the Sourcegraph
-  instance.
-  """
-  isLatestForRepo: Boolean!
-
-  """
-  The rank of this upload in the queue. The value of this field is null if the upload has been processed.
-  """
-  placeInQueue: Int
-
-  """The LSIF indexing job that created this upload record."""
-  associatedIndex: LSIFIndex
-
-  """
-  The list of retention policies, optionally filtered by only ones that match/apply to this upload and/or
-  by name substring match.
-  """
-  retentionPolicyOverview(
-    matchesOnly: Boolean!
-
-    """An (optional) search query that searches over the name property."""
-    query: String
-
-    """
-    When specified, indicates that this request should be paginated and
-    to fetch results starting at this cursor.
-    A future request can be made for more results by passing in the
-    'CodeIntelligenceRetentionPolicyMatchesConnection.pageInfo.endCursor' that is returned.
-    """
-    after: String
-
-    """
-    When specified, indicates that this request should be paginated and
-    the first N results (relative to the cursor) should be returned. i.e.
-    how many results to return per page.
-    """
-    first: Int
-  ): CodeIntelligenceRetentionPolicyMatchesConnection!
-
-  """
-  The list of documents contained in this processed upload, matching the Postgres
-  pattern. Pattern type is subject to change.
-  """
-  documentPaths(pattern: String!): LSIFUploadDocumentPathsConnection!
-
-  """
-  Audit logs representing each state change of the upload in order from earliest to latest.
-  """
-  auditLogs: [LSIFUploadAuditLog!]
-}
-
 """
 Contains the metadata and upload data for a single state change of an upload.
 """
@@ -6734,74 +7062,6 @@ type LSIFUploadAuditLog {
   operation: AuditLogOperation!
 }
 
-"""A list of LSIF uploads."""
-type LSIFUploadConnection {
-  """A list of LSIF uploads."""
-  nodes: [LSIFUpload!]!
-
-  """The total number of uploads in this result set."""
-  totalCount: Int
-
-  """Pagination information."""
-  pageInfo: PageInfo!
-}
-
-"""A list of document paths in an LSIF upload."""
-type LSIFUploadDocumentPathsConnection {
-  """The first 100 document paths. Pagination to be added at a later date."""
-  nodes: [String!]!
-
-  """The total number of docuemnt paths."""
-  totalCount: Int
-}
-
-"""The state an LSIF upload can be in."""
-enum LSIFUploadState {
-  """This upload is being processed."""
-  PROCESSING
-
-  """This upload failed to be processed."""
-  ERRORED
-
-  """This upload was processed successfully."""
-  COMPLETED
-
-  """This upload is queued to be processed later."""
-  QUEUED
-
-  """This upload is currently being transferred to Sourcegraph."""
-  UPLOADING
-
-  """
-  This upload is queued for deletion. This upload was previously in the
-  COMPLETED state and evicted, replaced by a newer upload, or deleted by
-  a user. This upload is able to answer code intelligence queries until
-  the commit graph of the upload's repository is next calculated, at which
-  point the upload will become unreachable.
-  """
-  DELETING
-
-  """
-  This upload is deleted and its metadata is reconstructed from existing
-  audit log entries.
-  """
-  DELETED
-}
-
-"""A group of uploads that share the same root and indexer values."""
-type LSIFUploadsWithRepositoryNamespace {
-  """The root of all uploads in the associated connection."""
-  root: String!
-
-  """
-  The indexer used to produce the each upload in the associated connection.
-  """
-  indexer: CodeIntelIndexer!
-
-  """A list of uploads."""
-  uploads: [LSIFUpload!]!
-}
-
 """An object representing a markdown string."""
 type Markdown {
   """The raw markdown string."""
@@ -6827,6 +7087,15 @@ type MarkdownBlock {
 input MarkdownOptions {
   """A dummy null value (empty input types are not allowed yet)."""
   alwaysNil: String
+}
+
+"""Message to or from the LLM"""
+input Message {
+  """Speaker of the message (human/assistant)"""
+  speaker: SpeakerType!
+
+  """Text content of the message"""
+  text: String!
 }
 
 """
@@ -6864,9 +7133,14 @@ type MirrorRepositoryInfo {
   corruptionLogs: [RepoCorruptionLog!]!
 
   """
-  When the repository was last successfully updated from the remote source repository..
+  When the repository was last successfully updated from the remote source repository.
   """
   updatedAt: DateTime
+
+  """
+  When the repository is next scheduled to be updated from the remote source repository.
+  """
+  nextSyncAt: DateTime
 
   """The state of this repository in the update schedule."""
   updateSchedule: UpdateSchedule
@@ -7354,13 +7628,11 @@ type Mutation {
   updateOrganization(id: ID!, displayName: String): Org!
 
   """
-  Soft or hard deletes an organization.
-  - When the second argument is not provided, it soft deletes an organization, marking it as deleted.
+  Soft deletes an organization.
+  
   Only site admins may perform this mutation.
-  - When the second argument is true, it hard deletes an organization and its associated resources.
-  Hard deletion is currently only supported on cloud. Only org members may perform this mutation
   """
-  deleteOrganization(organization: ID!, hard: Boolean): EmptyResponse
+  deleteOrganization(organization: ID!): EmptyResponse
 
   """
   Creates a webhook for the specified code host. Only site admins may perform this mutation.
@@ -7509,7 +7781,6 @@ type Mutation {
   - All user data (access tokens, email addresses, external account info, survey responses, etc)
   - Organization membership information (which organizations the user is a part
   of, any invitations created by or targeting the user).
-  - Sourcegraph extensions published by the user.
   - User, Organization, or Global settings authored by the user.
   """
   deleteUser(user: ID!, hard: Boolean): EmptyResponse
@@ -7517,14 +7788,16 @@ type Mutation {
   """Bulk "deleteUser" action."""
   deleteUsers(users: [ID!]!, hard: Boolean): EmptyResponse
 
+  """Bulk "recoverUser" action."""
+  recoverUsers(userIDs: [ID!]!): EmptyResponse
+
   """
   Updates the current user's password. The oldPassword arg must match the user's current password.
   """
   updatePassword(oldPassword: String!, newPassword: String!): EmptyResponse
 
   """
-  Creates a password for the current user. It is only permitted if the user does not have a password and
-  they don't have any login connections.
+  Creates a password for the current user. It is only permitted if the user does not have a password.
   """
   createPassword(newPassword: String!): EmptyResponse
 
@@ -7569,6 +7842,13 @@ type Mutation {
   Only site admins or the user who is associated with the external account may perform this mutation.
   """
   deleteExternalAccount(externalAccount: ID!): EmptyResponse!
+
+  """
+  Adds an external account to the authenticated user's account. The service type and service ID
+  must correspond to a valid auth provider on the site. The account details must be a stringified
+  JSON object that contains valid credentials for the provided service type.
+  """
+  addExternalAccount(serviceType: String!, serviceID: String!, accountDetails: String!): EmptyResponse!
 
   """
   Sends an invitation to join Sourcegraph to the given email address.
@@ -7637,32 +7917,6 @@ type Mutation {
   Only site admins and any member of the organization may perform this mutation.
   """
   removeUserFromOrganization(user: ID!, organization: ID!): EmptyResponse
-
-  """
-  Adds or removes a tag on a user.
-  
-  Tags are used internally by Sourcegraph as feature flags for experimental features.
-  
-  Only site admins may perform this mutation.
-  """
-  setTag(
-    """
-    The ID of the user whose tags to set.
-    
-    (This parameter is named "node" to make it easy to support tagging other types of nodes
-    other than users in the future.)
-    """
-    node: ID!
-
-    """The tag to set."""
-    tag: String!
-
-    """
-    The desired state of the tag on the user (whether to add or remove): true to add, false to
-    remove.
-    """
-    present: Boolean!
-  ): EmptyResponse!
 
   """Adds a Phabricator repository to Sourcegraph."""
   addPhabricatorRepo(
@@ -8036,6 +8290,40 @@ type Mutation {
   """
   deleteRepositoryFromDisk(repo: ID!): EmptyResponse!
 
+  """Create a new package repo reference filter."""
+  addPackageRepoFilter(
+    """Whether the matcher should be for allowlisting or blocklisting."""
+    behaviour: PackageMatchBehaviour!
+
+    """
+    The ecosystem of the package repo reference this matcher should apply to.
+    Maps to the external service whos config would be updated when used in the
+    set query.
+    """
+    kind: PackageRepoReferenceKind!
+
+    """The package repo reference matcher to persist."""
+    filter: PackageVersionOrNameFilterInput!
+  ): PackageFilter!
+
+  """Updates a package repo reference filter."""
+  updatePackageRepoFilter(
+    """The ID of the package repo reference filter to update."""
+    id: ID!
+    behaviour: PackageMatchBehaviour!
+
+    """
+    The ecosystem of the package repo reference this matcher should apply to.
+    Maps to the external service whos config would be updated when used in the
+    set query.
+    """
+    kind: PackageRepoReferenceKind!
+    filter: PackageVersionOrNameFilterInput!
+  ): EmptyResponse!
+
+  """Deletes a package repo reference filter."""
+  deletePackageRepoFilter(id: ID!): EmptyResponse!
+
   """
   Create a new executor secret.
   See argument descriptions for more details.
@@ -8084,6 +8372,85 @@ type Mutation {
     """The identifier of the secret that shall be deleted."""
     id: ID!
   ): EmptyResponse
+
+  """
+  Creates a team. The name must be unique, display name can be used to set a custom
+  display value for the team inside Sourcegraph.
+  
+  If readonly is true, the Sourcegraph UI will show a warning banner that this team
+  is managed externally, and it can only be modified by site-admins.
+  This is to prevent state drift from external systems that ingest team information into Sourcegraph.
+  Readonly can only be set by site-admins.
+  
+  Either parentTeam XOR parentTeamName can be specified to make the team a child
+  team of the given parent. Only members of the parent team or site-admis can create
+  a child team.
+  """
+  createTeam(name: String!, displayName: String, readonly: Boolean = false, parentTeam: ID, parentTeamName: String): Team!
+
+  """
+  Update an existing team. ID or Name must be specified, but not both.
+  
+  To unset the display name, pass an empty string. Null will make it ignore updates.
+  
+  Either parentTeam XOR parentTeamName XOR makeRoot can be specified to make the team a child
+  team of the given parent or conversely to make a team a root team (with no parent team).
+  The user has to be a team-member of both the child and parent team for that, and
+  neither can be read-only. Site-admin can modify all teams without constraints.
+  """
+  updateTeam(id: ID, name: String, displayName: String, parentTeam: ID, parentTeamName: String, makeRoot: Boolean): Team!
+
+  """
+  Delete team deletes a team. ID or Name must be specified, but not both.
+  Must be team-member to delete. If the team is marked as read-only, must be site-admin.
+  """
+  deleteTeam(id: ID, name: String): EmptyResponse
+
+  """
+  Add a list of team members to an existing team.
+  People that already are part of the team are ignored.
+  
+  Either team XOR teamName can be specified to specify the team.
+  Must be team member to add new team members, or site-admin.
+  
+  For now, members can only be the IDs of User entities in Sourcegraph.
+  Later, we will expand this to allow Persons as well.
+  
+  If skipUnmatchedMembers is true, members that are not matched to a user are skipped.
+  """
+  addTeamMembers(team: ID, teamName: String, members: [TeamMemberInput!]!, skipUnmatchedMembers: Boolean = false): Team!
+
+  """
+  This is a convenience method to forcefully overwrite the full set of members
+  of a team. This is handy to sync external state without diffing the current
+  members vs the desired set of members.
+  
+  Either team XOR teamName can be specified to specify the team.
+  Must be team member to modify team members, or site-admin.
+  
+  For now, members can only be the IDs of User entities in Sourcegraph.
+  Later, we will expand this to allow Persons as well.
+  
+  If skipUnmatchedMembers is true, members that are not matched to a user are skipped.
+  """
+  setTeamMembers(team: ID, teamName: String, members: [TeamMemberInput!]!, skipUnmatchedMembers: Boolean = false): Team!
+
+  """
+  This mutation removes team membership for the given team and set of members.
+  Members that weren't part of the team are ignored.
+  
+  Either team XOR teamName can be specified to specify the team.
+  Must be team member to remove team members, or site-admin.
+  
+  For now, members can only be the IDs of User entities in Sourcegraph.
+  Later, we will expand this to allow Persons as well.
+  
+  If skipUnmatchedMembers is true, members that are not matched to a user are skipped.
+  """
+  removeTeamMembers(team: ID, teamName: String, members: [TeamMemberInput!]!, skipUnmatchedMembers: Boolean = false): Team!
+
+  """Marks access_request as rejected"""
+  setAccessRequestStatus(id: ID!, status: AccessRequestStatus!): EmptyResponse
 
   """
   Creates a new outbound webhook.
@@ -8594,6 +8961,84 @@ type Mutation {
   """
   toggleBatchSpecAutoApply(batchSpec: ID!, value: Boolean!): BatchSpec!
 
+  """Deletes a precise index."""
+  deletePreciseIndex(id: ID!): EmptyResponse
+
+  """Deletes precise indexes by filter criteria."""
+  deletePreciseIndexes(
+    """
+    An (optional) search query that filters the state, repository name, commit, root, and indexer properties.
+    """
+    query: String
+
+    """The index state."""
+    states: [PreciseIndexState!]
+
+    """
+    If supplied, only precise indexes created by an indexer with the given key are modified.
+    """
+    indexerKey: String
+
+    """
+    When specified, only deletes indexes that are latest for the given repository.
+    """
+    isLatestForRepo: Boolean
+
+    """The repository."""
+    repository: ID
+  ): EmptyResponse
+
+  """Marks a precise index as replaceable by auto-indexing."""
+  reindexPreciseIndex(id: ID!): EmptyResponse
+
+  """
+  Marks precise indexes by filter criteria as replaceable by auto-indexing.
+  """
+  reindexPreciseIndexes(
+    """
+    An (optional) search query that filters the state, repository name, commit, root, and indexer properties.
+    """
+    query: String
+
+    """The index state."""
+    states: [PreciseIndexState!]
+
+    """
+    If supplied, only precise indexes created by an indexer with the given key are modified.
+    """
+    indexerKey: String
+
+    """
+    When specified, only modifies indexes that are latest for the given repository.
+    """
+    isLatestForRepo: Boolean
+
+    """The repository."""
+    repository: ID
+  ): EmptyResponse
+
+  """
+  Queues the index jobs for a repository for execution. An optional resolvable revhash
+  (commit, branch name, or tag name) can be specified; by default the tip of the default
+  branch will be used.
+  
+  If a configuration is supplied, that configuration is used to determine what jobs to
+  schedule. If no configuration is supplied, it will go through the regular index scheduling
+  rules: first read any in-repo configuration (e.g., sourcegraph.yaml), then look for any
+  existing in-database configuration, finally falling back to the automatically inferred
+  configuration based on the repo contents at the target commit.
+  """
+  queueAutoIndexJobsForRepo(repository: ID!, rev: String, configuration: String): [PreciseIndex!]!
+
+  """
+  Updates the previously set/overrides the default global auto-indexing job inference Lua script
+  with a new override.
+  """
+  updateCodeIntelligenceInferenceScript(script: String!): EmptyResponse
+
+  """Updates the indexing configuration associated with a repository."""
+  updateRepositoryIndexConfiguration(repository: ID!, configuration: String!): EmptyResponse
+
   """Creates a new configuration policy with the given attributes."""
   createCodeIntelligenceConfigurationPolicy(
     """
@@ -8623,90 +9068,6 @@ type Mutation {
 
   """Deletes the configuration policy with the given identifier."""
   deleteCodeIntelligenceConfigurationPolicy(policy: ID!): EmptyResponse
-
-  """Updates the indexing configuration associated with a repository."""
-  updateRepositoryIndexConfiguration(repository: ID!, configuration: String!): EmptyResponse
-
-  """
-  Queues the index jobs for a repository for execution. An optional resolvable revhash
-  (commit, branch name, or tag name) can be specified; by default the tip of the default
-  branch will be used.
-  
-  If a configuration is supplied, that configuration is used to determine what jobs to
-  schedule. If no configuration is supplied, it will go through the regular index scheduling
-  rules: first read any in-repo configuration (e.g., sourcegraph.yaml), then look for any
-  existing in-database configuration, finally falling back to the automatically infered
-  connfiguration based on the repo contents at the target commit.
-  """
-  queueAutoIndexJobsForRepo(repository: ID!, rev: String, configuration: String): [LSIFIndex!]!
-
-  """Deletes an LSIF upload."""
-  deleteLSIFUpload(id: ID!): EmptyResponse
-
-  """Deletes LSIF uploads by filter criteria."""
-  deleteLSIFUploads(
-    """
-    An (optional) search query that filters the state, repository name,
-    commit, root, and indexer properties.
-    """
-    query: String
-
-    """The upload state."""
-    state: LSIFUploadState
-
-    """
-    When specified, only deletes uploads that are latest for the given repository.
-    """
-    isLatestForRepo: Boolean
-
-    """The repository."""
-    repository: ID
-  ): EmptyResponse
-
-  """Deletes an LSIF index."""
-  deleteLSIFIndex(id: ID!): EmptyResponse
-
-  """Deletes LSIF indexes by filter criteria."""
-  deleteLSIFIndexes(
-    """
-    An (optional) search query that filters the state, repository name,
-    commit, root, and indexer properties.
-    """
-    query: String
-
-    """The upload state."""
-    state: LSIFIndexState
-
-    """The repository."""
-    repository: ID
-  ): EmptyResponse
-
-  """Reindexes an LSIF index."""
-  reindexLSIFIndex(id: ID!): EmptyResponse
-
-  """Reindexes LSIF indexes by filter criteria."""
-  reindexLSIFIndexes(
-    """
-    An (optional) search query that filters the state, repository name,
-    commit, root, and indexer properties.
-    """
-    query: String
-
-    """The upload state."""
-    state: LSIFIndexState
-
-    """The repository."""
-    repository: ID
-  ): EmptyResponse
-
-  """Request support for a particular language."""
-  requestLanguageSupport(language: String!): EmptyResponse
-
-  """
-  Updates the previously set/overrides the default global auto-indexing job inference Lua script
-  with a new override.
-  """
-  updateCodeIntelligenceInferenceScript(script: String!): EmptyResponse
 
   """Create a new dashboard."""
   createInsightsDashboard(input: CreateInsightsDashboardInput!): InsightsDashboardPayload!
@@ -8743,6 +9104,24 @@ type Mutation {
 
   """Create a new insight view from an existing view."""
   saveInsightAsNewView(input: SaveInsightAsNewViewInput!): InsightViewPayload!
+
+  """
+  Retry the backfill for a failed insight series given the graphql ID of the
+  InsightBackfillQueueItem. Can only be used by a site admin.
+  """
+  retryInsightSeriesBackfill(id: ID!): InsightBackfillQueueItem!
+
+  """
+  Updates the priority of an insight series backfill making it the highest
+  priority given the graphql ID of the InsightBackfillQueueItem.
+  """
+  moveInsightSeriesBackfillToFrontOfQueue(id: ID!): InsightBackfillQueueItem!
+
+  """
+  Updates the priority of an insight series backfill making it the lowest
+  priority given the graphql ID of the InsightBackfillQueueItem
+  """
+  moveInsightSeriesBackfillToBackOfQueue(id: ID!): InsightBackfillQueueItem!
 
   """
   Set the permissions of a repository (i.e., which users may view it on Sourcegraph). This
@@ -8840,6 +9219,19 @@ type Mutation {
     """
     unrestricted: Boolean
   ): EmptyResponse!
+
+  """
+  Cancel permissions sync job with given ID.
+  No error is returned when the job is not in `queued` state or there is no such job
+  with the given ID (latter means that most probably, the job has already been cleaned up).
+  """
+  cancelPermissionsSyncJob(
+    """ID of the job to be canceled."""
+    job: ID!
+
+    """Optional cancellation reason."""
+    reason: String
+  ): CancelPermissionsSyncJobResultMessage!
 
   """Create a code monitor."""
   createCodeMonitor(
@@ -8982,6 +9374,56 @@ type Mutation {
 
   """Delete the notebook star for the current user, if exists."""
   deleteNotebookStar(notebookID: ID!): EmptyResponse!
+
+  """
+  Experimental: Schedules a job to create an embedding search index for each
+  listed repository. The indices are used for embeddings search.
+  """
+  scheduleRepositoriesForEmbedding(repoNames: [String!]!): EmptyResponse!
+
+  """
+  Experimental: Schedules a job to create an embedding index used for context
+  detection. The index is used to determine wheter a query requires additional context.
+  """
+  scheduleContextDetectionForEmbedding: EmptyResponse!
+
+  """
+  Deletes a role. This mutation targets only non-system roles.
+  Any users who were assigned to the role will be unassigned and lose any permissions associated with it.
+  """
+  deleteRole(role: ID!): EmptyResponse!
+
+  """Creates a role."""
+  createRole(name: String!, permissions: [ID!]!): Role!
+
+  """
+  Set permissions for role. This updates the permissions assigned to a role based on the `permissions` passed
+  in the argument. Permissions already assigned to the role that aren't part of the arguments of this mutation
+  will be revoked for the role.
+  """
+  setPermissions(role: ID!, permissions: [ID!]!): EmptyResponse!
+
+  """
+  Set roles for a user. Similar to `setPermissions`, this updates the roles assigned to a user based on the `roles`
+  passed in the argument. Permissions already assigned to the role that aren't part of the arguments of this
+  mutation will be revoked for the role.
+  """
+  setRoles(user: ID!, roles: [ID!]!): EmptyResponse!
+
+  """
+  addCodeownersFile creates a new Codeowners file for the given repository and file contents.
+  """
+  addCodeownersFile(input: CodeownersFileInput!): CodeownersIngestedFile!
+
+  """
+  updateCodeownersFile updates an existing Codeowners file for a repository.
+  """
+  updateCodeownersFile(input: CodeownersFileInput!): CodeownersIngestedFile!
+
+  """
+  deleteCodeownersFiles deletes any existing Codeowners file for the given repositories.
+  """
+  deleteCodeownersFiles(repositories: [DeleteCodeownersFilesInput!]!): EmptyResponse
 }
 
 """
@@ -9059,6 +9501,14 @@ type NonExhaustiveSearchAggregationResult {
 
   """The SearchAggregationMode the results relate to"""
   mode: SearchAggregationMode!
+}
+
+"""
+FOR INTERNAL USE ONLY: A status message produced when there are no repositories and no sync jobs in process
+"""
+type NoRepositoriesDetected {
+  """The message of this status message"""
+  message: String!
 }
 
 """
@@ -9743,6 +10193,233 @@ type OutOfBandMigrationError {
   created: DateTime!
 }
 
+"""Ownables are resources that can have ownership information attached."""
+interface Ownable {
+  """Ownership summary for this entity."""
+  ownership(
+    """Returns the first n ownership records from the list."""
+    first: Int
+
+    """Opaque pagination cursor."""
+    after: String
+
+    """Return only ownership for the given reasons."""
+    reasons: [OwnershipReasonType!]
+  ): OwnershipConnection!
+}
+
+"""An owner is any entity that can own other resources."""
+union Owner = Person | Team
+
+"""
+Ownership is the collection of data points that make Sourcegraph suggest the contained
+owner as owner of the Ownable this is attached to.
+"""
+type Ownership {
+  """The owner this entry refers to. Can be a person or a team."""
+  owner: Owner!
+
+  """The reasons why Sourcegraph determined this entity as an owner."""
+  reasons: [OwnershipReason!]!
+}
+
+"""A list of ownership entries."""
+type OwnershipConnection {
+  """The total count of items in the connection."""
+  totalCount: Int!
+
+  """The pagination info for the connection."""
+  pageInfo: PageInfo!
+
+  """The page set of Ownership entries in this connection."""
+  nodes: [Ownership!]!
+}
+
+"""
+Union of all possible types of ownership reasons. Use the individual subtypes to
+get more details on the ownership determination.
+"""
+union OwnershipReason = CodeownersFileEntry
+
+"""
+The only way we can recognize ownership at this point is through CODEOWNERS file entry.
+"""
+enum OwnershipReasonType {
+  CODEOWNERS_FILE_ENTRY
+}
+
+"""
+Filters package repo references of the matching scheme/kind, applying to either
+references of matching names or versions of a specific package name.
+One of either nameFilter or versionFilter must be provided.
+"""
+type PackageFilter {
+  """Opaque ID string."""
+  id: ID!
+
+  """
+  The behaviour of the filter when applied to a matching package repo reference or version.
+  """
+  behaviour: PackageMatchBehaviour!
+
+  """
+  The schemes/kinds of package repo references this filter should apply to only.
+  """
+  kind: PackageRepoReferenceKind!
+
+  """Optional name-matching filter."""
+  nameFilter: PackageNameFilter
+
+  """Optional package-specific version-matching filter."""
+  versionFilter: PackageVersionFilter
+}
+
+"""
+Whether a package repo reference filter is part of the allowlist or blocklist
+"""
+enum PackageMatchBehaviour {
+  """Blocks a package repo reference from syncing."""
+  BLOCK
+
+  """Allows a package repo reference to be synced."""
+  ALLOW
+}
+
+"""A package repo reference filter that matches names."""
+type PackageNameFilter {
+  """Glob string to match names."""
+  packageGlob: String!
+}
+
+"""A package repo reference filter that matches names."""
+input PackageNameFilterInput {
+  """Glob string to match names."""
+  packageGlob: String!
+}
+
+"""
+Connection resolver for either a list of package repo references or versions.
+"""
+union PackageRepoOrVersionConnection = PackageRepoReferenceConnection | PackageRepoReferenceVersionConnection
+
+"""
+A reference to a package repo, such as a maven artifact, rust crate etc.
+"""
+type PackageRepoReference {
+  """A unique ID for the package repo reference."""
+  id: ID!
+
+  """
+  The external service kind under which this package repo
+  reference is uniquely identified.
+  """
+  kind: PackageRepoReferenceKind!
+
+  """
+  The name of the package, in a format relevant to the specific ecosystem e.g.
+  maven artifact coordinates (com.sample:text), npm scoped packages (@monkeys/banana).
+  """
+  name: String!
+
+  """The versions of this package known to the sourcegraph instance."""
+  versions: [PackageRepoReferenceVersion!]!
+
+  """
+  Indicates whether a package repo reference has been blocked by a blocklist entry and/or
+  no matching entry in a non-empty allowlist
+  """
+  blocked: Boolean!
+
+  """
+  The synthetic repository (aka the package repo) created to store the contents of the
+  synced versions of the package repo reference. This type is subject to change once
+  package repos and other non-git code hosts become first-class.
+  """
+  repository: Repository
+}
+
+"""List of package repo references."""
+type PackageRepoReferenceConnection {
+  """A list of package repo references."""
+  nodes: [PackageRepoReference!]!
+
+  """The total number of package repo references in the connection."""
+  totalCount: Int!
+
+  """Pagination information."""
+  pageInfo: PageInfo!
+}
+
+"""
+A kind of package repo reference.
+ExternalServiceKind, with a more specific set of values.
+"""
+enum PackageRepoReferenceKind {
+  GOMODULES
+  JVMPACKAGES
+  NPMPACKAGES
+  PYTHONPACKAGES
+  RUSTPACKAGES
+  RUBYPACKAGES
+}
+
+"""A version of a package repo reference."""
+type PackageRepoReferenceVersion {
+  """A unique ID for the package repo reference version."""
+  id: ID!
+
+  """The package repo reference that this ID is for."""
+  packageRepoReferenceID: ID!
+
+  """The version string. Not guaranteed to be semver or any other format."""
+  version: String!
+}
+
+"""List of package repo reference versions."""
+type PackageRepoReferenceVersionConnection {
+  """A list of package repo versions."""
+  nodes: [PackageRepoReferenceVersion!]!
+
+  """The total number of package repo versions in the connection."""
+  totalCount: Int!
+
+  """Pagination information."""
+  pageInfo: PageInfo!
+}
+
+"""
+A package repo reference filter that matches versions for a specific name.
+"""
+type PackageVersionFilter {
+  """Exact package name to match."""
+  packageName: String!
+
+  """Glob string to match versions."""
+  versionGlob: String!
+}
+
+"""
+A package repo reference filter that matches versions for a specific name.
+"""
+input PackageVersionFilterInput {
+  """Exact package name to match."""
+  packageName: String!
+
+  """Glob string to match versions."""
+  versionGlob: String!
+}
+
+"""
+A name or version matching filter for. One of either nameFilter or versionFilter must be provided.
+"""
+input PackageVersionOrNameFilterInput {
+  """Optional name-matching filter."""
+  nameFilter: PackageNameFilterInput
+
+  """Optional package-specific version-matching filter."""
+  versionFilter: PackageVersionFilterInput
+}
+
 """
 Pagination information for forward-only pagination. See
 https://facebook.github.io/relay/graphql/connections.htm#sec-undefined.PageInfo.
@@ -9761,6 +10438,48 @@ type ParentSourcegraphDetails {
   url: String!
 }
 
+"""A permission"""
+type Permission implements Node {
+  """The globally unique identifier for this permission."""
+  id: ID!
+
+  """The namespace in which this permission belongs to."""
+  namespace: PermissionNamespace!
+
+  """The unique action which is granted to a bearer of this permission."""
+  action: String!
+
+  """
+  A unique, human-readable string used to represent a permission, taking the
+  form: <namespace>:<object_id>#<relation>@<user_id | user_group>
+  """
+  displayName: String!
+
+  """The date and time when the permission was created."""
+  createdAt: DateTime!
+}
+
+"""A list of permissions."""
+type PermissionConnection {
+  """A list of permissions."""
+  nodes: [Permission!]!
+
+  """The total count of permissions in the connection."""
+  totalCount: Int!
+
+  """Pagination information."""
+  pageInfo: ConnectionPageInfo!
+}
+
+"""
+A namespace represents a distinct context within which permission policies
+are defined and enforced.
+"""
+enum PermissionNamespace {
+  """This represents the Batch Changes namespace."""
+  BATCH_CHANGES
+}
+
 """Permissions information of a repository or a user."""
 type PermissionsInfo {
   """The permission levels that a user has on the repository."""
@@ -9776,37 +10495,147 @@ type PermissionsInfo {
   The last updated time of permissions, the value is updated whenever there is a
   change to the database row (i.e. incremental update).
   """
-  updatedAt: DateTime!
+  updatedAt: DateTime
 
   """
   If true for a repo, it indicates access to the repo is allowed for all users.
   It will always be false for users.
   """
   unrestricted: Boolean!
+
+  """The connection for repository permissions accessible to the user."""
+  repositories(
+    """
+    Number of nodes returned during forward pagination. Maximum number of
+    returned nodes is 100. Up to 20 nodes are returned by default.
+    """
+    first: Int
+
+    """
+    Number of nodes returned during backward pagination. Maximum number of
+    returned nodes is 100. Up to 20 nodes are returned by default.
+    """
+    last: Int
+
+    """Opaque pagination cursor to be used when paginating forwards."""
+    after: String
+
+    """Opaque pagination cursor to be used when paginating backwards."""
+    before: String
+
+    """Search query to filter repositories based on name."""
+    query: String
+  ): PermissionsInfoRepositoriesConnection
+
+  """The connection for users who have access to the repository."""
+  users(
+    """
+    Number of nodes returned during forward pagination. Maximum number of returned nodes is 100.
+    """
+    first: Int
+
+    """
+    Number of nodes returned during backward pagination. Maximum number of returned nodes is 100.
+    """
+    last: Int
+
+    """Opaque pagination cursor to be used when paginating forwards."""
+    after: String
+
+    """Opaque pagination cursor to be used when paginating backwards."""
+    before: String
+
+    """Search query to filter users based on username or display name."""
+    query: String
+  ): PermissionsInfoUsersConnection
 }
 
-"""State of a permissions provider during a sync job."""
-type PermissionsProviderState {
-  """Type of the provider."""
-  type: String!
-
-  """ID representing the provider."""
-  id: String!
-
-  """Type of the sync job."""
-  status: PermissionsProviderStatus!
+"""Connection for repository permissions accessible to the user"""
+type PermissionsInfoRepositoriesConnection implements Connection {
+  """List of repository permission info nodes"""
+  nodes: [PermissionsInfoRepositoryNode!]!
 
   """
-  Message describing the status of the provider during a sync job - for example, the
-  contents of any errors and during which operation they occured.
+  The total number of repository permission info nodes in the connection.
   """
-  message: String!
+  totalCount: Int!
+
+  """Pagination information."""
+  pageInfo: ConnectionPageInfo!
 }
 
-"""Status types of permissions providers."""
-enum PermissionsProviderStatus {
-  ERROR
-  SUCCESS
+"""
+Repository permission node defining why the repository is accessible to the user
+"""
+type PermissionsInfoRepositoryNode {
+  """The ID of the repository."""
+  id: ID!
+
+  """The repository corresponding to the permission."""
+  repository: Repository
+
+  """
+  The reason why the current user has permission to access the repository.
+  """
+  reason: String!
+
+  """The timestamp when the permission was last updated at."""
+  updatedAt: DateTime
+}
+
+"""
+Repository permission node defining why the repository is accessible to the user.
+"""
+type PermissionsInfoUserNode {
+  """The ID of the User."""
+  id: ID!
+
+  """The user corresponding to the permission."""
+  user: User
+
+  """The reason why the user has access to the repository."""
+  reason: String!
+
+  """The timestamp when the permission was last updated at."""
+  updatedAt: DateTime
+}
+
+"""Connection for user permission who has access to the repository."""
+type PermissionsInfoUsersConnection implements Connection {
+  """List of repository permission info nodes"""
+  nodes: [PermissionsInfoUserNode!]!
+
+  """
+  The total number of repository permission info nodes in the connection.
+  """
+  totalCount: Int!
+
+  """Pagination information."""
+  pageInfo: ConnectionPageInfo!
+}
+
+"""Various permissions syncing statistics."""
+type PermissionsSyncingStats {
+  """The number of permissions sync jobs in the queue."""
+  queueSize: Int!
+
+  """The number of users with latest permissions sync job failing."""
+  usersWithLatestJobFailing: Int!
+
+  """The number of repositories with latest permissions sync job failing."""
+  reposWithLatestJobFailing: Int!
+
+  """The number of users with no permissions."""
+  usersWithNoPermissions: Int!
+
+  """The number of repositories with no permissions."""
+  reposWithNoPermissions: Int!
+
+  """The number of users with old permissions."""
+  usersWithStalePermissions: Int!
+
+  """The number of repository with old permissions."""
+  reposWithStalePermissions: Int!
 }
 
 """State of a permission sync job."""
@@ -9814,45 +10643,180 @@ type PermissionsSyncJob implements Node {
   """Unique node ID."""
   id: ID!
 
-  """Type of the sync job."""
-  type: String!
+  """State of a permission sync job."""
+  state: PermissionsSyncJobState!
 
-  """ID of the entity worked on in this sync job."""
-  jobID: Int!
+  """Failure message for failed sync job."""
+  failureMessage: String
 
-  """Completion time of the sync job."""
-  completedAt: DateTime
+  """Reason for triggering a permission sync job."""
+  reason: PermissionsSyncJobReasonWithGroup!
 
-  """Status of the sync job."""
-  status: PermissionsSyncJobStatus!
+  """Reason for cancellation of a given permission sync job."""
+  cancellationReason: String
+
+  """User who triggered this permission sync job."""
+  triggeredByUser: User
+
+  """Time when permission sync job was queued."""
+  queuedAt: DateTime!
+
+  """Time when permission sync job processing was started."""
+  startedAt: DateTime
+
+  """Time when permission sync job processing finished."""
+  finishedAt: DateTime
+
+  """Time after which permission sync job processing should be started."""
+  processAfter: DateTime
+
+  """How long did it take for permission sync job to complete."""
+  ranForMs: Int
+
+  """Number of permission sync job processing resets."""
+  numResets: Int
+
+  """Number of permission sync job processing failures."""
+  numFailures: Int
+
+  """Time of last heartbeat of a permission sync job processing."""
+  lastHeartbeatAt: DateTime
+
+  """Hostname of a worker on which permission sync job is processing."""
+  workerHostname: String!
 
   """
-  Message describing the status of the sync job - for example, the contents of any
-  errors.
+  Flag showing that given permission sync job should be canceled instead of being processed.
   """
-  message: String!
+  cancel: Boolean!
 
-  """Per-provider states."""
-  providers: [PermissionsProviderState!]!
+  """Subject of a permission sync job (repository or user)."""
+  subject: PermissionsSyncJobSubject!
+
+  """Priority of a permission sync job."""
+  priority: PermissionsSyncJobPriority!
+
+  """
+  Flag showing that there are no permissions for a given repository/user.
+  """
+  noPerms: Boolean!
+
+  """
+  Flag showing that caches should be invalidated during permission sync job processing.
+  """
+  invalidateCaches: Boolean!
+
+  """Number of added permissions during permission sync job processing."""
+  permissionsAdded: Int!
+
+  """Number of removed permissions during permission sync job processing."""
+  permissionsRemoved: Int!
+
+  """Number of found permissions during permission sync job processing."""
+  permissionsFound: Int!
+
+  """State of providers (code hosts) during permission sync job."""
+  codeHostStates: [CodeHostState!]!
+
+  """Show if the job has finished with a partially successful result."""
+  partialSuccess: Boolean!
+
+  """Rank of the permissions syncing job in processing queue."""
+  placeInQueue: Int
 }
 
-"""Permission sync jobs."""
-type PermissionsSyncJobsConnection {
-  """Permission sync jobs."""
+"""Permission sync job priority."""
+enum PermissionsSyncJobPriority {
+  LOW
+  MEDIUM
+  HIGH
+}
+
+"""State types of permission sync jobs."""
+enum PermissionsSyncJobReason {
+  REASON_USER_OUTDATED_PERMS
+  REASON_USER_NO_PERMS
+  REASON_REPO_OUTDATED_PERMS
+  REASON_REPO_NO_PERMS
+  REASON_REPO_UPDATED_FROM_CODE_HOST
+  REASON_USER_EMAIL_REMOVED
+  REASON_USER_EMAIL_VERIFIED
+  REASON_USER_ADDED_TO_ORG
+  REASON_USER_REMOVED_FROM_ORG
+  REASON_USER_ACCEPTED_ORG_INVITE
+  REASON_GITHUB_USER_EVENT
+  REASON_GITHUB_USER_ADDED_EVENT
+  REASON_GITHUB_USER_REMOVED_EVENT
+  REASON_GITHUB_USER_MEMBERSHIP_ADDED_EVENT
+  REASON_GITHUB_USER_MEMBERSHIP_REMOVED_EVENT
+  REASON_GITHUB_TEAM_ADDED_TO_REPO_EVENT
+  REASON_GITHUB_TEAM_REMOVED_FROM_REPO_EVENT
+  REASON_GITHUB_ORG_MEMBER_ADDED_EVENT
+  REASON_GITHUB_ORG_MEMBER_REMOVED_EVENT
+  REASON_GITHUB_REPO_EVENT
+  REASON_GITHUB_REPO_MADE_PRIVATE_EVENT
+  REASON_MANUAL_REPO_SYNC
+  REASON_MANUAL_USER_SYNC
+  REASON_EXTERNAL_ACCOUNT_ADDED
+  REASON_EXTERNAL_ACCOUNT_DELETED
+}
+
+"""Sync reason groups of permission sync jobs."""
+enum PermissionsSyncJobReasonGroup {
+  MANUAL
+  WEBHOOK
+  SCHEDULE
+  SOURCEGRAPH
+  UNKNOWN
+}
+
+"""
+Compound type for a permissions sync job trigger reason.
+Consists of a reason group (PermissionsSyncJobReasonGroup) and a reason itself, providing details
+about why/how the sync was triggered.
+"""
+type PermissionsSyncJobReasonWithGroup {
+  """
+  PermissionsSyncJobReasonGroup combines multiple permission sync job trigger reasons into groups with similar grounds.
+  """
+  group: PermissionsSyncJobReasonGroup!
+
+  """Reason with details about why/how the sync was triggered."""
+  reason: PermissionsSyncJobReason
+}
+
+"""Permissions sync jobs."""
+type PermissionsSyncJobsConnection implements Connection {
+  """Permissions sync jobs."""
   nodes: [PermissionsSyncJob!]!
 
   """The total number of jobs in the connection."""
   totalCount: Int!
 
   """Pagination information."""
-  pageInfo: PageInfo!
+  pageInfo: ConnectionPageInfo!
 }
 
-"""Status types of permissions sync jobs."""
-enum PermissionsSyncJobStatus {
-  ERROR
-  SUCCESS
+"""Type of search for permissions sync jobs: user or repository."""
+enum PermissionsSyncJobsSearchType {
+  USER
+  REPOSITORY
 }
+
+"""State types of permissions sync jobs."""
+enum PermissionsSyncJobState {
+  QUEUED
+  PROCESSING
+  FAILED
+  ERRORED
+  COMPLETED
+  CANCELED
+}
+
+"""
+Union type for a subject of a permission sync job (repository or user).
+"""
+union PermissionsSyncJobSubject = User | Repository
 
 """A person."""
 type Person {
@@ -9939,36 +10903,107 @@ type Position {
   character: Int!
 }
 
-"""Details precise code-intel support overview."""
-type PreciseCodeIntelSupport {
-  """
-  Level of support/ownership for the most complete/accurate precise code-intel indexer.
-  This may be THIRD_PARTY even where a by us indexer exists, where the third-party indexer is
-  more maintained/accurate/complete etc such as with the Dart indexer, where the Workiva one
-  should be used over our own.
-  """
-  supportLevel: PreciseSupportLevel!
+"""Metadata and status about a precise code intelligence index."""
+type PreciseIndex implements Node {
+  """The ID."""
+  id: ID!
+
+  """The project for which this index provides code intelligence."""
+  projectRoot: CodeIntelGitTree
+
+  """The original 40-character commit commit supplied at creation."""
+  inputCommit: String!
+
+  """The original root supplied at creation."""
+  inputRoot: String!
+
+  """The original indexer name supplied at creation."""
+  inputIndexer: String!
+
+  """The tags, if any, associated with this commit."""
+  tags: [String!]!
+
+  """The indexer used to produce this index."""
+  indexer: CodeIntelIndexer
+
+  """The current state."""
+  state: PreciseIndexState!
+
+  """The time the index was queued for indexing."""
+  queuedAt: DateTime
+
+  """The time the index job started running."""
+  indexingStartedAt: DateTime
+
+  """The time the index job stopped running."""
+  indexingFinishedAt: DateTime
+
+  """The time the index data file was uploaded."""
+  uploadedAt: DateTime
+
+  """The time the upload data file started being processed."""
+  processingStartedAt: DateTime
+
+  """The time the upload data file stopped being processed."""
+  processingFinishedAt: DateTime
+
+  """The indexing or processing error message."""
+  failure: String
+
+  """The rank of this index job or processing job in its respective queue."""
+  placeInQueue: Int
 
   """
-  List of indexers in subjective order of recommendation, from most to least recommended
-  (not an indication of absolute quality, rather relative).
+  The configuration and execution summary (if completed or errored) of this index job.
   """
-  indexers: [CodeIntelIndexer!]
+  steps: IndexSteps
+
+  """
+  If set, this index has been marked as replaceable by a new auto-indexing job.
+  """
+  shouldReindex: Boolean!
+
+  """
+  Whether or not this index provides intelligence for the tip of the default branch. Find reference
+  queries will return symbols from remote repositories only when this property is true. This property
+  is updated asynchronously and is eventually consistent with the git data known by the instance.
+  """
+  isLatestForRepo: Boolean!
+
+  """The list of retention policies associated with this index."""
+  retentionPolicyOverview(matchesOnly: Boolean!, query: String, after: String, first: Int): CodeIntelligenceRetentionPolicyMatchesConnection!
+
+  """
+  Audit logs representing each state change of the upload in order from earliest to latest.
+  """
+  auditLogs: [LSIFUploadAuditLog!]
 }
 
-"""Ownership level of the recommended precise code-intel indexer."""
-enum PreciseSupportLevel {
-  """When there is no known indexer."""
-  UNKNOWN
+"""A list of precise code intelligence indexes."""
+type PreciseIndexConnection {
+  """The current page of indexes."""
+  nodes: [PreciseIndex!]!
 
-  """When the recommended indexer is maintained by us."""
-  NATIVE
+  """The total number of results (over all pages) in this list."""
+  totalCount: Int
 
-  """
-  When the recommended indexer is maintained by a third-party
-  but is recommended over a native indexer, where one exists.
-  """
-  THIRD_PARTY
+  """Metadata about the current page of results."""
+  pageInfo: PageInfo!
+}
+
+"""Possible states for PreciseIndexes."""
+enum PreciseIndexState {
+  UPLOADING_INDEX
+  QUEUED_FOR_PROCESSING
+  PROCESSING
+  PROCESSING_ERRORED
+  COMPLETED
+  DELETING
+  DELETED
+  QUEUED_FOR_INDEXING
+  INDEXING
+  INDEXING_ERRORED
+  INDEXING_COMPLETED
 }
 
 """
@@ -10275,6 +11310,62 @@ type Query {
     after: String
   ): ExternalServiceConnection!
 
+  """
+  Lists all namespaces for a given external service connection.
+  A namespace is an entity on the code host that repositories are assignable to.
+  """
+  externalServiceNamespaces(
+    """
+    The GraphQL ID of the external service whose configuration will be used to define the code host remote url to
+    submit requests to and the token value to authenticate with.
+    If no external service exists which provides the necessary request parameters then leave ID nil and
+    provide kind, remote code host token and url.
+    """
+    id: ID
+
+    """The kind of the external service."""
+    kind: ExternalServiceKind!
+
+    """The secret token value that is used to authenticate."""
+    token: String!
+
+    """The url of the external service."""
+    url: String!
+  ): ExternalServiceNamespaceConnection!
+
+  """Lists all repositories for a given external service connection."""
+  externalServiceRepositories(
+    """
+    The GraphQL ID of the external service whose configuration will be used to define the code host remote url to
+    submit requests to and the token value to authenticate with.
+    If no external service exists which provides the necessary request parameters then leave ID nil and
+    provide kind, remote code host token and url.
+    """
+    id: ID
+
+    """The kind of the external service."""
+    kind: ExternalServiceKind!
+
+    """The secret token value that is used to authenticate."""
+    token: String!
+
+    """The url of the external service."""
+    url: String!
+
+    """Repository query string."""
+    query: String!
+
+    """
+    A list of repository names to exclude from results (in the form of owner/name).
+    """
+    excludeRepos: [String!]!
+
+    """
+    Returns the first n repositories matching the query and excludeRepos criteria.
+    """
+    first: Int
+  ): ExternalServiceRepositoryConnection!
+
   """List all repositories."""
   repositories(
     """Returns the first n repositories from the list."""
@@ -10332,6 +11423,57 @@ type Query {
     descending: Boolean = false
   ): NewRepositoryConnection!
 
+  """Query package repo references."""
+  packageRepoReferences(
+    """The exact package repo reference kind to filter by."""
+    kind: PackageRepoReferenceKind
+
+    """
+    If supplied, only package repo references that match the given
+    terms by their name will be returned.
+    TODO: fuzzy vs exact?
+    """
+    name: String
+
+    """Returns the first n package repo references from the list."""
+    first: Int
+
+    """Opaque pagination cursor."""
+    after: String
+  ): PackageRepoReferenceConnection!
+
+  """Query package repo reference filters."""
+  packageRepoFilters(
+    """Whether the matcher should be for allowlisting or blocklisting."""
+    behaviour: PackageMatchBehaviour
+
+    """
+    The ecosystem of the package repo reference this matcher should apply to.
+    Maps to the external service whos config would be updated when used in the
+    set query.
+    """
+    kind: PackageRepoReferenceKind
+  ): [PackageFilter!]
+
+  """
+  Returns either a list of package repo references,
+  or the versions of a single package repo reference,
+  that match the provided matcher.
+  """
+  packageRepoReferencesMatchingFilter(
+    """The kind of the package repo reference this matcher should apply to."""
+    kind: PackageRepoReferenceKind!
+
+    """The matcher for which to return matching results."""
+    filter: PackageVersionOrNameFilterInput!
+
+    """Returns the first n package/package version matches from the list."""
+    first: Int
+
+    """Opaque pagination cursor."""
+    after: String
+  ): PackageRepoOrVersionConnection!
+
   """Looks up a Phabricator repository by name."""
   phabricatorRepo(
     """The name, for example "github.com/gorilla/mux"."""
@@ -10363,9 +11505,6 @@ type Query {
 
     """Return users whose usernames or display names match the query."""
     query: String
-
-    """Return only users with the given tag."""
-    tag: String
 
     """Returns users who have been active in a given period of time."""
     activePeriod: UserActivePeriod
@@ -10475,9 +11614,6 @@ type Query {
     """Returns the first n survey responses from the list."""
     first: Int
   ): SurveyResponseConnection!
-
-  """The extension registry."""
-  extensionRegistry: ExtensionRegistry!
 
   """FOR INTERNAL USE ONLY: Lists all status messages"""
   statusMessages: [StatusMessage!]!
@@ -10638,6 +11774,38 @@ type Query {
     after: String
   ): SlowRequestConnection!
 
+  """
+  Roles returns all the roles in the database that matches the arguments.
+  """
+  roles(
+    """The limit argument for forward pagination."""
+    first: Int
+
+    """The limit argument for backward pagination."""
+    last: Int
+
+    """The cursor argument for forward pagination."""
+    after: String
+
+    """The cursor argument for backward pagination."""
+    before: String
+  ): RoleConnection!
+
+  """This returns all permissions in a paginated format."""
+  permissions(
+    """The limit argument for forward pagination."""
+    first: Int
+
+    """The limit argument for backward pagination."""
+    last: Int
+
+    """The cursor argument for forward pagination."""
+    after: String
+
+    """The cursor argument for backward pagination."""
+    before: String
+  ): PermissionConnection!
+
   """The list of all globally available executor secrets."""
   executorSecrets(
     """The scope for which secrets shall be returned."""
@@ -10676,6 +11844,45 @@ type Query {
   working.
   """
   areExecutorsConfigured: Boolean!
+
+  """Get a single team by name. Returns null if not found."""
+  team(name: String!): Team
+
+  """Get the global list of all root teams. (Those without a parent team)."""
+  teams(
+    """Returns the first n teams from the list."""
+    first: Int
+
+    """Opaque pagination cursor."""
+    after: String
+
+    """Search can be used to do a text-search over the team names."""
+    search: String
+
+    """
+    Do not include any teams that have this ancestor in parent-team relationship.
+    This includes the team with the ID mentioned (that is a team is considered
+    its own ancestor).
+    """
+    exceptAncestor: ID
+
+    """
+    If set to true, child teams (ones that have parent set) are also returned.
+    If not specified, the default behavior is to only include top-level teams.
+    """
+    includeChildTeams: Boolean
+  ): TeamConnection!
+
+  """List access requests."""
+  accessRequests(
+    status: AccessRequestStatus
+
+    """Returns the first n access requests from the list."""
+    first: Int
+    last: Int
+    after: String
+    before: String
+  ): AccessRequestConnection!
 
   """
   Returns the outbound webhooks registered within Sourcegraph, optionally filtered by
@@ -10787,6 +11994,84 @@ type Query {
   """
   maxUnlicensedChangesets: Int!
 
+  """Query precise code intelligence indexes."""
+  preciseIndexes(
+    """
+    If supplied, only precise indexes for the given repository will be returned.
+    """
+    repo: ID
+
+    """
+    If supplied, only precise indexes that match the given terms by their state,
+    repository name, commit, root, and indexer fields will be returned..
+    """
+    query: String
+
+    """
+    If supplied, only precise indexes in one of the provided states are returned.
+    """
+    states: [PreciseIndexState!]
+
+    """
+    If supplied, only precise indexes created by an indexer with the given key are returned.
+    """
+    indexerKey: String
+
+    """
+    If supplied, only precise indexes that are a dependency of the specified index are returned.
+    """
+    dependencyOf: ID
+
+    """
+    If supplied, only precise indexes that are a dependent of the specified index are returned.
+    """
+    dependentOf: ID
+
+    """
+    When specified, merges the list of existing uploads with data from
+    uploads that have been deleted but for which audit logs still exist.
+    Only makes sense when state filter is unset or equal to 'DELETED'.
+    """
+    includeDeleted: Boolean
+
+    """If specified, this limits the number of results per request."""
+    first: Int
+
+    """
+    If specified, this indicates that the request should be paginated and to fetch results starting
+    at this cursor.
+    
+    A future request can be made for more results by passing in the 'PreciseIndexConnection.pageInfo.endCursor'
+    that is returned.
+    """
+    after: String
+  ): PreciseIndexConnection!
+
+  """Provides a summary of code intelligence on the instance."""
+  codeIntelSummary: CodeIntelSummary!
+
+  """
+  A list of unique indexer keys queryable via the `preciseIndexes.indexerKey` filter.
+  """
+  indexerKeys(
+    """
+    If supplied, only indexers associated with the given repository will be returned.
+    """
+    repo: ID
+  ): [String!]!
+
+  """
+  Return the currently set auto-indexing job inference script. Does not return
+  the value stored in the environment variable or the default shipped scripts,
+  only the value set via UI/GraphQL.
+  """
+  codeIntelligenceInferenceScript: String!
+
+  """
+  Return (but do not enqueue) descriptions of auto indexing jobs at the current revision.
+  """
+  inferAutoIndexJobsForRepo(repository: ID!, rev: String, script: String): [AutoIndexJobDescription!]!
+
   """
   Returns precise code intelligence configuration policies that control data retention
   and (if enabled) auto-indexing behavior.
@@ -10813,6 +12098,13 @@ type Query {
     forIndexing: Boolean
 
     """
+    If set to true, then only protected configuration policies are returned.
+    If set to false, then only un-protected configuration policies are returned.
+    If unset, policies are returned regardless if they're protected or not.
+    """
+    protected: Boolean
+
+    """
     When specified, indicates that this request should be paginated and
     the first N results (relative to the cursor) should be returned. i.e.
     how many results to return per page.
@@ -10830,83 +12122,6 @@ type Query {
     after: String
   ): CodeIntelligenceConfigurationPolicyConnection!
 
-  """The repository's LSIF uploads."""
-  lsifUploads(
-    """
-    An (optional) search query that searches over the state, repository name,
-    commit, root, and indexer properties.
-    """
-    query: String
-
-    """The state of returned uploads."""
-    state: LSIFUploadState
-
-    """
-    When specified, shows only uploads that are a dependency of the specified upload.
-    """
-    dependencyOf: ID
-
-    """
-    When specified, shows only uploads that are a dependent of the specified upload.
-    """
-    dependentOf: ID
-
-    """
-    When specified, shows only uploads that are latest for the given repository.
-    """
-    isLatestForRepo: Boolean
-
-    """
-    When specified, indicates that this request should be paginated and
-    the first N results (relative to the cursor) should be returned. i.e.
-    how many results to return per page.
-    """
-    first: Int
-
-    """
-    When specified, indicates that this request should be paginated and
-    to fetch results starting at this cursor.
-    
-    A future request can be made for more results by passing in the
-    'LSIFUploadConnection.pageInfo.endCursor' that is returned.
-    """
-    after: String
-
-    """
-    When specified, merges the list of existing uploads with data from
-    uploads that have been deleted but for which audit logs still exist.
-    Only makes sense when state filter is unset or equal to 'DELETED'.
-    """
-    includeDeleted: Boolean
-  ): LSIFUploadConnection!
-
-  """The repository's LSIF uploads."""
-  lsifIndexes(
-    """
-    An (optional) search query that searches over the state, repository name,
-    and commit properties.
-    """
-    query: String
-
-    """The state of returned uploads."""
-    state: LSIFIndexState
-
-    """
-    When specified, indicates that this request should be paginated and
-    the first N results (relative to the cursor) should be returned. i.e.
-    how many results to return per page.
-    """
-    first: Int
-
-    """
-    When specified, indicates that this request should be paginated and
-    to fetch results starting at this cursor.
-    A future request can be made for more results by passing in the
-    'LSIFIndexConnection.pageInfo.endCursor' that is returned.
-    """
-    after: String
-  ): LSIFIndexConnection!
-
   """
   The set of repositories that match the given glob pattern. This resolver is used by the UI to
   preview what repositories match a code intelligence policy in a given repository.
@@ -10916,30 +12131,52 @@ type Query {
     patterns: [String!]!
 
     """
-    When specified, indicates that this request should be paginated and
-    the first N results (relative to the cursor) should be returned. i.e.
-    how many results to return per page.
+    When specified, indicates that this request should return the first N items.
     """
     first: Int
-
-    """
-    When specified, indicates that this request should be paginated and
-    to fetch results starting at this cursor.
-    A future request can be made for more results by passing in the
-    'RepositoryFilterPreview.pageInfo.endCursor' that is returned.
-    """
-    after: String
   ): RepositoryFilterPreview!
 
-  """Return the languages that this user has requested support for."""
-  requestedLanguageSupport: [String!]!
+  """Return known vulnerabilities."""
+  vulnerabilities(
+    """The maximum number of results to return."""
+    first: Int
 
-  """
-  Return the currently set auto-indexing job inference script. Does not return
-  the value stored in the environment variable or the default shipped scripts,
-  only the value set via UI/GraphQL.
-  """
-  codeIntelligenceInferenceScript: String!
+    """If supplied, indicates which results to skip over during pagination."""
+    after: String
+  ): VulnerabilityConnection!
+
+  """Return known vulnerability matches."""
+  vulnerabilityMatches(
+    """The maximum number of results to return."""
+    first: Int
+
+    """If supplied, indicates which results to skip over during pagination."""
+    after: String
+
+    """Programming language of the vulnerability."""
+    language: String
+
+    """Severity of the vulnerability."""
+    severity: String
+
+    """The name of the repository to filter by."""
+    repositoryName: String
+  ): VulnerabilityMatchConnection!
+
+  """Return known vulnerability matches grouped by repository."""
+  vulnerabilityMatchesCountByRepository(
+    """The maximum number of results to return."""
+    first: Int
+
+    """If supplied, indicates which results to skip over during pagination."""
+    after: String
+
+    """A string pattern that could match the name of a repository."""
+    repositoryName: String
+  ): VulnerabilityMatchCountByRepositoryConnection!
+
+  """Returns a count of the vulnerability matches grouped by severity."""
+  vulnerabilityMatchesSummaryCounts: VulnerabilityMatchesSummaryCount!
 
   """Return dashboards visible to the authenticated user."""
   insightsDashboards(first: Int, after: String, id: ID): InsightsDashboardConnection!
@@ -10990,6 +12227,33 @@ type Query {
   """Returns the number of repositories matched given a valid query."""
   previewRepositoriesFromQuery(query: String!): RepositoryPreviewPayload!
 
+  """Fetch information related to the queue of backfilling insights."""
+  insightAdminBackfillQueue(
+    """Returns the first n queue items from the list."""
+    first: Int
+
+    """Returns the last n queue items from the list."""
+    last: Int
+
+    """An opaque cursor that is used for pagination."""
+    after: String
+
+    """An opaque cursor that is used for pagination."""
+    before: String
+
+    """How to order the list."""
+    orderBy: BackfillQueueOrderBy = STATE
+
+    """Sort direction."""
+    descending: Boolean = false
+
+    """List of states to filter list by."""
+    states: [InsightQueueItemState!]
+
+    """Text to filter the list, checking the Insight Title and Series Label"""
+    textSearch: String
+  ): InsightBackfillQueueItemConnection!
+
   """
   The repositories a user is authorized to access with the given permission.
   This isn’t defined in the User type because we store permissions for users
@@ -11026,20 +12290,61 @@ type Query {
   authzProviderTypes: [String!]!
 
   """
-  EXPERIMENTAL: Returns a list of recent permissions sync jobs for a given set of parameters.
-  
-  This endpoint currently only reports recently completed sync jobs, with an
-  expiry configurable by 'authz.syncJobsRecordsTTL'.
+  Returns a list of recent permissions sync jobs for a given set of parameters.
   """
   permissionsSyncJobs(
-    """Only returns jobs with this status."""
-    status: PermissionsSyncJobStatus
-
     """
     Number of jobs returned. Maximum number of returned jobs is 500. Up to 100 jobs are returned by default.
     """
-    first: Int = 100
+    first: Int
+
+    """
+    The number of nodes to return starting from the end (latest).
+    Note: Use either last or first (see above) in the query. Setting both will
+    return an error.
+    """
+    last: Int
+
+    """
+    Opaque pagination cursor to be used when paginating forwards that may be also used
+    in conjunction with "first" to return the first N nodes.
+    """
+    after: String
+
+    """
+    Opaque pagination cursor to be used when paginating backwards that may be
+    also used in conjunction with "last" to return the last N nodes.
+    """
+    before: String
+
+    """Optional filter for PermissionsSyncJobReasonGroup."""
+    reasonGroup: PermissionsSyncJobReasonGroup
+
+    """Optional filter for PermissionsSyncJobState."""
+    state: PermissionsSyncJobState
+
+    """Type of search for permissions sync jobs: user or repository."""
+    searchType: PermissionsSyncJobsSearchType
+
+    """Term used to search for permissions sync jobs."""
+    query: String
+
+    """
+    Optional filter to find permissions sync jobs for a user. Please provide either this or repoID, but not both.
+    """
+    userID: ID
+
+    """
+    Optional filter to find permissions sync jobs for a repository. Please provide either this or userID, but not both.
+    """
+    repoID: ID
+
+    """Optional filter to filter only partially successful sync jobs."""
+    partial: Boolean
   ): PermissionsSyncJobsConnection!
+
+  """Returns various permissions syncing statistics."""
+  permissionsSyncingStats: PermissionsSyncingStats!
 
   """
   Returns a list of Bitbucket Project permissions sync jobs for a given set of parameters.
@@ -11158,6 +12463,71 @@ type Query {
   Returns information about aggregating the potential results of a search query.
   """
   searchQueryAggregate(query: String!, patternType: SearchPatternType!): SearchQueryAggregate!
+
+  """
+  Experimental: Searches a repository for similar code and text results using embeddings.
+  We separated code and text results because text results tended to always feature at the top of the combined results,
+  and didn't leave room for the code.
+  """
+  embeddingsSearch(
+    """The repository to search."""
+    repo: ID!
+
+    """The query used for embeddings search."""
+    query: String!
+
+    """The number of code results to return."""
+    codeResultsCount: Int!
+
+    """
+    The number of text results to return. Text results contain Markdown files
+    and similar file types primarily used for writing documentation.
+    """
+    textResultsCount: Int!
+  ): EmbeddingsSearchResults!
+
+  """
+  Experimental: Determines whether the given query requires further context before it can be answered.
+  For example:
+    - "What are Sourcegraph Notebooks" requires additional information from the
+  Sourcegraph repository (Notebooks Markdown docs, etc.).
+    - "Translate the previous code to Typescript" does not need additional
+  context since it is referring to the existing context (or conversation).
+  """
+  isContextRequiredForChatQuery(query: String!): Boolean!
+
+  """Experimental: Repo embedding jobs list."""
+  repoEmbeddingJobs(
+    """Number of jobs returned. Up to 100 jobs are returned by default."""
+    first: Int
+
+    """
+    The number of nodes to return starting from the end (latest).
+    Note: Use either last or first (see above) in the query. Setting both will
+    return an error.
+    """
+    last: Int
+
+    """
+    Opaque pagination cursor to be used when paginating forwards that may be also used
+    in conjunction with "first" to return the first N nodes.
+    """
+    after: String
+
+    """
+    Opaque pagination cursor to be used when paginating backwards that may be
+    also used in conjunction with "last" to return the last N nodes.
+    """
+    before: String
+  ): RepoEmbeddingJobsConnection!
+
+  """
+  codeownersIngestedFiles returns all existing manually ingested codeowners files.
+  """
+  codeownersIngestedFiles(first: Int, after: Int): CodeownersIngestedFileConnection!
+
+  """Returns a string of completion responses"""
+  completions(input: CompletionsInput!): String!
 }
 
 """Query block allows performing inline search queries within a notebook."""
@@ -11206,30 +12576,6 @@ type Redirect {
   url: String!
 }
 
-"""An extension's listing in the extension registry."""
-type RegistryExtension implements Node {
-  """
-  The unique, opaque, permanent ID of the extension. Do not display this ID to the user; display
-  RegistryExtension.extensionID instead (it is friendlier and still unique, but it can be renamed).
-  """
-  id: ID!
-
-  """
-  The qualified, unique name that refers to this extension, consisting of the registry name (if non-default),
-  publisher's name, and the extension's name, all joined by "/" (for example, "acme-corp/my-extension-name").
-  """
-  extensionID: String!
-
-  """The extension manifest, or null if none is set."""
-  manifest: ExtensionManifest
-}
-
-"""A list of registry extensions."""
-type RegistryExtensionConnection {
-  """A list of registry extensions."""
-  nodes: [RegistryExtension!]!
-}
-
 """Input object for adding insight view to dashboard."""
 input RemoveInsightViewFromDashboardInput {
   """ID of the insight view to remove from the dashboard"""
@@ -11272,6 +12618,75 @@ type RepoCorruptionLog {
 
   """The reason why this repository was regarded as corrupt"""
   reason: String!
+}
+
+"""A repo embedding job."""
+type RepoEmbeddingJob implements Node {
+  """Unique node ID."""
+  id: ID!
+
+  """State of a repo embedding job."""
+  state: RepoEmbeddingJobState!
+
+  """Failure message for failed job."""
+  failureMessage: String
+
+  """Time when repo embedding job was queued."""
+  queuedAt: DateTime!
+
+  """Time when repo embedding job processing was started."""
+  startedAt: DateTime
+
+  """Time when repo embedding job processing finished."""
+  finishedAt: DateTime
+
+  """Time after which repo embedding job processing should be started."""
+  processAfter: DateTime
+
+  """Number of repo embedding job processing resets."""
+  numResets: Int!
+
+  """Number of repo embedding job processing failures."""
+  numFailures: Int!
+
+  """Time of last heartbeat of a repo embedding job processing."""
+  lastHeartbeatAt: DateTime
+
+  """Hostname of a worker on which repo embedding job is processing."""
+  workerHostname: String!
+
+  """
+  Flag showing that given repo embedding job should be canceled instead of being processed.
+  """
+  cancel: Boolean!
+
+  """The embedded repository."""
+  repo: Repository
+
+  """The revision at which the repo was embedded."""
+  revision: GitCommit
+}
+
+"""Repo embedding jobs."""
+type RepoEmbeddingJobsConnection implements Connection {
+  """Repo embedding jobs."""
+  nodes: [RepoEmbeddingJob!]!
+
+  """The total number of jobs in the connection."""
+  totalCount: Int!
+
+  """Pagination information."""
+  pageInfo: ConnectionPageInfo!
+}
+
+"""State types of repo embedding sync jobs."""
+enum RepoEmbeddingJobState {
+  QUEUED
+  PROCESSING
+  FAILED
+  ERRORED
+  COMPLETED
+  CANCELED
 }
 
 """
@@ -11494,6 +12909,9 @@ type Repository implements Node & GenericSearchResultInterface {
   """The size of repo when cloned on disk"""
   diskSizeBytes: BigInt
 
+  """Returns true if embeddings for the repo are generated."""
+  embeddingExists: Boolean!
+
   """
   Stats on all the changesets that have been created in this repository by batch
   changes.
@@ -11533,83 +12951,7 @@ type Repository implements Node & GenericSearchResultInterface {
   """Gets the indexing configuration associated with the repository."""
   indexConfiguration: IndexConfiguration
 
-  """The repository's LSIF uploads."""
-  lsifUploads(
-    """
-    An (optional) search query that searches over the state, repository name,
-    commit, root, and indexer properties.
-    """
-    query: String
-
-    """The state of returned uploads."""
-    state: LSIFUploadState
-
-    """
-    When specified, shows only uploads that are latest for the given repository.
-    """
-    isLatestForRepo: Boolean
-
-    """
-    When specified, shows only uploads that are a dependency of the specified upload.
-    """
-    dependencyOf: ID
-
-    """
-    When specified, shows only uploads that are a dependent of the specified upload.
-    """
-    dependentOf: ID
-
-    """
-    When specified, indicates that this request should be paginated and
-    the first N results (relative to the cursor) should be returned. i.e.
-    how many results to return per page.
-    """
-    first: Int
-
-    """
-    When specified, indicates that this request should be paginated and
-    to fetch results starting at this cursor.
-    A future request can be made for more results by passing in the
-    'LSIFUploadConnection.pageInfo.endCursor' that is returned.
-    """
-    after: String
-
-    """
-    When specified, merges the list of existing uploads with data from
-    uploads that have been deleted but for which audit logs still exist.
-    Only makes sense when state filter is unset or equal to 'DELETED'.
-    """
-    includeDeleted: Boolean
-  ): LSIFUploadConnection!
-
-  """The repository's LSIF uploads."""
-  lsifIndexes(
-    """
-    An (optional) search query that searches over the state, repository name,
-    and commit properties.
-    """
-    query: String
-
-    """The state of returned uploads."""
-    state: LSIFIndexState
-
-    """
-    When specified, indicates that this request should be paginated and
-    the first N results (relative to the cursor) should be returned. i.e.
-    how many results to return per page.
-    """
-    first: Int
-
-    """
-    When specified, indicates that this request should be paginated and
-    to fetch results starting at this cursor.
-    A future request can be made for more results by passing in the
-    'LSIFIndexConnection.pageInfo.endCursor' that is returned.
-    """
-    after: String
-  ): LSIFIndexConnection!
-
-  """Provides a summary of the most reecent upload and index status."""
+  """Provides a summary of the most recent upload and index status."""
   codeIntelSummary: CodeIntelRepositorySummary!
 
   """
@@ -11623,7 +12965,19 @@ type Repository implements Node & GenericSearchResultInterface {
 
     """A pattern matching the name of the matching Git object."""
     pattern: String!
-  ): [GitObjectFilterPreview!]!
+
+    """
+    When specified, indicates that this request should return the first N items.
+    """
+    first: Int
+
+    """
+    When specified, the total number of matching Git objects younger than this value
+    will be returned along with the total number of matching objects. This does not
+    affect the set of objects returned as items.
+    """
+    countObjectsYoungerThanHours: Int
+  ): GitObjectFilterPreview!
 
   """
   A list of authorized users to access this repository with the given permission.
@@ -11646,6 +13000,11 @@ type Repository implements Node & GenericSearchResultInterface {
   It is null when there is no permissions data stored for the repository.
   """
   permissionsInfo: PermissionsInfo
+
+  """
+  A file containing manually ingested codeowners data, if any. Null if no data has been uploaded.
+  """
+  ingestedCodeowners: CodeownersIngestedFile
 }
 
 """The differences between two concrete Git commits in a repository."""
@@ -11754,8 +13113,10 @@ type RepositoryFilterPreview {
   """The total number of repositories in this result set."""
   totalCount: Int!
 
-  """Pagination information."""
-  pageInfo: PageInfo!
+  """
+  If every repository currently on the instance is matched by this filter.
+  """
+  matchesAllRepos: Boolean!
 
   """The maximum number of repository matches a single policy can make."""
   limit: Int
@@ -11974,6 +13335,69 @@ type ResolvedBatchSpecWorkspace {
   searchResultPaths: [String!]!
 }
 
+"""A role"""
+type Role implements Node {
+  """The globally unique identifier for this role."""
+  id: ID!
+
+  """The human readable name for this role."""
+  name: String!
+
+  """
+  Indicates whether a role is a default system role, which cannot be modified or
+  deleted, or a custom role added by a site admin.
+  """
+  system: Boolean!
+
+  """
+  The list of permissions that will be granted to any user with this role.
+  """
+  permissions(
+    """The limit argument for forward pagination."""
+    first: Int
+
+    """The limit argument for backward pagination."""
+    last: Int
+
+    """The cursor argument for forward pagination."""
+    after: String
+
+    """The cursor argument for backward pagination."""
+    before: String
+  ): PermissionConnection!
+
+  """The date and time when the role was created."""
+  createdAt: DateTime!
+}
+
+"""A list of roles."""
+type RoleConnection {
+  """A list of roles."""
+  nodes: [Role!]!
+
+  """The total count of roles in the connection."""
+  totalCount: Int!
+
+  """Pagination information."""
+  pageInfo: ConnectionPageInfo!
+}
+
+"""
+Pairs a root directory with comparison key used to match index configurations for the same repository "project".
+"""
+type RootWithKey {
+  """The root."""
+  root: String!
+
+  """
+  A hash of the root and indexer values.
+  
+  This value can be used to quickly compare whether or not explicit configuration and inferred configuration
+  refer to the same "project" in a given repository. See `AutoIndexJobDescription.comparisonKey`.
+  """
+  comparisonKey: String!
+}
+
 """A saved search query, defined in settings."""
 type SavedSearch implements Node {
   """The unique ID of this saved query."""
@@ -12089,30 +13513,6 @@ type SearchAlert {
 
   """"Did you mean: ____" query proposals"""
   proposedQueries: [SearchQueryDescription!]
-}
-
-"""Details search-based code-intel support overview."""
-type SearchBasedCodeIntelSupport {
-  """Level of support."""
-  supportLevel: SearchBasedSupportLevel!
-
-  """
-  The infered language the underlying tool infered when building an index for
-  search-based code-intel.
-  """
-  language: String!
-}
-
-"""
-Tiered list of types of search-based support for a language. This may be expanded as different
-indexing methods are introduced.
-"""
-enum SearchBasedSupportLevel {
-  """The language has no configured search-based code-intel support."""
-  UNSUPPORTED
-
-  """Universal-ctags is used for indexing this language."""
-  BASIC
 }
 
 """A search context. Specifies a set of repositories to be searched."""
@@ -12955,6 +14355,12 @@ type Site implements SettingsSubject {
   allowEditExternalServicesWithFile: Boolean!
 
   """
+  The number of external services distinguished by local repositories and remote repositories.
+  Local repository code host connections are only supported in Sourcegraph App.
+  """
+  externalServicesCounts: ExternalServicesCounts!
+
+  """
   Whether the site is over the limit for free user accounts, and a warning needs to be shown to all users.
   Only applies if the site does not have a valid license.
   """
@@ -13042,10 +14448,14 @@ type Site implements SettingsSubject {
   allowSiteSettingsEdits: Boolean!
 
   """
-  Whether to enable the extension registry and the use of extensions.
-  Reflects the site configuration `enableLegacyExtensions` experimental feature value.
+  FOR INTERNAL USE ONLY: Returns information about instance upgrade readiness.
   """
-  enableLegacyExtensions: Boolean!
+  upgradeReadiness: UpgradeReadiness!
+
+  """
+  Wether the current App installation has a connected Sourcegraph.com account.
+  """
+  appHasConnectedDotComAccount: Boolean!
 }
 
 """The configuration for a site."""
@@ -13111,7 +14521,7 @@ type SiteConfigurationChange implements Node {
   """
   author: User
 
-  """The diff string when diffed against the site config at previousID."""
+  """The diff string when diffed against the previous site config."""
   diff: String!
 
   """The timestamp when this change in the site config was applied."""
@@ -13125,7 +14535,11 @@ type SiteConfigurationChange implements Node {
   updatedAt: DateTime!
 }
 
-"""A list of site config diffs."""
+"""
+A list of site config diffs. Diff generation may not be available from the very
+start depending on when the value of redacted_contents is available in the
+database.
+"""
 type SiteConfigurationChangeConnection implements Connection {
   """A list of diffs in the site config"""
   nodes: [SiteConfigurationChange!]!
@@ -13201,6 +14615,9 @@ type SiteUser {
 
   """Whether user is site admin or not."""
   siteAdmin: Boolean!
+
+  """Whether the user is controlled through SCIM."""
+  scimControlled: Boolean!
 
   """Total number of user's event_logs."""
   eventsCount: Float!
@@ -13336,8 +14753,25 @@ type SlowRequestConnection {
   pageInfo: PageInfo!
 }
 
+"""The SCIP snapshot decoration for a single SCIP Occurrence."""
+type SnapshotData {
+  """
+  The byte offset in the document immediately after the line the occurrence is on.
+  """
+  offset: Int!
+
+  """The formatted SCIP symbol string."""
+  data: String!
+}
+
+"""Speaker type, human or assistant"""
+enum SpeakerType {
+  HUMAN
+  ASSISTANT
+}
+
 """FOR INTERNAL USE ONLY: A status message"""
-union StatusMessage = GitUpdatesDisabled | CloningProgress | ExternalServiceSyncError | SyncError | IndexingProgress
+union StatusMessage = GitUpdatesDisabled | NoRepositoriesDetected | CloningProgress | ExternalServiceSyncError | SyncError | IndexingProgress
 
 """A Git submodule"""
 type Submodule {
@@ -13608,6 +15042,174 @@ type SyncError {
   message: String!
 }
 
+"""
+A team is a grouping of users/persons into a common handle. Teams are commonly used to define
+codeowners.
+"""
+type Team implements Node {
+  """The unique ID of the team."""
+  id: ID!
+
+  """
+  The name of the team. Needs to be globally unique across usernames, organization
+  names, and team names. Team names can use alphanumeric characters, - dash
+  and / forward slash.
+  """
+  name: String!
+
+  """URL to link to the teams profile page."""
+  url: String!
+
+  """URL to an avatar of this team."""
+  avatarURL: String
+
+  """A human readable name substitute for the name. Null, if not defined."""
+  displayName: String
+
+  """
+  A team can be made read-only from the CLI instructing the UI to show a warning
+  banner that this is managed externally, and management features will only be
+  available to site-admins. It can also still be manipulated from the CLI.
+  """
+  readonly: Boolean!
+
+  """
+  The teams direct members. That is members that are strictly part of this team,
+  but not members of child teams. Team membership is NOT inherited.
+  """
+  members(
+    """Returns the first n team members from the list."""
+    first: Int
+
+    """Opaque pagination cursor."""
+    after: String
+
+    """Optionally apply a text search filter over the results."""
+    search: String
+  ): TeamMemberConnection!
+
+  """Parent team can be null, if this is a root team."""
+  parentTeam: Team
+
+  """The list of direct child teams."""
+  childTeams(
+    """Returns the first n teams from the list."""
+    first: Int
+
+    """Opaque pagination cursor."""
+    after: String
+
+    """Optionally apply a text search filter over the results."""
+    search: String
+  ): TeamConnection!
+
+  """True, if the current user can modify this team."""
+  viewerCanAdminister: Boolean!
+
+  """The creator of this team. Null, if the user was deleted."""
+  creator: User
+}
+
+"""A list of teams."""
+type TeamConnection {
+  """The total count of items in the connection."""
+  totalCount: Int!
+
+  """The pagination info for the connection."""
+  pageInfo: PageInfo!
+
+  """The current page of teams in this connection."""
+  nodes: [Team!]!
+}
+
+"""
+A team member is an entity that can be associated to a team.
+
+For now, this will be User, and will be expanded to User | Person later.
+"""
+interface TeamMember {
+  """All the teams this TeamMember is a direct member of."""
+  teams(
+    """Returns the first n teams from the list."""
+    first: Int
+
+    """Opaque pagination cursor."""
+    after: String
+
+    """Optionally apply a text search filter over the results."""
+    search: String
+  ): TeamConnection!
+}
+
+"""A list of team members."""
+type TeamMemberConnection {
+  """The total count of items in the connection."""
+  totalCount: Int!
+
+  """The pagination info for the connection."""
+  pageInfo: PageInfo!
+
+  """The current page of team members in this connection."""
+  nodes: [TeamMember!]!
+}
+
+"""
+Options to specify a user for team membership. Multiple options can be provided,
+with the following precedence order: (Other mismatches will be discarded)
+- UserID
+- Username
+- Email
+- External Account fields
+
+Examples:
+- If ID is set and no match, return.
+- If ID and username is set, and ID matches but username doesn't, match.
+"""
+input TeamMemberInput {
+  """Explicitly define a user by ID."""
+  userID: ID
+
+  """Explicitly define a user by username in Sourcegraph."""
+  username: String
+
+  """
+  If the email is associated to a user and verified, the user account will be matched.
+  """
+  email: String
+
+  """
+  If the user has an associated external account, use this.
+  externalAccountServiceID and externalAccountServiceType must be set and
+  either of externalAccountAccountID externalAccountLogin are required as well.
+  Service ID for the GitHub OAuth provider, for example, is https://github.com/.
+  """
+  externalAccountServiceID: String
+
+  """
+  If the user has an associated external account, use this.
+  externalAccountServiceID and externalAccountServiceType must be set and
+  either of externalAccountAccountID externalAccountLogin are required as well.
+  Service Type for the GitHub OAuth provider, for example, is github.
+  """
+  externalAccountServiceType: String
+
+  """
+  If the user has an associated external account, use this.
+  externalAccountServiceID and externalAccountServiceType must be set and
+  either of externalAccountAccountID externalAccountLogin are required as well.
+  Account ID is the unique identifier on the external account platform.
+  """
+  externalAccountAccountID: String
+
+  """
+  If the user has an associated external account, use this.
+  externalAccountServiceID and externalAccountServiceType must be set and
+  either of externalAccountAccountID externalAccountLogin are required as well.
+  Account Login is usually the username on the external account platform.
+  """
+  externalAccountLogin: String
+}
+
 """Temporary settings for a user."""
 type TemporarySettings {
   """A JSON string representing the temporary settings."""
@@ -13710,11 +15312,6 @@ resolvers and GitTreeLSIFData for directory-specific resolvers.)
 interface TreeEntryLSIFData {
   """Code diagnostics provided through LSIF."""
   diagnostics(first: Int): DiagnosticConnection!
-
-  """
-  The list of LSIF uploads that may be used to service code-intel requests for this TreeEntry.
-  """
-  lsifUploads: [LSIFUpload!]!
 }
 
 """Information about software updates for Sourcegraph."""
@@ -13844,8 +15441,19 @@ type UpdateSettingsPayload {
   empty: EmptyResponse
 }
 
+"""
+Instance upgrade readiness information includes schema drifts and deprecated-but-unfinished out-of-band migrations.
+"""
+type UpgradeReadiness {
+  """The schema drift details."""
+  schemaDrift: String!
+
+  """The list of deprecated-but-unfinished out-of-band migrations."""
+  requiredOutOfBandMigrations: [OutOfBandMigration!]!
+}
+
 """A user."""
-type User implements Node & SettingsSubject & Namespace {
+type User implements Node & SettingsSubject & Namespace & TeamMember {
   """The unique ID for the user."""
   id: ID!
 
@@ -13907,12 +15515,6 @@ type User implements Node & SettingsSubject & Namespace {
   """This user's organization memberships."""
   organizationMemberships: OrganizationMembershipConnection!
 
-  """
-  Tags associated with the user. These are used for internal site management and feature selection.
-  Only the user and site admins can access this field.
-  """
-  tags: [String!]!
-
   """Whether the user has already accepted the terms of service or not."""
   tosAccepted: Boolean!
 
@@ -13936,6 +15538,12 @@ type User implements Node & SettingsSubject & Namespace {
   Only the user and site admins can access this field.
   """
   emails: [UserEmail!]!
+
+  """
+  The user's verified primary email address (if any).
+  On dotcom only the user and site admins can access this field.
+  """
+  primaryEmail: UserEmail
 
   """
   The user's access tokens (which grant to the holder the privileges of the user). This consists
@@ -13990,11 +15598,32 @@ type User implements Node & SettingsSubject & Namespace {
   """
   namespaceName: String!
 
+  """Whether the user is controlled externally through SCIM."""
+  scimControlled: Boolean!
+
   """
   EXPERIMENTAL: Collaborators who can be invited to Sourcegraph. This typically comes from a few
   repositories this user has access to, and is derived from recent commit history of those.
   """
   invitableCollaborators: [Person!]!
+
+  """The list of all roles assigned to this user."""
+  roles(
+    """The limit argument for forward pagination."""
+    first: Int
+
+    """The limit argument for backward pagination."""
+    last: Int
+
+    """The cursor argument for forward pagination."""
+    after: String
+
+    """The cursor argument for backward pagination."""
+    before: String
+  ): RoleConnection!
+
+  """The list of permissions granted to this user based on their roles."""
+  permissions: PermissionConnection!
 
   """
   The list of all available executor secrets for execution in this users namespace.
@@ -14009,6 +15638,18 @@ type User implements Node & SettingsSubject & Namespace {
     """Opaque cursor for pagination."""
     after: String
   ): ExecutorSecretConnection!
+
+  """All the teams this user is a direct member of."""
+  teams(
+    """Returns the first n teams from the list."""
+    first: Int
+
+    """Opaque pagination cursor."""
+    after: String
+
+    """Optionally apply a text search filter over the results."""
+    search: String
+  ): TeamConnection!
 
   """A list of batch changes applied under this user's namespace."""
   batchChanges(
@@ -14508,6 +16149,174 @@ type VisibleChangesetSpec implements ChangesetSpec & Node {
 
   """The workspace this resulted from. Null, if not run server-side."""
   workspace: BatchSpecWorkspace
+}
+
+"""Vulnerabilities synced from the GitHub Advisory Database."""
+type Vulnerability implements Node {
+  """The ID of the vulnerability."""
+  id: ID!
+
+  """The CVE identifier of the vulnerability (e.g., CVE-2023-123)."""
+  sourceID: String!
+
+  """A short summary of the vulnerability."""
+  summary: String!
+
+  """A longer description of the vulnerability."""
+  details: String!
+
+  """Common Platform Enumeration identifiers related to this vulnerability."""
+  cpes: [String!]!
+
+  """Common Weakness Enumeration identifiers related to this vulnerability."""
+  cwes: [String!]!
+
+  """Other names this vulnerability is known by."""
+  aliases: [String!]!
+
+  """Names of related vulnerabilities."""
+  related: [String!]!
+
+  """The data source of this vulnerability."""
+  dataSource: String!
+
+  """URLs indicating the source of this vulnerability."""
+  urls: [String!]!
+
+  """A human-readable severity string."""
+  severity: String!
+
+  """The Common Vulnerability Scoring System severity vector."""
+  cvssVector: String!
+
+  """The Common Vulnerability Scoring System severity score."""
+  cvssScore: String!
+
+  """The time this vulnerability was published."""
+  published: DateTime!
+
+  """The last time this vulnerability was modified."""
+  modified: DateTime
+
+  """The time this vulnerability was withdrawn."""
+  withdrawn: DateTime
+
+  """A list of packages that are affected by this vulnerability."""
+  affectedPackages: [VulnerabilityAffectedPackage!]!
+}
+
+"""A package affected by a vulnerability."""
+type VulnerabilityAffectedPackage {
+  """The name of the package."""
+  packageName: String!
+
+  """The language ecosystem."""
+  language: String!
+
+  """A package namespace."""
+  namespace: String!
+
+  """A list of constraints that identify affected versions of the package."""
+  versionConstraint: [String!]!
+
+  """Whether or not there is a known fix."""
+  fixed: Boolean!
+
+  """The version in which the fix was applied."""
+  fixedIn: String
+
+  """A list of specific symbols affected by the vulnerability."""
+  affectedSymbols: [VulnerabilityAffectedSymbol!]!
+}
+
+"""A specific symbol affected by a vulnerability."""
+type VulnerabilityAffectedSymbol {
+  """A path to the document within the package source."""
+  path: String!
+
+  """A list of symbols defined in that path."""
+  symbols: [String!]!
+}
+
+"""A page of vulnerabilities."""
+type VulnerabilityConnection {
+  """The vulnerabilities on the page."""
+  nodes: [Vulnerability!]!
+
+  """The total number of vulnerabilities across all pages."""
+  totalCount: Int
+
+  """Information on how to fetch the next page."""
+  pageInfo: PageInfo!
+}
+
+"""A use of a known vulnerable-affected package.e"""
+type VulnerabilityMatch implements Node {
+  """The match ID."""
+  id: ID!
+
+  """The vulnerability."""
+  vulnerability: Vulnerability!
+
+  """The affected package that is used by the associated index."""
+  affectedPackage: VulnerabilityAffectedPackage!
+
+  """The index record that contains a direct use of the affected package."""
+  preciseIndex: PreciseIndex!
+}
+
+"""A page of vulnerability matches."""
+type VulnerabilityMatchConnection {
+  """The vulnerability matches on the page."""
+  nodes: [VulnerabilityMatch!]!
+
+  """The total number of vulnerability matches across all pages."""
+  totalCount: Int
+
+  """Information on how to fetch the next page."""
+  pageInfo: PageInfo!
+}
+
+"""Vulnerability matches count group by repository."""
+type VulnerabilityMatchCountByRepository {
+  """The id of the grouping."""
+  id: ID!
+
+  """The repository name."""
+  repositoryName: String!
+
+  """The vulnerability matches count."""
+  matchCount: Int!
+}
+
+"""A page of vulnerability matches grouped by repository."""
+type VulnerabilityMatchCountByRepositoryConnection {
+  """The vulnerability matches on the page."""
+  nodes: [VulnerabilityMatchCountByRepository!]!
+
+  """The total number of vulnerability matches across all pages."""
+  totalCount: Int
+
+  """Information on how to fetch the next page."""
+  pageInfo: PageInfo!
+}
+
+"""A count of the severities of vulnerability matches."""
+type VulnerabilityMatchesSummaryCount {
+  """The number of matches with a severity of "CRITICAL"."""
+  critical: Int!
+
+  """The number of matches with a severity of "HIGH"."""
+  high: Int!
+
+  """The number of matches with a severity of "MEDIUM"."""
+  medium: Int!
+
+  """The number of matches with a severity of "LOW"."""
+  low: Int!
+
+  """The number of repos with a severity"""
+  repository: Int!
 }
 
 """Represents an incoming webhook from a code host."""

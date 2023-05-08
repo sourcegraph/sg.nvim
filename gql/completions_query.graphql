@@ -1,0 +1,9 @@
+query CompletionQuery($messages: [Message!]!, $temperature: Float!, $maxTokensToSample: Int!, $topK: Int!, $topP: Int!) {
+  completions(input: {
+    messages: $messages,
+    temperature: $temperature,
+    maxTokensToSample: $maxTokensToSample,
+    topK: $topK,
+    topP: $topP
+  })
+}
