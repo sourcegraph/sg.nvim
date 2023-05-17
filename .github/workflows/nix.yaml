@@ -1,0 +1,24 @@
+name: nix-build
+
+on:
+  pull_request:
+  push:
+    branches: master
+
+jobs:
+  nix-build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+      fail-fast: false
+
+    name: nix-build (${{ matrix.os }})
+    steps:
+      - uses: actions/checkout@v3
+      - uses: cachix/install-nix-action@v20
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - run: nix build
