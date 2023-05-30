@@ -4,6 +4,8 @@
   toolchain,
   pkg-config,
   openssl,
+  stdenv,
+  darwin,
   ...
 }:
 rustPlatform.buildRustPackage {
@@ -16,7 +18,7 @@ rustPlatform.buildRustPackage {
   };
 
   nativeBuildInputs = [pkg-config toolchain];
-  buildInputs = [openssl];
+  buildInputs = [openssl] ++ (lib.optional stdenv.isDarwin [darwin.apple_sdk.frameworks.Security]);
 
   cargoBuildFlags = ["--workspace"];
   cargoTestFlags = ["--workspace"];
