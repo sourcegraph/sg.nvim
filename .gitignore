@@ -30,3 +30,12 @@ data.db
 data.db*
 
 # End of https://www.toptal.com/developers/gitignore/api/rust,direnv
+
+# Should use .envrc for (nix-)direnv! We export devShells already.
+# This allows (nix-)direnv user to `direnv allow` and the devShell pulls down
+!.envrc
+# Nix build results
+result
+# The repo explicitly has Cargo.lock, but the above template includes ignores this
+!Cargo.lock
+
