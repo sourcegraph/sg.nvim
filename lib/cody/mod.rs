@@ -36,7 +36,7 @@ I only suggest something if I am certain about my answer.".to_string(),
 
     let response_body = get_graphql::<CompletionQuery>(completion_query::Variables {
         messages,
-        temperature: temp.unwrap_or(0.2),
+        temperature: temp.unwrap_or(0.5),
         max_tokens_to_sample: 1000,
         top_k: -1,
         top_p: -1,
