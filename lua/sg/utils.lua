@@ -1,3 +1,5 @@
+local async = require "plenary.async"
+
 local utils = {}
 
 utils.once = function(f)
@@ -41,5 +43,7 @@ utils.patch_cursor_position = function(target_cursor, force)
     vim.api.nvim_win_set_cursor(0, { cursor[1], cursor[2] + 1 })
   end
 end
+
+utils.system = async.wrap(vim.system, 3)
 
 return utils

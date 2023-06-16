@@ -4,13 +4,14 @@ local Speaker = require "sg.cody.speaker"
 ---@field speaker CodySpeaker
 ---@field msg string[]
 ---@field ephemeral boolean
+---@field hidden boolean
 local Message = {}
 Message.__index = Message
 
 ---comment
 ---@param speaker CodySpeaker
 ---@param msg string[]
---- @param opts { ephemeral?:  boolean }?
+--- @param opts { ephemeral?:  boolean; hidden?: boolean }?
 ---@return CodyMessage
 function Message.init(speaker, msg, opts)
   opts = opts or {}
@@ -18,12 +19,17 @@ function Message.init(speaker, msg, opts)
   return setmetatable({
     speaker = speaker,
     msg = msg,
+    hidden = opts.hidden or false,
     ephemeral = opts.ephemeral or false,
   }, Message)
 end
 
 ---@return string[]
 function Message:render()
+  if self.hidden then
+    return {}
+  end
+
   if self.speaker == Speaker.cody then
     return self.msg
   elseif self.speaker == Speaker.user then

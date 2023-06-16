@@ -1,5 +1,9 @@
+local sg_cody_process = vim.api.nvim_get_runtime_file("target/debug/sg-cody", false)[1]
+if not sg_cody_process then
+  error "Could not find sg-cody binary. Make sure you ran `cargo build --bin sg-cody`"
+end
+
 local uv = vim.loop
-local sg_cody_process = "./target/debug/sg-cody"
 
 local log = require "sg.log"
 
@@ -15,7 +19,7 @@ local get_next_id = function()
 end
 
 -- Process vars, could be encapsulated some other way, but this is fine for now.
-local handle, stdin, stdout, stderr = nil, nil, nil, nil
+local handle, pid, stdin, stdout, stderr = nil, nil, nil, nil, nil
 M.start = function(force)
   -- Debugging usefulness
   if force or handle == nil then
@@ -25,7 +29,7 @@ M.start = function(force)
     stdout = assert(uv.new_pipe())
     stderr = assert(uv.new_pipe())
 
-    handle, _ = uv.spawn(sg_cody_process, {
+    handle, pid = uv.spawn(sg_cody_process, {
       stdio = { stdin, stdout, stderr },
       env = {
         "SRC_ACCESS_TOKEN=" .. vim.env.SRC_ACCESS_TOKEN,
@@ -37,6 +41,10 @@ M.start = function(force)
         log.warn("[cody] exit signal", signal)
       end
     end)
+
+    if not handle then
+      error(string.format("Failed to start process: %s", pid))
+    end
 
     local buffer = ""
     stdout:read_start(vim.schedule_wrap(function(err, data)
@@ -51,17 +59,17 @@ M.start = function(force)
             if line ~= "" then
               local ok, parsed = pcall(vim.json.decode, line, { luanil = { object = true } })
               if ok and parsed then
-                log.info("stdout chunk", parsed)
+                log.trace("stdout chunk", parsed)
 
                 if M.pending[parsed.id] then
                   M.pending[parsed.id](parsed)
                   M.pending[parsed.id] = nil
                 end
               else
-                log.info("failed chunk", parsed)
+                log.trace("failed chunk", parsed)
               end
             else
-              log.info "empty line"
+              log.trace "empty line"
             end
           end
 
@@ -77,18 +85,18 @@ M.start = function(force)
               buffer = ""
             end
 
-            log.info("chunked", i, vim.json.decode(lines[i]))
+            log.trace("chunked", i, vim.json.decode(lines[i]))
           end
 
           buffer = buffer .. lines[#lines]
-          log.info("unchunked... for now!", buffer)
+          log.trace("unchunked... for now!", buffer)
         end
       end
     end))
 
     stderr:read_start(vim.schedule_wrap(function(err, data)
       if err or data then
-        warn("[cody] stderr:", err, data)
+        log.info("[cody] ", err, data)
       end
     end))
 

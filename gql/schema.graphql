@@ -443,6 +443,38 @@ type AnalyticsUsersResult {
   monthlyActiveUsers: [AnalyticsMonthlyActiveUsers!]!
 }
 
+"""Manually assigned owner."""
+type AssignedOwner {
+  """Descriptive title to display in the UI for the determination."""
+  title: String!
+
+  """More detailed description to display in the UI for the determination."""
+  description: String!
+
+  """
+  Whether or not this rule matches a path directly, or is inherited from a parent path.
+  """
+  isDirectMatch: Boolean!
+}
+
+"""
+AssignOwnerOrTeamInput represents the input for assigning or deleting an owner team or person.
+"""
+input AssignOwnerOrTeamInput {
+  """ID of an assigned owner or team."""
+  assignedOwnerID: ID!
+
+  """
+  ID of a repo, which (or which directory/file) is assigned for ownership.
+  """
+  repoID: ID!
+
+  """
+  Path of the file/directory or a root path of the repo, which is assigned for ownership.
+  """
+  absolutePath: String!
+}
+
 """Represents a state transition of a single column."""
 type AuditLogColumnChange {
   """The column that is changing."""
@@ -912,6 +944,12 @@ type BatchChangesCodeHost {
   credential: BatchChangesCredential
 
   """
+  Configuration for commit signing, if any has been set up. Always nil if the code
+  host type doesn't have commit signing support yet.
+  """
+  commitSigningConfiguration: CommitSigningConfiguration
+
+  """
   If true, some of the repositories on this code host require
   an SSH key to be configured.
   """
@@ -921,6 +959,9 @@ type BatchChangesCodeHost {
   If true, this code host requires credentials to have a username as well as a personal access token.
   """
   requiresUsername: Boolean!
+
+  """If true, this code host can setup commit signing."""
+  supportsCommitSigning: Boolean!
 
   """If true, the code host has webhooks configured."""
   hasWebhooks: Boolean!
@@ -2714,6 +2755,9 @@ type CodeIntelligenceConfigurationPolicy implements Node {
   only consider the tip of the branch.
   """
   indexIntermediateCommits: Boolean!
+
+  """Whether or not this configuration policy affects embeddings."""
+  embeddingsEnabled: Boolean!
 }
 
 """A list of code intelligence configuration policies."""
@@ -2939,7 +2983,7 @@ type CodeIntelSummary {
 }
 
 """
-The entity is an owner because they were mentioned on a codeowners file.
+The entity is an owner because they were manually assigned as an owner.
 """
 type CodeownersFileEntry {
   """Descriptive title to display in the UI for the determination."""
@@ -3002,6 +3046,107 @@ type CodeownersIngestedFileConnection {
   nodes: [CodeownersIngestedFile!]!
 }
 
+"""
+EXPERIMENTAL: A single piece of context. It's defined as a union so we can
+return other types of context in the future (think code intel definition
+or wiki page).
+"""
+union CodyContextResult = FileChunkContext
+
+"""
+Cody Gateway access granted to a subscription.
+FOR INTERNAL USE ONLY.
+"""
+type CodyGatewayAccess {
+  """Whether or not a subscription has Cody Gateway access."""
+  enabled: Boolean!
+
+  """Rate limit for chat completions access, or null if not enabled."""
+  chatCompletionsRateLimit: CodyGatewayRateLimit
+
+  """Rate limit for code completions access, or null if not enabled."""
+  codeCompletionsRateLimit: CodyGatewayRateLimit
+
+  """Rate limit for embedding text chunks, or null if not enabled."""
+  embeddingsRateLimit: CodyGatewayRateLimit
+}
+
+"""
+A dotcom user allowed to access the Cody Gateway
+FOR INTERNAL USE ONLY.
+"""
+type CodyGatewayDotcomUser {
+  """The user name of the user"""
+  username: String!
+
+  """
+  Cody Gateway access granted to this user. Properties may be inferred from
+  dotcom site config, or be defined in overrides on the user.
+  """
+  codyGatewayAccess: CodyGatewayAccess!
+}
+
+"""
+Cody Gateway access rate limits for a subscription.
+FOR INTERNAL USE ONLY.
+"""
+type CodyGatewayRateLimit {
+  """The source of the rate limit configuration."""
+  source: CodyGatewayRateLimitSource!
+
+  """
+  The models that are allowed for this rate limit bucket.
+  Usually, customers will have two separate rate limits, one
+  for chat completions and one for code completions. A usual
+  config could include:
+  
+      chatCompletionsRateLimit: {
+          allowedModels: [anthropic/claude-v1, anthropic/claude-v1.3]
+      },
+      codeCompletionsRateLimit: {
+          allowedModels: [anthropic/claude-instant-v1]
+      }
+  
+  In general, the model names are of the format "$PROVIDER/$MODEL_NAME".
+  """
+  allowedModels: [String!]!
+
+  """Requests per time interval."""
+  limit: BigInt!
+
+  """Interval for rate limiting."""
+  intervalSeconds: Int!
+
+  """Recent usage data of Cody Gateway for the subscription."""
+  usage: [CodyGatewayUsageDatapoint!]!
+}
+
+"""
+The source of the rate limit returned.
+FOR INTERNAL USE ONLY.
+"""
+enum CodyGatewayRateLimitSource {
+  """Indicates that a custom override for the rate limit has been stored."""
+  OVERRIDE
+
+  """
+  Indicates that the rate limit is inferred by the subscriptions active plan.
+  """
+  PLAN
+}
+
+"""A usage data point of Cody Gateway usage of a subscription."""
+type CodyGatewayUsageDatapoint {
+  """The day the usage occurred."""
+  date: DateTime!
+
+  """The number of requests made."""
+  count: BigInt!
+
+  """The model that was used."""
+  model: String!
+}
+
 """A search result that is a Git commit."""
 type CommitSearchResult implements GenericSearchResultInterface {
   """A markdown string that is rendered prominently."""
@@ -3031,6 +3176,12 @@ type CommitSearchResult implements GenericSearchResultInterface {
   """The matching portion of the diff, if any."""
   diffPreview: HighlightedString
 }
+
+"""
+Commit signing configuration for a code host, e.g. GitHubApp or SSHKey. Today, the
+only supported form of commit signing is via a GitHub App.
+"""
+union CommitSigningConfiguration = GitHubApp
 
 """Input wrapper for completions"""
 input CompletionsInput {
@@ -3464,12 +3615,38 @@ type DotcomMutation {
     license: ProductLicenseInput!
   ): ProductLicense!
 
+  """Revokes an existing product license, rendering it invalid."""
+  revokeLicense(
+    """The UUID of the license to revoke"""
+    id: ID!
+
+    """Reason for revoking of the license"""
+    reason: String!
+  ): EmptyResponse!
+
+  """
+  Applies a partial update to a product subscription.
+  
+  Only Sourcegraph.com site admins may perform this mutation.
+  FOR INTERNAL USE ONLY.
+  """
+  updateProductSubscription(
+    """The product subscription ID to update."""
+    id: ID!
+
+    """Partial update to apply."""
+    update: UpdateProductSubscriptionInput!
+  ): EmptyResponse!
+
   """
   Archives an existing product subscription.
   Only Sourcegraph.com site admins may perform this mutation.
   FOR INTERNAL USE ONLY.
   """
-  archiveProductSubscription(id: ID!): EmptyResponse!
+  archiveProductSubscription(
+    """The product subscription to archive."""
+    id: ID!
+  ): EmptyResponse!
 }
 
 """
@@ -3485,6 +3662,16 @@ type DotcomQuery {
   FOR INTERNAL USE ONLY.
   """
   productSubscription(uuid: String!): ProductSubscription!
+
+  """
+  The access available to the product subscription with the given access token.
+  The returned ProductSubscription may be archived or not associated with an active license.
+  
+  Only Sourcegraph.com site admins, the account owners of the product subscription, and
+  specific service accounts may perform this query.
+  FOR INTERNAL USE ONLY.
+  """
+  productSubscriptionByAccessToken(accessToken: String!): ProductSubscription!
 
   """
   A list of product subscriptions.
@@ -3523,10 +3710,24 @@ type DotcomQuery {
     """Returns only product licenses associated with the given subscription"""
     productSubscriptionID: ID
   ): ProductLicenseConnection!
+
+  """
+  A dotcom user for purposes of connecting to the Cody Gateway.
+  Only Sourcegraph.com site admins or service accounts may perform this query.
+  Token is a Cody Gateway token, not a Sourcegraph instance access token.
+  FOR INTERNAL USE ONLY.
+  """
+  codyGatewayDotcomUserByToken(token: String!): CodyGatewayDotcomUser
 }
 
 """A single embeddings search result."""
 type EmbeddingsSearchResult {
+  """The name of the repository containing the search result."""
+  repoName: String!
+
+  """The commitID of the repository containing the search result."""
+  revision: String!
+
   """The search result file name."""
   fileName: String!
 
@@ -3776,7 +3977,10 @@ type Executor implements Node {
   hostname: String!
 
   """The queue name that the executor polls for work."""
-  queueName: String!
+  queueName: String
+
+  """The queue name that the executor polls for work."""
+  queueNames: [String!]
 
   """
   Active is true, if a heartbeat from the executor has been received at most three heartbeat intervals ago.
@@ -4429,6 +4633,7 @@ enum ExternalServiceKind {
   JVMPACKAGES
   NPMPACKAGES
   OTHER
+  LOCALGIT
   PAGURE
   PERFORCE
   PHABRICATOR
@@ -4627,6 +4832,12 @@ type FeatureFlagBoolean {
 
   """Overrides that apply to the feature flag"""
   overrides: [FeatureFlagOverride!]!
+
+  """When the feature flag was created."""
+  createdAt: DateTime!
+
+  """When the feature flag was last updated."""
+  updatedAt: DateTime!
 }
 
 """
@@ -4661,6 +4872,12 @@ type FeatureFlagRollout {
 
   """Overrides that apply to the feature flag"""
   overrides: [FeatureFlagOverride!]!
+
+  """When the feature flag was created."""
+  createdAt: DateTime!
+
+  """When the feature flag was last updated."""
+  updatedAt: DateTime!
 }
 
 """Additional options when performing a permissions sync."""
@@ -4829,6 +5046,23 @@ type FileBlockLineRange {
 
   """The last line to fetch (0-indexed, exclusive)."""
   endLine: Int!
+}
+
+"""
+A piece of context that represents a chunk of a file in a git repository
+"""
+type FileChunkContext {
+  """The git blob this file is associated with"""
+  blob: GitBlob!
+
+  """The start line of the relevant chunk (inclusive)."""
+  startLine: Int!
+
+  """The end line of the relevant chunk (exclusive)."""
+  endLine: Int!
+
+  """The relevant content of the file from start line to end line."""
+  chunkContent: String!
 }
 
 """A diff for a single file."""
@@ -5132,7 +5366,7 @@ type GitBlob implements TreeEntry & File2 & Ownable {
   ): SymbolConnection!
 
   """
-  (Experimental) Symbol defined in this blob at the specific line number and character offset.
+  EXPERIMENTAL: Symbol defined in this blob at the specific line number and character offset.
   """
   symbol(
     """The line number (0-based)."""
@@ -5291,6 +5525,35 @@ type GitBlobLSIFData implements TreeEntryLSIFData {
     filter: String
   ): LocationConnection!
 
+  """A list of prototypes of the symbol under the given document position."""
+  prototypes(
+    """The line on which the symbol occurs (zero-based, inclusive)."""
+    line: Int!
+
+    """
+    The character (not byte) of the start line on which the symbol occurs (zero-based, inclusive).
+    """
+    character: Int!
+
+    """
+    When specified, indicates that this request should be paginated and
+    to fetch results starting at this cursor.
+    A future request can be made for more results by passing in the
+    'LocationConnection.pageInfo.endCursor' that is returned.
+    """
+    after: String
+
+    """
+    When specified, indicates that this request should be paginated and
+    the first N results (relative to the cursor) should be returned. i.e.
+    how many results to return per page.
+    """
+    first: Int
+
+    """When specified, it filters prototypes by filename."""
+    filter: String
+  ): LocationConnection!
+
   """The hover result of the symbol under the given document position."""
   hover(
     """The line on which the symbol occurs (zero-based, inclusive)."""
@@ -5402,6 +5665,11 @@ type GitCommit implements Node {
 
   """The abbreviated form of this commit's OID."""
   abbreviatedOID: String!
+
+  """
+  EXPERIMENTAL: The perforce changelist ID if this git commit was originally converted from a perforce depot.
+  """
+  perforceChangelist: PerforceChangelist
 
   """This commit's author."""
   author: Signature!
@@ -5524,6 +5792,15 @@ type GitCommit implements Node {
     """The base commit to compare to. Defaults to the commit's first parent."""
     base: String
   ): RepositoryComparison!
+
+  """Owners of the repository at this commit."""
+  ownership(
+    """Returns the first n ownership records from the list."""
+    first: Int
+
+    """Opaque pagination cursor."""
+    after: String
+  ): OwnershipConnection!
 }
 
 """A list of Git commits."""
@@ -5564,6 +5841,86 @@ type GitCommitDescription {
   to omit the prefix.
   """
   diff: String!
+}
+
+"""Represents a GitHub account on which the App was installed."""
+type GitHubAccount {
+  """The login username of the account."""
+  login: String!
+
+  """The avatar URL of the account."""
+  avatarURL: String!
+
+  """A link to the account on GitHub."""
+  url: String!
+
+  """The account type."""
+  type: String!
+}
+
+"""A GitHub App configuration."""
+type GitHubApp implements Node {
+  """Unique ID of the GitHub App"""
+  id: ID!
+
+  """The GitHub App ID"""
+  appID: Int!
+
+  """The name of the GitHub App"""
+  name: String!
+
+  """The domain of the GitHub App (e.g. "repos" or "batches")"""
+  domain: String!
+
+  """The slug of the GitHub App"""
+  slug: String!
+
+  """The base URL of the GitHub App"""
+  baseURL: String!
+
+  """The URL of the GitHub App page"""
+  appURL: String!
+
+  """The client ID of the GitHub App"""
+  clientID: String!
+
+  """The client secret of the GitHub App"""
+  clientSecret: String!
+
+  """The logo URL of the GitHub App"""
+  logo: String!
+
+  """The created at timestamp of the GitHub App in our database"""
+  createdAt: DateTime!
+
+  """The updated at timestamp of the GitHub App in our database"""
+  updatedAt: DateTime!
+
+  """Fetches a list of installation IDs for this GitHub App."""
+  installations: [Installation!]!
+
+  """Fetches the webhook associated with this GitHub App."""
+  webhook: Webhook
+}
+
+"""A list of GitHub Apps."""
+type GitHubAppConnection {
+  """A list of GitHub Apps."""
+  nodes: [GitHubApp!]!
+
+  """The total count of GitHub Apps in the connection."""
+  totalCount: Int!
+}
+
+"""
+GitHubAppDomain enumerates the domains in which GitHub Apps can be used.
+"""
+enum GitHubAppDomain {
+  """GitHub Apps that are configured for repository syncing."""
+  REPOS
+
+  """GitHub Apps that are configured for batch changes commit signing."""
+  BATCHES
 }
 
 """A Git object."""
@@ -5849,6 +6206,20 @@ type GitTree implements TreeEntry {
     """
     toolName: String
   ): GitTreeLSIFData
+
+  """Owners of the directory at revision."""
+  ownership(
+    """Returns the first n ownership records from the list."""
+    first: Int
+
+    """Opaque pagination cursor."""
+    after: String
+  ): OwnershipConnection!
+
+  """
+  Ownership statistics for all the files (deeply) contained in this tree.
+  """
+  ownershipStats: OwnershipStats!
 }
 
 """
@@ -5891,6 +6262,34 @@ type GlobalChangesetsStats {
 
   """The count of all changesets."""
   total: Int!
+}
+
+"""THe progress of current and historic precise ranking jobs."""
+type GlobalRankingSummary {
+  """Precise ranking job summaries ordered reverse-chronologically."""
+  rankingSummary: [RankingSummary!]!
+
+  """The key of the current ranking summary."""
+  derivativeGraphKey: String
+
+  """The time that the next ranking job is configured to begin."""
+  nextJobStartsAt: DateTime
+
+  """
+  The current number of SCIP indexes that are visible to the ranking calculation.
+  """
+  numExportedIndexes: Int!
+
+  """
+  The target number of SCIP indexes that are visible to the ranking calculation.
+  """
+  numTargetIndexes: Int!
+
+  """
+  The number of repositories which have ranks but haven't been indexed since the
+  ranking scores became available.
+  """
+  numRepositoriesWithoutCurrentRanks: Int!
 }
 
 """Fields that can be grouped on for compute powered insights."""
@@ -6334,6 +6733,17 @@ type IndexSteps {
 
   """Execution log entries related to tearing down the indexing workspace."""
   teardown: [ExecutionLogEntry!]!
+}
+
+"""
+The result of running the auto-index inference script over a particular repo.
+"""
+type InferAutoIndexJobsResult {
+  """The list of inferred jobs."""
+  jobs: [AutoIndexJobDescription!]!
+
+  """The output from the inference script."""
+  inferenceOutput: String!
 }
 
 """
@@ -6795,6 +7205,21 @@ type InsightViewPayload {
   view: InsightView!
 }
 
+"""Represents a single GitHub App installation."""
+type Installation {
+  """The installation ID of the App."""
+  id: Int!
+
+  """The installation URL."""
+  url: String!
+
+  """The account on which the App was installed"""
+  account: GitHubAccount!
+
+  """The external services derived from this installation."""
+  externalServices(first: Int): ExternalServiceConnection!
+}
+
 """The result of Mutation.inviteUserToOrganization."""
 type InviteUserToOrganizationResult {
   """
@@ -7152,6 +7577,9 @@ type MirrorRepositoryInfo {
   The last error message, if any, returned when fetching or cloning the repo
   """
   lastError: String
+
+  """The output of the most recent repo sync job"""
+  lastSyncOutput: String
 
   """The byte size of the repo."""
   byteSize: BigInt!
@@ -7606,6 +8034,14 @@ input MonitorWebhookInput {
 
 """A mutation."""
 type Mutation {
+  """
+  INTERNAL ONLY: Sets the value of versions.auto_upgrade in the frontend db.
+  Determines behavior of multiversion upgrades.
+  
+  Only site admins may perform this mutation.
+  """
+  setAutoUpgrade(enable: Boolean!): EmptyResponse!
+
   """
   Updates the user profile information for the user with the given ID.
   
@@ -8151,7 +8587,7 @@ type Mutation {
   """
   setMigrationDirection(id: ID!, applyReverse: Boolean!): EmptyResponse!
 
-  """(experimental) Create a new feature flag"""
+  """EXPERIMENTAL: Create a new feature flag"""
   createFeatureFlag(
     """The name of the feature flag"""
     name: String!
@@ -8170,13 +8606,13 @@ type Mutation {
     rolloutBasisPoints: Int
   ): FeatureFlag!
 
-  """(experimental) Delete a feature flag"""
+  """EXPERIMENTAL: Delete a feature flag"""
   deleteFeatureFlag(
     """The name of the feature flag"""
     name: String!
   ): EmptyResponse!
 
-  """(experimental) Update a feature flag"""
+  """EXPERIMENTAL: Update a feature flag"""
   updateFeatureFlag(
     """The name of the feature flag"""
     name: String!
@@ -8195,7 +8631,7 @@ type Mutation {
   ): FeatureFlag!
 
   """
-  (experimental) Create a new feature flag override for the given org or user
+  EXPERIMENTAL: Create a new feature flag override for the given org or user
   """
   createFeatureFlagOverride(
     """
@@ -8269,13 +8705,24 @@ type Mutation {
   cancelExternalServiceSync(id: ID!): EmptyResponse!
 
   """Associate a new key-value pair with a repo."""
-  addRepoKeyValuePair(repo: ID!, key: String!, value: String): EmptyResponse!
+  addRepoKeyValuePair(repo: ID!, key: String!, value: String): EmptyResponse! @deprecated(reason: "Use addRepoMetadata instead. This field is a deprecated and will be removed in a future release.")
+
+  """Associate a new key-value pair metadata with a repo."""
+  addRepoMetadata(repo: ID!, key: String!, value: String): EmptyResponse!
 
   """Update a key-value pair associated with a repo."""
-  updateRepoKeyValuePair(repo: ID!, key: String!, value: String): EmptyResponse!
+  updateRepoKeyValuePair(repo: ID!, key: String!, value: String): EmptyResponse! @deprecated(reason: "Use updateRepoMetadata instead. This field is a deprecated and will be removed in a future release.")
+
+  """
+  Update metadata value for a given metadata key for associated with a repo.
+  """
+  updateRepoMetadata(repo: ID!, key: String!, value: String): EmptyResponse!
 
   """Delete a key-value pair associated with a repo."""
-  deleteRepoKeyValuePair(repo: ID!, key: String!): EmptyResponse!
+  deleteRepoKeyValuePair(repo: ID!, key: String!): EmptyResponse! @deprecated(reason: "Use deleteRepoMetadata instead. This field is a deprecated and will be removed in a future release.")
+
+  """Delete a key-value pair metadata associated with a repo."""
+  deleteRepoMetadata(repo: ID!, key: String!): EmptyResponse!
 
   """
   INTERNAL ONLY: Reclone a repository from the gitserver. This involves deleting
@@ -8323,6 +8770,21 @@ type Mutation {
 
   """Deletes a package repo reference filter."""
   deletePackageRepoFilter(id: ID!): EmptyResponse!
+
+  """
+  Sets the completions requests quota for the user per day. Quota: Null means
+  use the default quota.
+  """
+  setUserCompletionsQuota(user: ID!, quota: Int): User!
+
+  """
+  Sets the code completions requests quota for the user per day. Quota: Null means
+  use the default quota.
+  """
+  setUserCodeCompletionsQuota(user: ID!, quota: Int): User!
+
+  """Submits a post-signup user survey about intended Cody usage."""
+  submitCodySurvey(isForWork: Boolean!, isForPersonal: Boolean!): EmptyResponse!
 
   """
   Create a new executor secret.
@@ -9061,13 +9523,39 @@ type Mutation {
     indexingEnabled: Boolean!
     indexCommitMaxAgeHours: Int
     indexIntermediateCommits: Boolean!
+
+    """embeddingsEnabled, if not provided, currently defaults to false."""
+    embeddingsEnabled: Boolean
   ): CodeIntelligenceConfigurationPolicy!
 
   """Updates the attributes configuration policy with the given identifier."""
-  updateCodeIntelligenceConfigurationPolicy(id: ID!, repositoryPatterns: [String!], name: String!, type: GitObjectType!, pattern: String!, retentionEnabled: Boolean!, retentionDurationHours: Int, retainIntermediateCommits: Boolean!, indexingEnabled: Boolean!, indexCommitMaxAgeHours: Int, indexIntermediateCommits: Boolean!): EmptyResponse
+  updateCodeIntelligenceConfigurationPolicy(
+    id: ID!
+    repositoryPatterns: [String!]
+    name: String!
+    type: GitObjectType!
+    pattern: String!
+    retentionEnabled: Boolean!
+    retentionDurationHours: Int
+    retainIntermediateCommits: Boolean!
+    indexingEnabled: Boolean!
+    indexCommitMaxAgeHours: Int
+    indexIntermediateCommits: Boolean!
+
+    """embeddingsEnabled, if not provided, currently defaults to false."""
+    embeddingsEnabled: Boolean
+  ): EmptyResponse
 
   """Deletes the configuration policy with the given identifier."""
   deleteCodeIntelligenceConfigurationPolicy(policy: ID!): EmptyResponse
+
+  """Effectively begins a new ranking map/reduce job."""
+  bumpDerivativeGraphKey: EmptyResponse!
+
+  """
+  Deletes the ranking progress object associated with a particular graph key.
+  """
+  deleteRankingProgress(graphKey: String!): EmptyResponse
 
   """Create a new dashboard."""
   createInsightsDashboard(input: CreateInsightsDashboardInput!): InsightsDashboardPayload!
@@ -9302,6 +9790,12 @@ type Mutation {
   triggerTestSlackWebhookAction(namespace: ID!, description: String!, slackWebhook: MonitorSlackWebhookInput!): EmptyResponse!
 
   """
+  Delete a GitHub App. The GitHub App, along with all of its associated code host connections and
+  authentication provider, will be deleted.
+  """
+  deleteGitHubApp(gitHubApp: ID!): EmptyResponse
+
+  """
   Mutations that are only used on Sourcegraph.com.
   
   FOR INTERNAL USE ONLY.
@@ -9378,14 +9872,15 @@ type Mutation {
   """
   Experimental: Schedules a job to create an embedding search index for each
   listed repository. The indices are used for embeddings search.
+  If force is set to true, then the repo will be re-embedded even if there's already an up-to-date embeddings index.
   """
-  scheduleRepositoriesForEmbedding(repoNames: [String!]!): EmptyResponse!
+  scheduleRepositoriesForEmbedding(repoNames: [String!]!, force: Boolean): EmptyResponse!
 
   """
-  Experimental: Schedules a job to create an embedding index used for context
-  detection. The index is used to determine wheter a query requires additional context.
+  Experimental: Cancels the embedding job with the given ID. The job must exist
+  and be in either 'processing' or 'queued' state.
   """
-  scheduleContextDetectionForEmbedding: EmptyResponse!
+  cancelRepoEmbeddingJob(job: ID!): EmptyResponse!
 
   """
   Deletes a role. This mutation targets only non-system roles.
@@ -9424,6 +9919,23 @@ type Mutation {
   deleteCodeownersFiles deletes any existing Codeowners file for the given repositories.
   """
   deleteCodeownersFiles(repositories: [DeleteCodeownersFilesInput!]!): EmptyResponse
+
+  """
+  updateOwnSignalConfigurations updates any configurations keyed by name. It will do nothing if the key doesn't exist.
+  """
+  updateOwnSignalConfigurations(input: UpdateSignalConfigurationsInput!): [OwnSignalConfiguration!]!
+
+  """assignOwner creates a new assigned owner."""
+  assignOwner(input: AssignOwnerOrTeamInput!): EmptyResponse
+
+  """removeAssignedOwner removes an assigned owner."""
+  removeAssignedOwner(input: AssignOwnerOrTeamInput!): EmptyResponse
+
+  """assignTeam creates a new assigned team."""
+  assignTeam(input: AssignOwnerOrTeamInput!): EmptyResponse
+
+  """removeAssignedTeam removes an assigned owner."""
+  removeAssignedTeam(input: AssignOwnerOrTeamInput!): EmptyResponse
 }
 
 """
@@ -10228,6 +10740,12 @@ type OwnershipConnection {
   """The total count of items in the connection."""
   totalCount: Int!
 
+  """
+  The total number of owners in this connection.
+  Here an owner is as opposed to an ownership inference signal.
+  """
+  totalOwners: Int!
+
   """The pagination info for the connection."""
   pageInfo: PageInfo!
 
@@ -10235,17 +10753,65 @@ type OwnershipConnection {
   nodes: [Ownership!]!
 }
 
-"""
-Union of all possible types of ownership reasons. Use the individual subtypes to
-get more details on the ownership determination.
-"""
-union OwnershipReason = CodeownersFileEntry
+"""A union of all the different ownership reasons."""
+union OwnershipReason = CodeownersFileEntry | RecentContributorOwnershipSignal | RecentViewOwnershipSignal | AssignedOwner
 
 """
 The only way we can recognize ownership at this point is through CODEOWNERS file entry.
 """
 enum OwnershipReasonType {
   CODEOWNERS_FILE_ENTRY
+  ASSIGNED_OWNER
+  RECENT_CONTRIBUTOR_OWNERSHIP_SIGNAL
+  RECENT_VIEW_OWNERSHIP_SIGNAL
+}
+
+"""
+Statistics about code ownership computed for given context (usually a repository or directory).
+"""
+type OwnershipStats {
+  """Total files considered for ownership statistics (owned + unowned)."""
+  totalFiles: Int!
+
+  """Total files with ownership stemming from CODEOWNERS files."""
+  totalCodeownedFiles: Int!
+
+  """Total files with any ownership defined (both CODEOWNERS and assigned)."""
+  totalOwnedFiles: Int!
+
+  """Total files with assigned ownership."""
+  totalAssignedOwnershipFiles: Int!
+}
+
+"""
+OwnSignalConfiguration represents the configuration for an ownership signal.
+"""
+type OwnSignalConfiguration {
+  """The name of the signal configuration, this serves as the primary key."""
+  name: String!
+
+  """The description of the signal configuration."""
+  description: String!
+
+  """Whether or not the signal configuration is enabled."""
+  isEnabled: Boolean!
+
+  """A list of repository name patterns to exclude from the signal."""
+  excludedRepoPatterns: [String!]!
+}
+
+"""
+OwnSignalConfigurationUpdate represents an update to an OwnSignalConfiguration.
+"""
+input OwnSignalConfigurationUpdate {
+  """A list of repository name patterns to exclude from the signal."""
+  excludedRepoPatterns: [String!]!
+
+  """Whether or not the signal configuration should be enabled."""
+  enabled: Boolean!
+
+  """The new name for the signal configuration."""
+  name: String!
 }
 
 """
@@ -10438,6 +11004,18 @@ type ParentSourcegraphDetails {
   url: String!
 }
 
+"""EXPERIMENTAL: A Perforce changelist."""
+type PerforceChangelist {
+  """The changelist ID."""
+  cid: String!
+
+  """The canonical URL to this changelist."""
+  canonicalURL: String!
+
+  """The corresponding git commit of this changelist."""
+  commit: GitCommit!
+}
+
 """A permission"""
 type Permission implements Node {
   """The globally unique identifier for this permission."""
@@ -10478,6 +11056,18 @@ are defined and enforced.
 enum PermissionNamespace {
   """This represents the Batch Changes namespace."""
   BATCH_CHANGES
+
+  """
+  Code ownership namespace used for permitting to assign ownership
+  within Sourcegraph.
+  """
+  OWNERSHIP
+
+  """
+  Repo Metadata namespace used for permitting to edit repository
+  key-value pair metadata.
+  """
+  REPO_METADATA
 }
 
 """Permissions information of a repository or a user."""
@@ -11058,8 +11648,20 @@ type ProductLicense implements Node {
   """The license key."""
   licenseKey: String!
 
+  """Site ID of the instance that uses the license."""
+  siteID: String
+
   """The date when this product license was created."""
   createdAt: DateTime!
+
+  """The date when this product license was revoked."""
+  revokedAt: DateTime
+
+  """The reason for revoking product license."""
+  revokeReason: String
+
+  """The version of the license."""
+  version: Int!
 }
 
 """
@@ -11101,6 +11703,12 @@ type ProductLicenseInfo {
 
   """The date when this license expires."""
   expiresAt: DateTime!
+
+  """The Salesforce subscription ID associated with this license."""
+  salesforceSubscriptionID: String
+
+  """The Salesforce opportunity ID associated with this license."""
+  salesforceOpportunityID: String
 }
 
 """
@@ -11118,6 +11726,12 @@ input ProductLicenseInput {
   The expiration date of this product license, expressed as the number of seconds since the epoch.
   """
   expiresAt: Int!
+
+  """The Salesforce subscription ID associated with this product license."""
+  salesforceSubscriptionID: String
+
+  """The Salesforce opportunity ID associated with this product license."""
+  salesforceOpportunityID: String
 }
 
 """
@@ -11158,6 +11772,25 @@ type ProductSubscription implements Node {
     """Returns the first n product licenses from the list."""
     first: Int
   ): ProductLicenseConnection!
+
+  """
+  The most preferable Sourcegraph access token to use for authenticating as the
+  subscription holder with managed Sourcegraph services.
+  Null only if creating a token failed, for example when no active license exists.
+  """
+  currentSourcegraphAccessToken: String
+
+  """
+  Available access tokens for authenticating as the subscription holder with managed
+  Sourcegraph services.
+  """
+  sourcegraphAccessTokens: [String!]!
+
+  """
+  Cody Gateway access granted to this subscription. Properties may be inferred
+  from the active license, or be defined in overrides.
+  """
+  codyGatewayAccess: CodyGatewayAccess!
 
   """The date when this product subscription was created."""
   createdAt: DateTime!
@@ -11588,7 +12221,7 @@ type Query {
     before: String
   ): SavedSearchesConnection!
 
-  """(experimental) Return the parse tree of a search query."""
+  """EXPERIMENTAL: Return the parse tree of a search query."""
   parseSearchQuery(
     """The search query (such as "repo:myrepo foo")."""
     query: String = ""
@@ -11720,10 +12353,7 @@ type Query {
     recentRunCount: Int
   ): BackgroundJobConnection!
 
-  """
-  (experimental)
-  Get invitation based on the JWT in the invitation URL
-  """
+  """EXPERIMENTAL: Get invitation based on the JWT in the invitation URL"""
   invitationByToken(
     """The token that uniquely identifies the invitation"""
     token: String!
@@ -11883,6 +12513,9 @@ type Query {
     after: String
     before: String
   ): AccessRequestConnection!
+
+  """Repository key-value pair metadata"""
+  repoMeta: RepoMetadata
 
   """
   Returns the outbound webhooks registered within Sourcegraph, optionally filtered by
@@ -12070,7 +12703,7 @@ type Query {
   """
   Return (but do not enqueue) descriptions of auto indexing jobs at the current revision.
   """
-  inferAutoIndexJobsForRepo(repository: ID!, rev: String, script: String): [AutoIndexJobDescription!]!
+  inferAutoIndexJobsForRepo(repository: ID!, rev: String, script: String): InferAutoIndexJobsResult!
 
   """
   Returns precise code intelligence configuration policies that control data retention
@@ -12088,14 +12721,22 @@ type Query {
     query: String
 
     """
-    If set to true, then only configuration policies with data retention enabled are returned.
+    If set to true, then only configuration policies with SCIP data retention enabled are returned.
+    If set to false, then configuration policies with SCIP data retention enabled are filtered out.
     """
     forDataRetention: Boolean
 
     """
     If set to true, then only configuration policies with indexing enabled are returned.
+    If set to false, then configuration policies with indexing enabled are filtered out.
     """
     forIndexing: Boolean
+
+    """
+    If set to true, then only configuration policies with embeddings enabled are returned.
+    If set to false, then configuration policies with embeddings enabled are filtered out.
+    """
+    forEmbeddings: Boolean
 
     """
     If set to true, then only protected configuration policies are returned.
@@ -12135,6 +12776,9 @@ type Query {
     """
     first: Int
   ): RepositoryFilterPreview!
+
+  """Gets the progress of the current and historic precise ranking jobs."""
+  rankingSummary: GlobalRankingSummary!
 
   """Return known vulnerabilities."""
   vulnerabilities(
@@ -12364,6 +13008,17 @@ type Query {
     count: Int
   ): BitbucketProjectPermissionJobs!
 
+  """
+  All configured GitHub Apps, optionally filtered by the domain in which they are used.
+  """
+  gitHubApps(domain: GitHubAppDomain): GitHubAppConnection!
+
+  """Looks up a GitHub App by its ID."""
+  gitHubApp(id: ID!): GitHubApp
+
+  """Looks up a GitHub App by its AppID and BaseURL."""
+  gitHubAppByAppID(appID: Int!, baseURL: String!): GitHubApp
+
   """Checks whether the given feature is enabled on Sourcegraph."""
   enterpriseLicenseHasFeature(feature: String!): Boolean!
 
@@ -12487,6 +13142,28 @@ type Query {
   ): EmbeddingsSearchResults!
 
   """
+  Experimental: Searches a set of repositories for similar code and text results using embeddings.
+  We separated code and text results because text results tended to always feature at the top of the combined results,
+  and didn't leave room for the code.
+  """
+  embeddingsMultiSearch(
+    """The repository to search."""
+    repos: [ID!]!
+
+    """The query used for embeddings search."""
+    query: String!
+
+    """The number of code results to return."""
+    codeResultsCount: Int!
+
+    """
+    The number of text results to return. Text results contain Markdown files
+    and similar file types primarily used for writing documentation.
+    """
+    textResultsCount: Int!
+  ): EmbeddingsSearchResults!
+
+  """
   Experimental: Determines whether the given query requires further context before it can be answered.
   For example:
     - "What are Sourcegraph Notebooks" requires additional information from the
@@ -12519,15 +13196,52 @@ type Query {
     also used in conjunction with "last" to return the last N nodes.
     """
     before: String
+
+    """Filter by the name of the repository."""
+    query: String
+
+    """Filter by the state of the job."""
+    state: String
   ): RepoEmbeddingJobsConnection!
+
+  """
+  EXPERIMENTAL: Get pieces of context related to the query from a set of repositories.
+  """
+  getCodyContext(
+    """The repositories to search."""
+    repos: [ID!]!
+
+    """A natural language query string."""
+    query: String!
+
+    """The number of code results to return."""
+    codeResultsCount: Int!
+
+    """
+    The number of text results to return. Text results contain Markdown files
+    and similar file types primarily used for writing documentation.
+    """
+    textResultsCount: Int!
+  ): [CodyContextResult!]!
 
   """
   codeownersIngestedFiles returns all existing manually ingested codeowners files.
   """
   codeownersIngestedFiles(first: Int, after: Int): CodeownersIngestedFileConnection!
 
+  """List all ownership signal configurations"""
+  ownSignalConfigurations: [OwnSignalConfiguration!]!
+
+  """Returns ownership stats for the whole Sourcegraph instance"""
+  instanceOwnershipStats: OwnershipStats!
+
   """Returns a string of completion responses"""
   completions(input: CompletionsInput!): String!
+
+  """
+  EXPERIMENTAL: Searches the instances indexed code for code matching snippet.
+  """
+  snippetAttribution(snippet: String!, first: Int): SnippetAttributionConnection!
 }
 
 """Query block allows performing inline search queries within a notebook."""
@@ -12568,6 +13282,61 @@ type Range {
 
   """The end position of the range (exclusive)."""
   end: Position!
+}
+
+"""Summary of one precise ranking job."""
+type RankingSummary {
+  """
+  Identifier of the current ranking job. Corresponds to values in the site configuration.
+  """
+  graphKey: String!
+
+  """
+  True if the output of this ranking job is currently visible to the Zoekt indexserver.
+  """
+  visibleToZoekt: Boolean!
+
+  """Progress of the path mapping stage."""
+  pathMapperProgress: RankingSummaryProgress!
+
+  """Progress of the reference mapping stage."""
+  referenceMapperProgress: RankingSummaryProgress!
+
+  """Progress of the reducer stage."""
+  reducerProgress: RankingSummaryProgress
+}
+
+"""Progress of one stage of a precise ranking job."""
+type RankingSummaryProgress {
+  """When the job started."""
+  startedAt: DateTime!
+
+  """When the job completed (if finished)."""
+  completedAt: DateTime
+
+  """How many records have been processed."""
+  processed: Int!
+
+  """How many total items will be processed."""
+  total: Int!
+}
+
+"""A signal derived from recent code contributors."""
+type RecentContributorOwnershipSignal {
+  """Descriptive title to display in the UI for the determination."""
+  title: String!
+
+  """More detailed description to display in the UI for the determination."""
+  description: String!
+}
+
+"""A signal derived from recent code file views."""
+type RecentViewOwnershipSignal {
+  """Descriptive title to display in the UI for the determination."""
+  title: String!
+
+  """More detailed description to display in the UI for the determination."""
+  description: String!
 }
 
 """A reference to another Sourcegraph instance."""
@@ -12665,6 +13434,12 @@ type RepoEmbeddingJob implements Node {
 
   """The revision at which the repo was embedded."""
   revision: GitCommit
+
+  """
+  Statistics about the embeddings index job.
+  This will be updated periodically while the embeddings job is processing.
+  """
+  stats: RepoEmbeddingsStats!
 }
 
 """Repo embedding jobs."""
@@ -12690,6 +13465,72 @@ enum RepoEmbeddingJobState {
 }
 
 """
+Statistics about an embeddings index job.
+This will be updated periodically while the embeddings job is processing.
+"""
+type RepoEmbeddingsStats {
+  """The number of files scheduled to be embedded."""
+  filesScheduled: Int!
+
+  """
+  The number of files we generated embeddings for.
+  This will be updated periodically while the embeddings job is processing.
+  """
+  filesEmbedded: Int!
+
+  """
+  The number of files skipped.
+  This will be updated periodically while the embeddings job is processing.
+  """
+  filesSkipped: Int!
+}
+
+"""Repo key-value pair metadata"""
+type RepoMetadata {
+  """Returns paginated list of repo metadata distinct keys matching a query"""
+  keys(
+    query: String
+
+    """Pagination paramters"""
+    first: Int
+    last: Int
+    after: String
+    before: String
+  ): RepoMetadataKeyOrValueConnection!
+
+  """Repo metadata key"""
+  key(key: String!): RepoMetadataKeyResult
+}
+
+"""Repo metadata key or value connection result`"""
+type RepoMetadataKeyOrValueConnection {
+  """Total count of repo key-value pair metadata"""
+  totalCount: Int!
+
+  """A list of repo key-value pair metadata"""
+  nodes: [String!]!
+
+  """Pagination information."""
+  pageInfo: BidirectionalPageInfo!
+}
+
+"""Repo metadata key result"""
+type RepoMetadataKeyResult {
+  """
+  Returns paginated list of repo metadata distinct values matching a query
+  """
+  values(
+    query: String
+
+    """Pagination paramters"""
+    first: Int
+    last: Int
+    after: String
+    before: String
+  ): RepoMetadataKeyOrValueConnection!
+}
+
+"""
 A repository is a Git source control repository that is mirrored from some origin code host.
 """
 type Repository implements Node & GenericSearchResultInterface {
@@ -12708,6 +13549,9 @@ type Repository implements Node & GenericSearchResultInterface {
 
   """DEPRECATED: Use name."""
   uri: String! @deprecated(reason: "Use name.")
+
+  """The source of this repository from where it was imported / converted."""
+  sourceType: RepositoryType!
 
   """The repository's description."""
   description: String!
@@ -12741,6 +13585,12 @@ type Repository implements Node & GenericSearchResultInterface {
     """
     inputRevspec: String
   ): GitCommit
+
+  """
+  EXPERIMENTAL: Returns infomration about the given changelist of the perforce depot, or null if
+  no changelist exists with the given cid or it is not a perforce depot.
+  """
+  changelist(cid: String!): PerforceChangelist
 
   """The first commit inside the repo"""
   firstEverCommit: GitCommit
@@ -12904,7 +13754,12 @@ type Repository implements Node & GenericSearchResultInterface {
   stars: Int!
 
   """A set of user-defined key-value pairs associated with the repo."""
-  keyValuePairs: [KeyValuePair!]!
+  keyValuePairs: [KeyValuePair!]! @deprecated(reason: "Use repo.metadata instead. This field is a deprecated and will be removed in a future release.")
+
+  """
+  A set of user-defined key-value pairs metadata associated with the repo.
+  """
+  metadata: [KeyValuePair!]!
 
   """The size of repo when cloned on disk"""
   diskSizeBytes: BigInt
@@ -13000,6 +13855,34 @@ type Repository implements Node & GenericSearchResultInterface {
   It is null when there is no permissions data stored for the repository.
   """
   permissionsInfo: PermissionsInfo
+
+  """Returns all embedding jobs for the repo."""
+  embeddingJobs(
+    """Number of jobs returned. Up to 100 jobs are returned by default."""
+    first: Int
+
+    """
+    The number of nodes to return starting from the end (latest).
+    Note: Use either last or first (see above) in the query. Setting both will
+    return an error.
+    """
+    last: Int
+
+    """
+    Opaque pagination cursor to be used when paginating forwards that may be also used
+    in conjunction with "first" to return the first N nodes.
+    """
+    after: String
+
+    """
+    Opaque pagination cursor to be used when paginating backwards that may be
+    also used in conjunction with "last" to return the last N nodes.
+    """
+    before: String
+
+    """Filter by the state of the job."""
+    state: String
+  ): RepoEmbeddingJobsConnection!
 
   """
   A file containing manually ingested codeowners data, if any. Null if no data has been uploaded.
@@ -13301,6 +14184,15 @@ type RepositoryTextSearchIndexStatus {
 }
 
 """
+All possible types of currently supported repositories, even though they may be stored
+as a git repository on disk.
+"""
+enum RepositoryType {
+  GIT_REPOSITORY
+  PERFORCE_DEPOT
+}
+
+"""
 A not persisted resolved workspace, returned from resolveWorkspacesForBatchSpec.
 """
 type ResolvedBatchSpecWorkspace {
@@ -13452,6 +14344,27 @@ input SaveInsightAsNewViewInput {
   viewControls: InsightViewControlsInput
 }
 
+"""A summary of a schema drift."""
+type SchemaDriftSummary {
+  """Name of the table that contains the drift"""
+  name: String!
+
+  """The problem that was found"""
+  problem: String!
+
+  """The suggested solution to the problem"""
+  solution: String!
+
+  """The diff of the schema drift"""
+  diff: String
+
+  """The SQL to fix the schema drift"""
+  statements: [String!]
+
+  """The Sourcegraph URL that contains the potential fix"""
+  urlHint: String
+}
+
 """Information about scope query validity"""
 type ScopedInsightQueryPayload {
   """The original query."""
@@ -13483,6 +14396,7 @@ enum SearchAggregationMode {
   PATH
   AUTHOR
   CAPTURE_GROUP
+  REPO_METADATA
 }
 
 """Indicates that a search aggregation is not available"""
@@ -14453,9 +15367,32 @@ type Site implements SettingsSubject {
   upgradeReadiness: UpgradeReadiness!
 
   """
+  FOR INTERNAL USE ONLY: The state of readiness to auto upgrade the Sourcegraph instance via migrator commands.
+  """
+  autoUpgradeEnabled: Boolean!
+
+  """
   Wether the current App installation has a connected Sourcegraph.com account.
   """
   appHasConnectedDotComAccount: Boolean!
+
+  """
+  The quota of completions requests allowed per user in a day. Null, if unlimited.
+  """
+  perUserCompletionsQuota: Int
+
+  """
+  The quota of code completions requests allowed per user in a day. Null, if unlimited.
+  """
+  perUserCodeCompletionsQuota: Int
+
+  """
+  Whether users are required to have a verified email in order to access Cody.
+  """
+  requiresVerifiedEmailForCody: Boolean!
+
+  """Whether Cody is enabled for this site."""
+  isCodyEnabled: Boolean!
 }
 
 """The configuration for a site."""
@@ -14762,6 +15699,44 @@ type SnapshotData {
 
   """The formatted SCIP symbol string."""
   data: String!
+}
+
+"""EXPERIMENTAL: Attribution result from snippetAttribution."""
+type SnippetAttribution {
+  """
+  The name of the repository containing the snippet.
+  
+  Note: we do not return a type Repository since repositoryName may
+  represent a repository not on this instance. eg a match from the
+  sourcegraph.com open source corpus.
+  """
+  repositoryName: String!
+}
+
+"""EXPERIMENTAL: A list of snippet attributions."""
+type SnippetAttributionConnection {
+  """
+  totalCount is the total number of repository attributions we found before
+  stopping the search.
+  
+  Note: if we didn't finish searching the full corpus then limitHit will be
+  true. For filtering use case this means if limitHit is true you need to be
+  conservative with TotalCount and assume it could be higher.
+  """
+  totalCount: Int!
+
+  """
+  limitHit is true if we stopped searching before looking into the full
+  corpus. If limitHit is true then it is possible there are more than
+  totalCount attributions.
+  """
+  limitHit: Boolean!
+
+  """The pagination info for the connection."""
+  pageInfo: PageInfo!
+
+  """The page set of SnippetAttribution entries in this connection."""
+  nodes: [SnippetAttribution!]!
 }
 
 """Speaker type, human or assistant"""
@@ -15108,6 +16083,12 @@ type Team implements Node {
 
   """The creator of this team. Null, if the user was deleted."""
   creator: User
+
+  """
+  True, if the team is external, i.e. not found in our database.
+  Example: CODEOWNERS files can contain references to GitHub teams which are not the part of Sourcegraph teams.
+  """
+  external: Boolean!
 }
 
 """A list of teams."""
@@ -15335,6 +16316,73 @@ type UpdateCheck {
   updateVersionAvailable: String
 }
 
+"""
+Partial update to apply to a subscription's Cody Gateway access. Omitted fields are not applied.
+"""
+input UpdateCodyGatewayAccessInput {
+  """Enable or disable Cody Gateway access."""
+  enabled: Boolean
+
+  """
+  Override default requests per time interval.
+  
+  Set to 0 to remove the override.
+  """
+  chatCompletionsRateLimit: BigInt
+
+  """
+  Override default interval for rate limiting.
+  
+  Set to 0 to remove the override.
+  """
+  chatCompletionsRateLimitIntervalSeconds: Int
+
+  """
+  Override the set of allowed models for chat completions
+  for this subscription.
+  """
+  chatCompletionsAllowedModels: [String!]
+
+  """
+  Override default requests per time interval.
+  
+  Set to 0 to remove the override.
+  """
+  codeCompletionsRateLimit: BigInt
+
+  """
+  Override default interval for rate limiting.
+  
+  Set to 0 to remove the override.
+  """
+  codeCompletionsRateLimitIntervalSeconds: Int
+
+  """
+  Override the set of allowed models for chat completions
+  for this subscription.
+  """
+  codeCompletionsAllowedModels: [String!]
+
+  """
+  Override default requests per time interval for embeddings generation.
+  
+  Set to 0 to remove the override.
+  """
+  embeddingsRateLimit: BigInt
+
+  """
+  Override default interval for rate limiting for embeddings generation.
+  
+  Set to 0 to remove the override.
+  """
+  embeddingsRateLimitIntervalSeconds: Int
+
+  """
+  Override the set of allowed models for embeddings generation for this subscription.
+  """
+  embeddingsAllowedModels: [String!]
+}
+
 """Fields to update for an existing external service."""
 input UpdateExternalServiceInput {
   """The id of the external service to update."""
@@ -15402,6 +16450,14 @@ input UpdatePieChartSearchInsightInput {
   presentationOptions: PieChartOptionsInput!
 }
 
+"""
+Partial update to apply to a subscription. Omitted fields are not applied.
+"""
+input UpdateProductSubscriptionInput {
+  """Partial update to Cody Gateway access granted to this subscription."""
+  codyGatewayAccess: UpdateCodyGatewayAccessInput
+}
+
 """The state of a repository in the update queue."""
 type UpdateQueue {
   """
@@ -15442,11 +16498,19 @@ type UpdateSettingsPayload {
 }
 
 """
+UpdateSignalConfigurationsInput represents the input for updating multiple signal configurations.
+"""
+input UpdateSignalConfigurationsInput {
+  """The signal configuration updates."""
+  configs: [OwnSignalConfigurationUpdate!]!
+}
+
+"""
 Instance upgrade readiness information includes schema drifts and deprecated-but-unfinished out-of-band migrations.
 """
 type UpgradeReadiness {
   """The schema drift details."""
-  schemaDrift: String!
+  schemaDrift: [SchemaDriftSummary!]!
 
   """The list of deprecated-but-unfinished out-of-band migrations."""
   requiredOutOfBandMigrations: [OutOfBandMigration!]!
@@ -15540,6 +16604,12 @@ type User implements Node & SettingsSubject & Namespace & TeamMember {
   emails: [UserEmail!]!
 
   """
+  Whether the user has a verified email or not.
+  Only the user and site admins can access this field.
+  """
+  hasVerifiedEmail: Boolean!
+
+  """
   The user's verified primary email address (if any).
   On dotcom only the user and site admins can access this field.
   """
@@ -15624,6 +16694,19 @@ type User implements Node & SettingsSubject & Namespace & TeamMember {
 
   """The list of permissions granted to this user based on their roles."""
   permissions: PermissionConnection!
+
+  """
+  The configured override for the user to the completions request quota per day.
+  Null, if not overwritten.
+  """
+  completionsQuotaOverride: Int
+
+  """
+  The configured override for the user to the code completions request quota
+  per day.
+  Null, if not overwritten.
+  """
+  codeCompletionsQuotaOverride: Int
 
   """
   The list of all available executor secrets for execution in this users namespace.
