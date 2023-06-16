@@ -10,9 +10,11 @@ local State = require "sg.cody.state"
 local void = require("plenary.async").void
 
 ---@class CodyLayoutOptions
+---@field name string?
 ---@field prompt CodyPromptOptions
 ---@field history CodyHistoryOptions
 ---@field width number?
+---@field state CodyState?
 
 ---@class CodyLayout
 ---@field opts CodyLayoutOptions
@@ -52,7 +54,9 @@ local function new(opts)
   ---@type CodyLayout
   local self = {
     opts = opts,
-    state = State.init(),
+    state = opts.state or State.init {
+      name = opts.name,
+    },
   }
 
   local on_submit = opts.prompt.on_submit
@@ -79,15 +83,15 @@ local function new(opts)
   return setmetatable(self, CodyLayout)
 end
 
-function CodyLayout:complete()
-  print "1"
+function CodyLayout:render()
   self.state:render(self.history.bufnr)
-  print "2"
-  self.state:complete(self.history.bufnr)
-  print "3"
+end
 
+function CodyLayout:complete()
+  self:render()
   vim.api.nvim_buf_set_lines(self.prompt.bufnr, 0, -1, false, {})
-  print "4"
+
+  self.state:complete(self.history.bufnr)
 end
 
 function CodyLayout:mount()
@@ -96,6 +100,8 @@ function CodyLayout:mount()
 
   self.prompt = cody_prompt(self.opts.prompt)
   self.prompt:mount()
+
+  self:render()
 end
 
 function CodyLayout:hide()

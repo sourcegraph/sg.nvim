@@ -1,4 +1,3 @@
-local log = require "sg.log"
 local req = require("sg.request").async_request
 
 local M = {}
@@ -8,10 +7,21 @@ local M = {}
 ---@param snippet string
 ---@return string
 function M.complete(snippet)
-  log.info "sending request"
   local data = req("Complete", { message = snippet })
-  log.info "got request"
   return data.completion
+end
+
+--- Get the repository ID for a repo with a name
+---@param name string
+---@return string
+function M.repository(name)
+  local data = req("Repository", { name = name })
+  return data.repository
+end
+
+function M.embeddings(repo, query)
+  local data = req("Embedding", { repo = repo, query = query, code = 5, text = 0 })
+  return data.embeddings
 end
 
 return M
