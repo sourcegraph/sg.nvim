@@ -14,6 +14,7 @@ mlua.workspace = true
 tokio.workspace = true
 rmp.workspace = true
 rmpv.workspace = true
+nvim-oxi.workspace = true
 
 reqwest = "0.11.3"
 serde = "1.0.125"

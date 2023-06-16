@@ -57,6 +57,10 @@ mod graphql {
                 }
             };
 
+        if let Some(errors) = response.errors {
+            return Err(anyhow::anyhow!("Errors in response: {:?}", errors));
+        }
+
         response.data.context("get_graphql -> data")
     }
 }

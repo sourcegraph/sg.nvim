@@ -19,16 +19,22 @@ vim.api.nvim_create_user_command("SourcegraphInfo", function()
   print "Attempting to get sourcegraph info..."
 
   -- TODO: Would be nice to get the version of the plugin
-  local info = require("sg.lib").get_info()
-  local contents = vim.split(vim.inspect(info), "\n")
+  require("sg.lib").get_info(function(info)
+    print("INFO:", info)
+    if true then
+      return
+    end
 
-  table.insert(contents, 1, "Sourcegraph info:")
+    local contents = vim.split(vim.inspect(info), "\n")
 
-  vim.cmd.vnew()
-  vim.api.nvim_buf_set_lines(0, 0, -1, false, contents)
+    table.insert(contents, 1, "Sourcegraph info:")
 
-  vim.schedule(function()
-    print "... got sourcegraph info"
+    vim.cmd.vnew()
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, contents)
+
+    vim.schedule(function()
+      print "... got sourcegraph info"
+    end)
   end)
 end, {})
 
@@ -42,4 +48,13 @@ vim.api.nvim_create_user_command("SourcegraphLink", function()
 
   print("Setting '+' register to:", link)
   vim.fn.setreg("+", link)
+end, {})
+
+vim.api.nvim_create_user_command("SourcegraphSearch", function(args)
+  local input = nil
+  if args.args and #args.args > 0 then
+    input = args.args
+  end
+
+  require("sg.telescope").fuzzy_search_results { input = input }
 end, {})
