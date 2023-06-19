@@ -1,3 +1,5 @@
+local sg = require "sg"
+
 local cody_layout = require "sg.components.cody_layout"
 
 local context = require "sg.cody.context"
@@ -11,6 +13,8 @@ local format_code = function(bufnr, code)
 end
 
 vim.api.nvim_create_user_command("CodyExplain", function(command)
+  sg.accept_tos()
+
   local p = "file://" .. vim.fn.expand "%:p"
   local bufnr = vim.api.nvim_get_current_buf()
 
@@ -45,6 +49,8 @@ vim.api.nvim_create_user_command("CodyExplain", function(command)
 end, { range = 2 })
 
 vim.api.nvim_create_user_command("CodyChat", function(command)
+  sg.accept_tos()
+
   local name = nil
   if not vim.tbl_isempty(command.fargs) then
     name = table.concat(command.fargs, " ")
@@ -55,6 +61,8 @@ vim.api.nvim_create_user_command("CodyChat", function(command)
 end, { nargs = "*" })
 
 vim.api.nvim_create_user_command("CodyHistory", function()
+  sg.accept_tos()
+
   local states = State.history()
 
   vim.ui.select(states, {
@@ -71,6 +79,8 @@ vim.api.nvim_create_user_command("CodyHistory", function()
 end, {})
 
 vim.api.nvim_create_user_command("CodyContext", function(command)
+  sg.accept_tos()
+
   local bufnr = vim.api.nvim_get_current_buf()
 
   local start_line = command.line1 - 1

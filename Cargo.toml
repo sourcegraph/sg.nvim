@@ -33,7 +33,6 @@ rmp = "0.8.10"
 rmpv = "1"
 rmp-serde = "1"
 tokio = { version = "1", features = ["full"] }
-nvim-oxi = { version = "0.3", features = [ "neovim-nightly", "libuv" ] }
 
 [lib]
 name = "sg"

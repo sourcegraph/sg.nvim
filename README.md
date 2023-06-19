@@ -54,7 +54,7 @@ return {
   {
     "sourcegraph/sg.nvim",
     build = "cargo build --workspace",
-    dependencies = { "nvim-lua/plenary.nvim", "MunifTanjim/nui.nvim" },
+    dependencies = { "nvim-lua/plenary.nvim" },
   },
 }
 ```

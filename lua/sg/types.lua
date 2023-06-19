@@ -22,6 +22,6 @@
 ---@field type "Text"|"Code"
 ---@field repo string
 ---@field file string
----@field start int
----@field finish int
+---@field start number
+---@field finish number
 ---@field content string
