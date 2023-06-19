@@ -49,7 +49,10 @@ function State:append(message)
   table.insert(self.messages, message)
 end
 
-function State:complete(bufnr)
+--- Get a new completion, based on the state
+---@param bufnr number
+---@param win number
+function State:complete(bufnr, win)
   set_last_state(self)
 
   local snippet = ""
@@ -60,15 +63,21 @@ function State:complete(bufnr)
   end
 
   self:append(Message.init(Speaker.system, { "Loading ... " }, { ephemeral = true }))
-  self:render(bufnr)
+  self:render(bufnr, win)
   vim.cmd [[mode]]
 
   local completion = rpc.complete(snippet)
   self:append(Message.init(Speaker.cody, vim.split(vim.trim(completion), "\n")))
-  self:render(bufnr)
+  self:render(bufnr, win)
 end
 
-function State:render(bufnr)
+--- Render the state to a buffer and window
+---@param bufnr number
+---@param win number
+function State:render(bufnr, win)
+  -- TODO: It should be possible to not wipe away the whole buffer... we
+  -- need to start marking where regions start with extmarks, find the last one
+  -- that wasn't a ephemeral, and then render the rest?
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
 
   -- TODO: Don't waste the first line, that's gross
@@ -86,6 +95,9 @@ function State:render(bufnr)
   end
 
   self.messages = messages
+
+  local linecount = vim.api.nvim_buf_line_count(bufnr)
+  vim.api.nvim_win_set_cursor(win, { linecount, 0 })
 end
 
 return State

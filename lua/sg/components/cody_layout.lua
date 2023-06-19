@@ -1,13 +1,14 @@
 local _ = require "sg.components.shared"
 
-local cody_prompt = require "sg.components.cody_prompt"
-local cody_history = require "sg.components.cody_history"
+local CodyPrompt = require "sg.components.cody_prompt"
+local CodyHistory = require "sg.components.cody_history"
 
 local Message = require "sg.cody.message"
 local Speaker = require "sg.cody.speaker"
 local State = require "sg.cody.state"
 
 local void = require("plenary.async").void
+local util = require "sg.utils"
 
 ---@class CodyLayoutOptions
 ---@field name string?
@@ -21,13 +22,14 @@ local void = require("plenary.async").void
 ---@field state CodyState
 ---@field prompt CodyPrompt
 ---@field history CodyHistory
+---@field active CodyLayout?
 local CodyLayout = {}
 CodyLayout.__index = CodyLayout
 
----comment
+--- Create a new CodyLayout
 ---@param opts CodyLayoutOptions
 ---@return CodyLayout
-local function new(opts)
+CodyLayout.init = function(opts)
   opts.prompt = opts.prompt or {}
   opts.history = opts.history or {}
 
@@ -77,31 +79,62 @@ local function new(opts)
       on_close()
     end
 
-    self.history:unmount()
+    self:unmount()
   end
 
   return setmetatable(self, CodyLayout)
 end
 
 function CodyLayout:render()
-  self.state:render(self.history.bufnr)
+  self.state:render(self.history.bufnr, self.history.win)
 end
 
 function CodyLayout:complete()
   self:render()
   vim.api.nvim_buf_set_lines(self.prompt.bufnr, 0, -1, false, {})
 
-  self.state:complete(self.history.bufnr)
+  self.state:complete(self.history.bufnr, self.history.win)
 end
 
 function CodyLayout:mount()
-  self.history = cody_history(self.opts.history)
+  if CodyLayout.active then
+    CodyLayout.active:unmount()
+  end
+
+  self.history = CodyHistory.init(self.opts.history)
   self.history:mount()
 
-  self.prompt = cody_prompt(self.opts.prompt)
+  self.prompt = CodyPrompt.init(self.opts.prompt)
   self.prompt:mount()
 
+  vim.keymap.set("i", "<C-CR>", function()
+    self.prompt:on_submit()
+  end, { buffer = self.prompt.bufnr })
+
+  vim.keymap.set("i", "<c-c>", function()
+    self.prompt:on_close()
+  end, { buffer = self.prompt.bufnr })
+
+  local with_history = function(key, mapped)
+    if not mapped then
+      mapped = key
+    end
+
+    vim.keymap.set({ "n", "i" }, key, function()
+      vim.api.nvim_win_call(self.history.win, function()
+        util.execute_keystrokes(mapped)
+      end)
+    end, { buffer = self.prompt.bufnr })
+  end
+
+  with_history "<c-f>"
+  with_history "<c-b>"
+  with_history "<c-e>"
+  with_history "<c-y>"
+
   self:render()
+
+  CodyLayout.active = self
 end
 
 function CodyLayout:hide()
@@ -112,10 +145,12 @@ end
 function CodyLayout:unmount()
   self.history:unmount()
   self.prompt:unmount()
+
+  CodyLayout.active = nil
 end
 
 function CodyLayout:run(f)
   void(f)()
 end
 
-return new
+return CodyLayout

@@ -25,6 +25,14 @@ M.start = function(force)
   if force or handle == nil then
     M.shutdown()
 
+    if not vim.env.SRC_ACCESS_TOKEN or vim.env.SRC_ACCESS_TOKEN == "" then
+      vim.notify("[cody] Missing SRC_ACCESS_TOKEN env var", vim.log.levels.WARN)
+    end
+
+    if not vim.env.SRC_ENDPOINT or vim.env.SRC_ENDPOINT == "" then
+      vim.notify("[cody] Missing SRC_ENDPOINT env var", vim.log.levels.WARN)
+    end
+
     stdin = assert(uv.new_pipe())
     stdout = assert(uv.new_pipe())
     stderr = assert(uv.new_pipe())
@@ -32,8 +40,8 @@ M.start = function(force)
     handle, pid = uv.spawn(sg_cody_process, {
       stdio = { stdin, stdout, stderr },
       env = {
-        "SRC_ACCESS_TOKEN=" .. vim.env.SRC_ACCESS_TOKEN,
-        "SRC_ENDPOINT=" .. vim.env.SRC_ENDPOINT,
+        "SRC_ACCESS_TOKEN=" .. (vim.env.SRC_ACCESS_TOKEN or ""),
+        "SRC_ENDPOINT=" .. (vim.env.SRC_ENDPOINT or ""),
       },
     }, function(code, signal) -- on exit
       if code ~= 0 then

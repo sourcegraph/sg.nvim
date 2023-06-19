@@ -18,7 +18,7 @@ CodyHistory.__index = CodyHistory
 --- Create a new CodyHistory
 ---@param opts CodyHistoryOptions
 ---@return CodyHistory
-local function new(opts)
+function CodyHistory.init(opts)
   local popup_options = {
     relative = "editor",
     width = shared.calculate_width(opts.width),
@@ -55,4 +55,4 @@ function CodyHistory:hide()
   self.win = shared.win_del(self.win)
 end
 
-return new
+return CodyHistory

@@ -15,12 +15,18 @@ shared.create = function(bufnr, win, popup_options)
 end
 
 shared.buf_del = function(bufnr)
-  vim.api.nvim_buf_delete(bufnr, { force = true })
+  if vim.api.nvim_buf_is_valid(bufnr) then
+    vim.api.nvim_buf_delete(bufnr, { force = true })
+  end
+
   return -1
 end
 
 shared.win_del = function(win)
-  vim.api.nvim_win_close(win, true)
+  if vim.api.nvim_win_is_valid(win) then
+    vim.api.nvim_win_close(win, true)
+  end
+
   return -1
 end
 

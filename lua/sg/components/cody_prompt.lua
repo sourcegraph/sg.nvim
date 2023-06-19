@@ -25,7 +25,7 @@ CodyPrompt.__index = CodyPrompt
 --- Create a new CodyPrompt
 ---@param opts CodyPromptOptions
 ---@return CodyPrompt
-local function new(opts)
+function CodyPrompt.init(opts)
   local popup_options = {
     relative = "editor",
     width = shared.calculate_width(opts.width),
@@ -76,14 +76,6 @@ function CodyPrompt:mount()
   self.bufnr, self.win = shared.create(self.bufnr, self.win, self.popup_options)
   vim.api.nvim_set_current_win(self.win)
 
-  vim.keymap.set("i", "<C-CR>", function()
-    self:on_submit()
-  end, { buffer = self.bufnr })
-
-  vim.keymap.set("i", "<c-c>", function()
-    self:on_close()
-  end, { buffer = self.bufnr })
-
   vim.cmd [[startinsert!]]
 end
 
@@ -97,4 +89,4 @@ function CodyPrompt:hide()
   self.win = shared.win_del(self.win)
 end
 
-return new
+return CodyPrompt

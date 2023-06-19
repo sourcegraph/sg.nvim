@@ -42,4 +42,16 @@ utils.patch_cursor_position = function(target_cursor, force)
   end
 end
 
+--- Format some code based on the filetype
+---@param bufnr number
+---@param code string|string[]
+---@return table
+utils.format_code = function(bufnr, code)
+  return { string.format("```%s", vim.bo[bufnr].filetype), code, "```" }
+end
+
+utils.execute_keystrokes = function(keys)
+  vim.cmd(string.format("normal! %s", vim.api.nvim_replace_termcodes(keys, true, false, true)))
+end
+
 return utils
