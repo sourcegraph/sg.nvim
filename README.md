@@ -67,15 +67,16 @@ The project is packaged as a [Nix Flake][nix-flakes]. Consume it as you normally
 *make sure* that sg-nvim is included *both* as a Neovim plugin *and* as an environment/user package
 (because `sg-lsp` needs to be on your PATH).
 
-See https://nixos.wiki/wiki/Neovim for more details on configuring neovim using Nix.
-Or see https://github.com/willruggiano/neovim.drv for a practical example.
+See [Neovim guide on NixOS wiki](https://nixos.wiki/wiki/Neovim) for more details on configuration
+See [gh:willruggiano/neovim.drv](https://github.com/willruggiano/neovim.drv) for a practical configuration.
 
-For contributors and maintainers:
+For Nix contributors and maintainers:
 
-- There should be nothing to do, nix-related, when changes are made to the Rust project
-- If you're Nix savvy and want to contribute, it would be nice to use [crate2nix] instead
-  of the generic `buildRustPackage`. A github workflow would be needed to autoupdate the
-  generated crate2nix files.
+- Little change is needed to the Nix portion with respect to the growing Rust project
+- Feel free to `nix flake update` every once in a while to make sure `flake.lock` is up-to-date
+- [ ] Minimal `sg.nvim`-integrated neovim package for testing and example
+- [ ] Integrate [Hercules CI](https://hercules-ci.com/) for testing & binary cache
+- [ ] Integrate `sg.nvim` onto [nixpkgs:vimPlugins](https://github.com/NixOS/nixpkgs/tree/fe2fb24a00ec510d29ccd4e36af72a0c55d81ec0/pkgs/applications/editors/vim/plugins)
 
 ### Setup:
 
@@ -103,4 +104,3 @@ nnoremap <space>ss <cmd>lua require('sg.telescope').fuzzy_search_results()<CR>
 - Demo v1: [YouTube](https://youtu.be/iCdsD6MiLQs)
 
 [nix-flakes]: https://nixos.wiki/wiki/Flakes
-[crate2nix]: https://github.com/kolloch/crate2nix

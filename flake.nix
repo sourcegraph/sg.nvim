@@ -4,6 +4,7 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     pre-commit-nix.url = "github:cachix/pre-commit-hooks.nix";
     rust-overlay.url = "github:oxalica/rust-overlay";
+    crane.url = "github:ipetkov/crane";
   };
 
   outputs = {
@@ -20,9 +21,12 @@
         overlays.default = final: prev: {
           sg-nvim = self.packages."${prev.system}".default;
         };
+        # HACK: both nixpkgs.lib and pkgs.lib contain licenses
+        # Technically impossible to do `callPackage` without proper `${system}`
+        meta = import ./meta.nix {inherit (inputs.nixpkgs) lib;};
       };
 
-      systems = ["x86_64-linux" "aarch64-darwin"];
+      systems = ["x86_64-darwin" "x86_64-linux" "aarch64-darwin"];
       perSystem = {
         config,
         system,
@@ -51,7 +55,24 @@
 
         formatter = pkgs.alejandra;
 
-        packages.default = pkgs.callPackage ./. {inherit toolchain;};
+        packages.workspace = pkgs.callPackage ./workspace-drv.nix {
+          craneLib = inputs.crane.lib.${system}.overrideToolchain toolchain;
+          proj_root = inputs.self;
+          inherit (self) meta;
+        };
+
+        packages.plugin = pkgs.callPackage ./plugin-drv.nix {
+          proj_root = inputs.self;
+          inherit (self) meta;
+        };
+
+        packages.all = pkgs.callPackage ./default.nix {
+          sg-workspace = self.packages.${system}.workspace;
+          sg-plugin = self.packages.${system}.plugin;
+          inherit (self) meta;
+        };
+
+        packages.default = inputs.self.packages.${system}.all;
 
         pre-commit = {
           settings = {
