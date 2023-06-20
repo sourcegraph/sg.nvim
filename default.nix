@@ -1,38 +1,13 @@
 {
-  lib,
-  rustPlatform,
-  toolchain,
-  pkg-config,
-  openssl,
+  pkgs,
+  symlinkJoin,
+  sg-workspace ? (pkgs.callPackage (import ./workspace-drv.nix)),
+  sg-plugin ? (pkgs.callPackage (import ./plugin-drv.nix)),
+  meta ? (pkgs.callPackage (import ./meta.nix)),
   ...
 }:
-rustPlatform.buildRustPackage {
-  pname = "sg.nvim";
-  version = "0.1.0";
-
-  src = ./.;
-  cargoLock = {
-    lockFile = ./Cargo.lock;
-  };
-
-  nativeBuildInputs = [pkg-config toolchain];
-  buildInputs = [openssl];
-
-  cargoBuildFlags = ["--workspace"];
-  cargoTestFlags = ["--workspace"];
-
-  checkFlags = [
-    "--skip=test::can_get_lines_and_columns"
-    "--skip=test::create"
-  ];
-
-  postInstall = ''
-    cp -R {lua,plugin} $out
-  '';
-
-  meta = with lib; {
-    description = "";
-    homepage = "https://github.com/tjdevries/sg.nvim";
-    license = licenses.unlicense;
-  };
+symlinkJoin {
+  name = "sg.nvim";
+  paths = [sg-workspace sg-plugin];
+  inherit meta;
 }

@@ -27,11 +27,26 @@ end
 M.get_client_id = function()
   -- TODO: Restart the client if it is no longer active?
   if not M._client then
+    local root_dir = vim.fn.fnamemodify(require("plenary.debug_utils").sourced_filepath(), ":p:h:h:h:h")
+    --- @type string | nil
     local cmd = "sg-lsp"
+    local cmd_paths = {
+      root_dir .. "/target/release/sg-lsp",
+      root_dir .. "/target/debug/sg-lsp",
+      root_dir .. "/bin/sg-lsp"
+    }
+
     if vim.fn.executable(cmd) ~= 1 then
-      local root_dir = vim.fn.fnamemodify(require("plenary.debug_utils").sourced_filepath(), ":p:h:h:h:h")
-      cmd = root_dir .. "/target/debug/sg-lsp"
+      cmd = nil
+      for _, path in ipairs(cmd_paths) do
+        if vim.fn.executable(path) == 1 then
+          cmd = path
+          break
+        end
+      end
     end
+
+    assert(cmd, "sg-lsp not found. Please ensure it's installed correctly.")
 
     M._client = vim.lsp.start_client {
       cmd = { cmd },
@@ -42,7 +57,6 @@ M.get_client_id = function()
 
   return assert(M._client, "Must have a client started")
 end
-
 M.attach = function(bufnr)
   vim.lsp.buf_attach_client(bufnr or vim.api.nvim_get_current_buf(), M.get_client_id())
 end
