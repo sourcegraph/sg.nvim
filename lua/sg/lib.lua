@@ -11,6 +11,12 @@ end
 
 add_pattern "/target/debug/?.so"
 add_pattern "/target/debug/?.dylib"
+add_pattern "/target/release/?.so"
+add_pattern "/target/release/?.dylib"
+
+add_pattern "/lib/?.so"
+add_pattern "/lib/?.dylib"
+
 
 -- Return the required libsg_nvim
 local ok, mod = pcall(require, "libsg_nvim")

@@ -74,7 +74,7 @@ For Nix contributors and maintainers:
 
 - Feel free to `nix flake update` every once in a while to make sure `flake.lock` is up-to-date
 - [ ] Minimal `sg.nvim`-integrated neovim package for testing and example
-- [ ] Integrate `sg.nvim` onto [nixpkgs:vimPlugins](https://github.com/NixOS/nixpkgs/tree/fe2fb24a00ec510d29ccd4e36af72a0c55d81ec0/pkgs/applications/editors/vim/plugins)
+- [ ] Integrate `sg.nvim` + Cody onto [nixpkgs:vimPlugins](https://github.com/NixOS/nixpkgs/tree/fe2fb24a00ec510d29ccd4e36af72a0c55d81ec0/pkgs/applications/editors/vim/plugins)
 
 You will also need to add the built `.cdylib` onto `package.cpath`. Here is one example
 using [gh:willruggiano/neovim.nix](https://github.com/willruggiano/neovim.nix):
@@ -89,7 +89,7 @@ in {
     name = "sg.lua";
     text = ''
       return function()
-        package.cpath = package.cpath .. ";" .. "${package}/lib/?.so;${package}/lib/?.cdylib"
+        package.cpath = package.cpath .. ";" .. "${package}/lib/?.so;${package}/lib/?.dylib"
       end
     '';
   };
@@ -97,7 +97,7 @@ in {
 ```
 
 If you're using [home-manager](https://github.com/nix-community/home-manager),
-
+the upstream `gh:nixpkgs#vimPlugins.sg-nvim` doesn't work for our use case.
 
 ### Setup:
 
