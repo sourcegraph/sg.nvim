@@ -11,7 +11,7 @@
   ...
 }: let
   # PURPOSE: if you modify non-code like github workflows, nix should not trigger a rebuild.
-  # cleanCargoSource works as a white-list only filter that keeps `.rs` and `.toml`
+  # cleanCargoSource keeps only `.rs`, `.toml`, and files listed below as build source
   # NOTE: if you use `include!(<file>)` in Rust code. You'll have to opt-in the file
   # using a custom filter. See https://github.com/ipetkov/crane/blob/master/lib/filterCargoSources.nix
   code_artifacts =
