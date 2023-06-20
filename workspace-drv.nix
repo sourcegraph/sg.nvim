@@ -57,14 +57,17 @@
       ++ (lib.optional stdenv.isDarwin [
         darwin.apple_sdk.frameworks.Security
       ]);
+
+    cargoExtraArgs = "--workspace";
     inherit meta;
   };
 
-  # PURPOSE: This attempts to reuse build cache to skip having to build dependencies
+  # build a version with only deps to reuse as build cache
   workspace-deps = craneLib.buildDepsOnly crane-args;
 
   workspace-all = craneLib.buildPackage (crane-args
     // {
+      # PURPOSE: This attempts to reuse build cache to skip having to build dependencies
       cargoArtifacts = workspace-deps;
     });
 in

@@ -72,11 +72,32 @@ See [gh:willruggiano/neovim.drv](https://github.com/willruggiano/neovim.drv) for
 
 For Nix contributors and maintainers:
 
-- Little change is needed to the Nix portion with respect to the growing Rust project
 - Feel free to `nix flake update` every once in a while to make sure `flake.lock` is up-to-date
 - [ ] Minimal `sg.nvim`-integrated neovim package for testing and example
-- [ ] Integrate [Hercules CI](https://hercules-ci.com/) for testing & binary cache
 - [ ] Integrate `sg.nvim` onto [nixpkgs:vimPlugins](https://github.com/NixOS/nixpkgs/tree/fe2fb24a00ec510d29ccd4e36af72a0c55d81ec0/pkgs/applications/editors/vim/plugins)
+
+You will also need to add the built `.cdylib` onto `package.cpath`. Here is one example
+using [gh:willruggiano/neovim.nix](https://github.com/willruggiano/neovim.nix):
+
+```nix
+sg = let
+  system = "x86_64-linux";
+  package = inputs.sg-nvim.packages.${system}.default;
+in {
+  inherit package;
+  init = pkgs.writeTextFile {
+    name = "sg.lua";
+    text = ''
+      return function()
+        package.cpath = package.cpath .. ";" .. "${package}/lib/?.so;${package}/lib/?.cdylib"
+      end
+    '';
+  };
+};
+```
+
+If you're using [home-manager](https://github.com/nix-community/home-manager),
+
 
 ### Setup:
 
