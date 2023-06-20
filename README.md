@@ -97,7 +97,7 @@ in {
 ```
 
 If you're using [home-manager](https://github.com/nix-community/home-manager),
-the upstream `gh:nixpkgs#vimPlugins.sg-nvim` doesn't work for our use case.
+
 
 ### Setup:
 
