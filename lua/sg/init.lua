@@ -1,4 +1,8 @@
-local data_file = vim.fs.joinpath(vim.fn.stdpath "data", "cody.json")
+-- joinpath is fairly new, lhs-rhs join works for now
+local joinpath = vim.fs.joinpath or function(lhs, rhs)
+  return lhs .. "/".. rhs
+end
+local data_file = joinpath(vim.fn.stdpath "data", "cody.json")
 
 local M = {}
 
