@@ -54,4 +54,9 @@ utils.execute_keystrokes = function(keys)
   vim.cmd(string.format("normal! %s", vim.api.nvim_replace_termcodes(keys, true, false, true)))
 end
 
+-- COMPAT(0.10.0)
+utils.joinpath = vim.fs.joinpath or function(...)
+  return (table.concat({ ... }, "/"):gsub("//+", "/"))
+end
+
 return utils

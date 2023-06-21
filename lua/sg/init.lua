@@ -1,4 +1,4 @@
-local data_file = vim.fs.joinpath(vim.fn.stdpath "data", "cody.json")
+local data_file = require("sg.utils").joinpath(vim.fn.stdpath "data", "cody.json")
 
 local M = {}
 
