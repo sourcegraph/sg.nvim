@@ -1,4 +1,4 @@
-function sg_cody_discovery()
+local function discover_sg_cody()
   local cmd = "sg-cody"
   local rtfile = vim.api.nvim_get_runtime_file
   local cmd_paths = {
@@ -25,7 +25,7 @@ function sg_cody_discovery()
   return cmd
 end
 
-sg_cody_process = sg_cody_discovery()
+sg_cody_process = discover_sg_cody()
 
 local uv = vim.loop
 

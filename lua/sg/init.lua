@@ -1,5 +1,5 @@
 -- joinpath is fairly new, lhs-rhs join works for now while Darwin is still failing
--- #https://github.com/nix-community/neovim-nightly-overlay/issues/176
+-- https://github.com/nix-community/neovim-nightly-overlay/issues/176
 local joinpath = vim.fs.joinpath or function(lhs, rhs)
   return lhs .. "/".. rhs
 end

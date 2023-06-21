@@ -2,6 +2,7 @@ local async = require "plenary.async"
 
 return {
   async = async.wrap(function(a, b, c)
-    return vim.system(a, b, vim.schedule_wrap(c))
+    local system = vim.system or vim._system
+    return system(a, b, vim.schedule_wrap(c))
   end, 3),
 }
