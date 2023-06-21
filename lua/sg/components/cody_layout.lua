@@ -7,6 +7,7 @@ local Message = require "sg.cody.message"
 local Speaker = require "sg.cody.speaker"
 local State = require "sg.cody.state"
 
+local context = require "sg.cody.context"
 local void = require("plenary.async").void
 local util = require "sg.utils"
 
@@ -32,6 +33,9 @@ CodyLayout.__index = CodyLayout
 CodyLayout.init = function(opts)
   opts.prompt = opts.prompt or {}
   opts.history = opts.history or {}
+
+  opts.history.split = "botright vnew"
+  opts.prompt.split = "new | call nvim_win_set_height(0, 5)"
 
   local width = opts.width or 0.5
   opts.prompt.width = width
@@ -62,12 +66,21 @@ CodyLayout.init = function(opts)
   }
 
   local on_submit = opts.prompt.on_submit
-  opts.prompt.on_submit = function(bufnr, text)
+
+  --- On submit
+  ---@param bufnr number
+  ---@param text string[]
+  ---@param submit_opts CodyPromptSubmitOptions
+  opts.prompt.on_submit = function(bufnr, text, submit_opts)
     if on_submit then
       on_submit(bufnr, text)
     end
 
     void(function()
+      if submit_opts.request_embeddings then
+        context.add_context(bufnr, table.concat(text, "\n"), self.state)
+      end
+
       self.state:append(Message.init(Speaker.user, text))
       self:complete()
     end)()
@@ -97,6 +110,10 @@ function CodyLayout:complete()
 end
 
 function CodyLayout:mount()
+  -- TODO: We probably need to do something to make sure that
+  -- we actually  need to reload these windows. I think this will
+  -- get a little scuffed with your layouts if you keep unmounting, then
+  -- remounting the windows
   if CodyLayout.active then
     CodyLayout.active:unmount()
   end
@@ -109,6 +126,10 @@ function CodyLayout:mount()
 
   vim.keymap.set("i", "<C-CR>", function()
     self.prompt:on_submit()
+  end, { buffer = self.prompt.bufnr })
+
+  vim.keymap.set("i", "<M-CR>", function()
+    self.prompt:on_submit { request_embeddings = true }
   end, { buffer = self.prompt.bufnr })
 
   vim.keymap.set("i", "<c-c>", function()

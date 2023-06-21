@@ -1,6 +1,7 @@
 local shared = require "sg.components.shared"
 
 ---@class CodyHistoryOptions
+---@field split string?
 ---@field height number|string
 ---@field width number|string
 ---@field row number|string
@@ -41,7 +42,14 @@ function CodyHistory.init(opts)
 end
 
 function CodyHistory:mount()
-  self.bufnr, self.win = shared.create(self.bufnr, self.win, self.popup_options)
+  if self.opts.split then
+    -- TODO: I don't remember how to do this
+    vim.cmd [[botright vnew]]
+    self.win = vim.api.nvim_get_current_win()
+    self.bufnr = vim.api.nvim_get_current_buf()
+  else
+    self.bufnr, self.win = shared.create(self.bufnr, self.win, self.popup_options)
+  end
 
   vim.bo[self.bufnr].filetype = "markdown"
 end

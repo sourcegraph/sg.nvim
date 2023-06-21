@@ -25,16 +25,7 @@ M.explain = function(bufnr, start_line, end_line)
   }
 
   layout:run(function()
-    local repo = context.get_repo_id(bufnr)
-    local embeddings = context.embeddings(repo, table.concat(selection, "\n"), "Code")
-
-    if not vim.tbl_isempty(embeddings) then
-      layout.state:append(Message.init(Speaker.user, { "Here is some context" }, { hidden = true }))
-
-      for _, embed in ipairs(embeddings) do
-        layout.state:append(Message.init(Speaker.user, vim.split(embed.content, "\n"), { hidden = true }))
-      end
-    end
+    context.add_context(bufnr, table.concat(selection, "\n"), layout.state)
 
     layout.state:append(Message.init(Speaker.user, contents))
     layout:mount()

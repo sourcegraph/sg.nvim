@@ -1,6 +1,9 @@
 local rpc = require "sg.rpc"
 local system = require "sg.system"
 
+local Message = require "sg.cody.message"
+local Speaker = require "sg.cody.speaker"
+
 -- TODO: Should find the git root instead of just the current dir to save a bunch of requests
 local repository_ids = {}
 
@@ -66,6 +69,24 @@ context.embeddings = function(repo, query, only)
   end
 
   return embeddings
+end
+
+--- Add context to an existing state
+---@param bufnr number
+---@param text string
+---@param state CodyState
+context.add_context = function(bufnr, text, state)
+  local repo = context.get_repo_id(bufnr)
+  local embeddings = context.embeddings(repo, text, "Code")
+
+  if vim.tbl_isempty(embeddings) then
+    return
+  end
+
+  state:append(Message.init(Speaker.user, { "Here is some context" }, { hidden = true }))
+  for _, embed in ipairs(embeddings) do
+    state:append(Message.init(Speaker.user, vim.split(embed.content, "\n"), { hidden = true }))
+  end
 end
 
 return context

@@ -4,12 +4,16 @@ local shared = require "sg.components.shared"
 -- so patch the cursor position to one character forward
 -- when unmounting input.
 
+---@class CodyPromptSubmitOptions
+---@field request_embeddings boolean
+
 ---@class CodyPromptOptions
+---@field split string?
 ---@field height number|string
 ---@field width number|string
 ---@field row number|string
 ---@field col number|string
----@field on_submit function(bufnr: number, text: string[]): void
+---@field on_submit function(bufnr: number, text: string[], opts: CodyPromptSubmitOptions): void
 ---@field on_change function?
 ---@field on_close function?
 
@@ -49,10 +53,13 @@ end
 
 --- On submit
 ---@param self CodyPrompt
-function CodyPrompt:on_submit()
+---@param opts CodyPromptSubmitOptions?
+function CodyPrompt:on_submit(opts)
+  opts = opts or {}
+
   local value = vim.api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
   if self.opts.on_submit then
-    self.opts.on_submit(self.bufnr, value)
+    self.opts.on_submit(self.bufnr, value, opts)
   end
 end
 
@@ -73,8 +80,14 @@ function CodyPrompt:on_close()
 end
 
 function CodyPrompt:mount()
-  self.bufnr, self.win = shared.create(self.bufnr, self.win, self.popup_options)
-  vim.api.nvim_set_current_win(self.win)
+  if self.opts.split then
+    vim.cmd(self.opts.split)
+    self.win = vim.api.nvim_get_current_win()
+    self.bufnr = vim.api.nvim_get_current_buf()
+  else
+    self.bufnr, self.win = shared.create(self.bufnr, self.win, self.popup_options)
+    vim.api.nvim_set_current_win(self.win)
+  end
 
   vim.cmd [[startinsert!]]
 end

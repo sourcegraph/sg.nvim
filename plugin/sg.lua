@@ -19,22 +19,16 @@ vim.api.nvim_create_user_command("SourcegraphInfo", function()
   print "Attempting to get sourcegraph info..."
 
   -- TODO: Would be nice to get the version of the plugin
-  require("sg.lib").get_info(function(info)
-    print("INFO:", info)
-    if true then
-      return
-    end
+  local info = require("sg.lib").get_info()
+  local contents = vim.split(vim.inspect(info), "\n")
 
-    local contents = vim.split(vim.inspect(info), "\n")
+  table.insert(contents, 1, "Sourcegraph info:")
 
-    table.insert(contents, 1, "Sourcegraph info:")
+  vim.cmd.vnew()
+  vim.api.nvim_buf_set_lines(0, 0, -1, false, contents)
 
-    vim.cmd.vnew()
-    vim.api.nvim_buf_set_lines(0, 0, -1, false, contents)
-
-    vim.schedule(function()
-      print "... got sourcegraph info"
-    end)
+  vim.schedule(function()
+    print "... got sourcegraph info"
   end)
 end, {})
 
