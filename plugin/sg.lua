@@ -43,3 +43,12 @@ vim.api.nvim_create_user_command("SourcegraphLink", function()
   print("Setting '+' register to:", link)
   vim.fn.setreg("+", link)
 end, {})
+
+vim.api.nvim_create_user_command("SourcegraphSearch", function(args)
+  local input = nil
+  if args.args and #args.args > 0 then
+    input = args.args
+  end
+
+  require("sg.telescope").fuzzy_search_results { input = input }
+end, {})

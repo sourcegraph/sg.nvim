@@ -1,0 +1,24 @@
+query EmbeddingsContextQuery($repo: ID!, $query: String!, $code: Int!, $text: Int!) {
+  embeddingsSearch(
+    repo: $repo
+    query: $query
+    codeResultsCount: $code
+    textResultsCount: $text
+  ) {
+    codeResults {
+      repoName
+      fileName
+      startLine
+      endLine
+      content
+    }
+    textResults {
+      repoName
+      fileName
+      startLine
+      endLine
+      content
+    }
+  }
+}
+

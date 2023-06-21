@@ -6,6 +6,7 @@ use {
     regex::Regex,
 };
 
+pub mod cody;
 pub mod definition;
 pub mod entry;
 pub mod hover;
@@ -56,12 +57,16 @@ mod graphql {
                 }
             };
 
+        if let Some(errors) = response.errors {
+            return Err(anyhow::anyhow!("Errors in response: {:?}", errors));
+        }
+
         response.data.context("get_graphql -> data")
     }
 }
 
 pub use graphql::get_graphql;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 pub fn get_access_token() -> Result<String> {
     std::env::var("SRC_ACCESS_TOKEN").context("No access token found")
@@ -281,4 +286,86 @@ pub async fn get_sourcegraph_version() -> Result<SourcegraphVersion> {
                 build: version.build_version,
             }
         })
+}
+
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "gql/schema.graphql",
+    query_path = "gql/repo.graphql",
+    response_derives = "Debug"
+)]
+pub struct RepoQuery;
+
+pub async fn get_repo(name: String) -> Result<String> {
+    let response = get_graphql::<RepoQuery>(repo_query::Variables { name }).await?;
+    match response.repository {
+        Some(repo) => Ok(repo.id),
+        None => Err(anyhow::anyhow!("Could not find repo")),
+    }
+}
+
+pub type ID = String;
+
+#[derive(GraphQLQuery)]
+#[graphql(
+    schema_path = "gql/schema.graphql",
+    query_path = "gql/embeddings_context.graphql",
+    response_derives = "Debug"
+)]
+pub struct EmbeddingsContextQuery;
+
+#[derive(Debug, Serialize, Deserialize)]
+pub enum Embedding {
+    Code {
+        repo: String,
+        file: String,
+        start: usize,
+        finish: usize,
+        content: String,
+    },
+    Text {
+        repo: String,
+        file: String,
+        start: usize,
+        finish: usize,
+        content: String,
+    },
+}
+
+pub async fn get_embeddings_context(
+    repo: ID,
+    query: String,
+    code: i64,
+    text: i64,
+) -> Result<Vec<Embedding>> {
+    let response = get_graphql::<EmbeddingsContextQuery>(embeddings_context_query::Variables {
+        repo,
+        query,
+        code,
+        text,
+    })
+    .await?;
+
+    let mut embeddings = vec![];
+    for result in response.embeddings_search.code_results {
+        embeddings.push(Embedding::Code {
+            repo: result.repo_name,
+            file: result.file_name,
+            start: result.start_line as usize,
+            finish: result.end_line as usize,
+            content: result.content,
+        })
+    }
+
+    for result in response.embeddings_search.text_results {
+        embeddings.push(Embedding::Text {
+            repo: result.repo_name,
+            file: result.file_name,
+            start: result.start_line as usize,
+            finish: result.end_line as usize,
+            content: result.content,
+        })
+    }
+
+    Ok(embeddings)
 }

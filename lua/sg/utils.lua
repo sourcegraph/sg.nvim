@@ -28,4 +28,30 @@ utils.get_word_around_character = function(line, character)
   return string.sub(line, start_non_matching_index + 1, end_non_matching_index - 1)
 end
 
+---@param target_cursor number[]
+---@param force? boolean
+utils.patch_cursor_position = function(target_cursor, force)
+  local cursor = vim.api.nvim_win_get_cursor(0)
+
+  if target_cursor[2] == cursor[2] and force then
+    -- didn't exit insert mode yet, but it's gonna
+    vim.api.nvim_win_set_cursor(0, { cursor[1], cursor[2] + 1 })
+  elseif target_cursor[2] - 1 == cursor[2] then
+    -- already exited insert mode
+    vim.api.nvim_win_set_cursor(0, { cursor[1], cursor[2] + 1 })
+  end
+end
+
+--- Format some code based on the filetype
+---@param bufnr number
+---@param code string|string[]
+---@return table
+utils.format_code = function(bufnr, code)
+  return { string.format("```%s", vim.bo[bufnr].filetype), code, "```" }
+end
+
+utils.execute_keystrokes = function(keys)
+  vim.cmd(string.format("normal! %s", vim.api.nvim_replace_termcodes(keys, true, false, true)))
+end
+
 return utils
