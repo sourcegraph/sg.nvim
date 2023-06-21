@@ -59,11 +59,21 @@ utils.joinpath = vim.fs.joinpath or function(...)
   return (table.concat({ ... }, "/"):gsub("//+", "/"))
 end
 
+-- COMPAT(0.10.0)
+-- So far only handle stdout, no other items are handled.
+-- Probably will break on me unexpectedly. Nice
 utils.system = vim.system
   or function(cmd, opts, on_exit)
-    opts.on_exit = vim.schedule_wrap(function(_, data)
-      on_exit { stdout = data }
-    end)
+    local stdout = ""
+    opts.stdout_buffered = true
+    opts.on_stdout = function(_, data)
+      stdout = stdout .. table.concat(data, "")
+    end
+    opts.on_exit = function()
+      stdout = stdout .. "\n"
+      on_exit { stdout = stdout, compat = true }
+    end
+
     vim.fn.jobstart(cmd, opts)
   end
 
