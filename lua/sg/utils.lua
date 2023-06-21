@@ -59,4 +59,12 @@ utils.joinpath = vim.fs.joinpath or function(...)
   return (table.concat({ ... }, "/"):gsub("//+", "/"))
 end
 
+utils.system = vim.system
+  or function(cmd, opts, on_exit)
+    opts.on_exit = vim.schedule_wrap(function(_, data)
+      on_exit { stdout = data }
+    end)
+    vim.fn.jobstart(cmd, opts)
+  end
+
 return utils
