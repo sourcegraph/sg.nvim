@@ -34,8 +34,9 @@ CodyLayout.init = function(opts)
   opts.prompt = opts.prompt or {}
   opts.history = opts.history or {}
 
-  opts.history.split = "botright vnew"
-  opts.prompt.split = "new | call nvim_win_set_height(0, 5)"
+  -- TODO: Show how you can use this, and maybe add config to the commands to handle this as well.
+  -- opts.history.split = "botright vnew"
+  -- opts.prompt.split = "new | call nvim_win_set_height(0, 5)"
 
   local width = opts.width or 0.5
   opts.prompt.width = width
