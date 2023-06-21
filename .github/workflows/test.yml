@@ -27,6 +27,21 @@ jobs:
           path: _neovim
           key: ${{ runner.os }}-${{ matrix.rev }}-${{ hashFiles('todays-date') }}
 
+      - name: Cache rust items
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Build rust items
+        run: |
+          cargo build --workspace --bins
+
       - name: Prepare
         run: |
           ${{ matrix.manager }} update
