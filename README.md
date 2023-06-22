@@ -67,15 +67,34 @@ The project is packaged as a [Nix Flake][nix-flakes]. Consume it as you normally
 *make sure* that sg-nvim is included *both* as a Neovim plugin *and* as an environment/user package
 (because `sg-lsp` needs to be on your PATH).
 
-See https://nixos.wiki/wiki/Neovim for more details on configuring neovim using Nix.
-Or see https://github.com/willruggiano/neovim.drv for a practical example.
+See [Neovim guide on NixOS wiki](https://nixos.wiki/wiki/Neovim) for more details on configuration
+See [gh:willruggiano/neovim.drv](https://github.com/willruggiano/neovim.drv) for a practical configuration.
 
-For contributors and maintainers:
+For Nix contributors and maintainers:
 
-- There should be nothing to do, nix-related, when changes are made to the Rust project
-- If you're Nix savvy and want to contribute, it would be nice to use [crate2nix] instead
-  of the generic `buildRustPackage`. A github workflow would be needed to autoupdate the
-  generated crate2nix files.
+- Feel free to `nix flake update` every once in a while to make sure `flake.lock` is up-to-date
+- [ ] Minimal `sg.nvim`-integrated neovim package for testing and example
+- [ ] Integrate `sg.nvim` + Cody onto [nixpkgs:vimPlugins](https://github.com/NixOS/nixpkgs/tree/fe2fb24a00ec510d29ccd4e36af72a0c55d81ec0/pkgs/applications/editors/vim/plugins)
+
+You will also need to add the built `.cdylib` onto `package.cpath`. Here is one example
+using [gh:willruggiano/neovim.nix](https://github.com/willruggiano/neovim.nix):
+
+```nix
+sg = let
+  system = "x86_64-linux";
+  package = inputs.sg-nvim.packages.${system}.default;
+in {
+  inherit package;
+  init = pkgs.writeTextFile {
+    name = "sg.lua";
+    text = ''
+      return function()
+        package.cpath = package.cpath .. ";" .. "${package}/lib/?.so;${package}/lib/?.dylib"
+      end
+    '';
+  };
+};
+```
 
 ### Setup:
 
