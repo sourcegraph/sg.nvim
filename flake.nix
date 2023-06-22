@@ -31,6 +31,7 @@
         config,
         system,
         inputs',
+        self',
         ...
       }: let
         pkgs = import inputs.nixpkgs {
@@ -67,12 +68,12 @@
         };
 
         packages.all = pkgs.callPackage ./default.nix {
-          sg-workspace = self.packages.${system}.workspace;
-          sg-plugin = self.packages.${system}.plugin;
+          sg-workspace = self'.packages.workspace;
+          sg-plugin = self'.packages.plugin;
           inherit (self) meta;
         };
 
-        packages.default = inputs.self.packages.${system}.all;
+        packages.default = self'.packages.all;
 
         pre-commit = {
           settings = {
