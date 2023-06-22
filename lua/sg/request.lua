@@ -26,7 +26,7 @@ local function discover_sg_cody()
   return cmd
 end
 
-sg_cody_process = discover_sg_cody()
+local sg_cody_process = discover_sg_cody()
 
 local uv = vim.loop
 
@@ -65,6 +65,7 @@ M.start = function(force)
     handle, pid = uv.spawn(sg_cody_process, {
       stdio = { stdin, stdout, stderr },
       env = {
+        "PATH=" .. vim.env.PATH,
         "SRC_ACCESS_TOKEN=" .. (vim.env.SRC_ACCESS_TOKEN or ""),
         "SRC_ENDPOINT=" .. (vim.env.SRC_ENDPOINT or ""),
       },
