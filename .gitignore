@@ -1,6 +1,8 @@
 .direnv
 .env
 .pre-commit-config.yaml
+# nix build artifact
+result
 
 ### Rust ###
 debug/
