@@ -1,7 +1,32 @@
-local sg_cody_process = vim.api.nvim_get_runtime_file("target/debug/sg-cody", false)[1]
-if not sg_cody_process then
-  error "Could not find sg-cody binary. Make sure you ran `cargo build --bin sg-cody`"
+local function discover_sg_cody()
+  ---@type string | nil
+  local cmd = "sg-cody"
+
+  if vim.fn.executable(cmd) ~= 1 then
+    cmd = nil
+    local rtfile = vim.api.nvim_get_runtime_file
+    local cmd_paths = {
+      "target/release/sg-cody",
+      "target/debug/sg-cody",
+      "bin/sg-cody"
+    }
+    for _, path in ipairs(cmd_paths) do
+      local res = rtfile(path, false)[1]
+      if res then
+        cmd = res
+        break
+      end
+    end
+  end
+
+  if cmd == nil then
+    error "Failed to load sg-cody: You probably did not run `cargo build --bin sg-cody`"
+  end
+
+  return cmd
 end
+
+local sg_cody_process = discover_sg_cody()
 
 local uv = vim.loop
 
@@ -40,6 +65,7 @@ M.start = function(force)
     handle, pid = uv.spawn(sg_cody_process, {
       stdio = { stdin, stdout, stderr },
       env = {
+        "PATH=" .. vim.env.PATH,
         "SRC_ACCESS_TOKEN=" .. (vim.env.SRC_ACCESS_TOKEN or ""),
         "SRC_ENDPOINT=" .. (vim.env.SRC_ENDPOINT or ""),
       },
