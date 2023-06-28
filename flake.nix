@@ -23,7 +23,7 @@
         };
         # HACK: both nixpkgs.lib and pkgs.lib contain licenses
         # Technically impossible to do `callPackage` without proper `${system}`
-        meta = import ./meta.nix {inherit (inputs.nixpkgs) lib;};
+        meta = import ./contrib/meta.nix {inherit (inputs.nixpkgs) lib;};
       };
 
       systems = ["x86_64-darwin" "x86_64-linux" "aarch64-darwin"];
@@ -56,18 +56,18 @@
 
         formatter = pkgs.alejandra;
 
-        packages.workspace = pkgs.callPackage ./workspace-drv.nix {
+        packages.workspace = pkgs.callPackage ./contrib/workspace-drv.nix {
           craneLib = inputs.crane.lib.${system}.overrideToolchain toolchain;
           proj_root = inputs.self;
           inherit (self) meta;
         };
 
-        packages.plugin = pkgs.callPackage ./plugin-drv.nix {
+        packages.plugin = pkgs.callPackage ./contrib/plugin-drv.nix {
           proj_root = inputs.self;
           inherit (self) meta;
         };
 
-        packages.all = pkgs.callPackage ./default.nix {
+        packages.all = pkgs.callPackage ./contrib/default.nix {
           sg-workspace = self'.packages.workspace;
           sg-plugin = self'.packages.plugin;
           inherit (self) meta;
