@@ -1,23 +1,4 @@
-use {
-    anyhow::{Context, Result},
-    graphql_client::GraphQLQuery,
-};
-
-// #[derive(GraphQLQuery)]
-// #[graphql(
-//     schema_path = "gql/schema.graphql",
-//     query_path = "gql/search.graphql",
-//     response_derives = "Debug"
-// )]
-// pub struct SearchQuery;
-
-#[derive(Debug)]
-pub struct SearchResult {
-    pub repo: String,
-    pub file: String,
-    pub preview: String,
-    pub line: usize,
-}
+use {anyhow::Result, sg_types::SearchResult};
 
 pub async fn get_search(query: &str) -> Result<Vec<SearchResult>> {
     // use search_query::SearchQuerySearchResultsResults::*;

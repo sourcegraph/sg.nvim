@@ -3,7 +3,7 @@
 use {
     mlua::{prelude::*, Function, LuaSerdeExt, SerializeOptions, Value},
     serde::Serialize,
-    sg::{self, entry::Entry, get_access_token, get_endpoint, get_sourcegraph_version, search},
+    sg::{self, entry::Entry, get_access_token, get_endpoint, get_sourcegraph_version},
 };
 
 // TODO: I would like to be able to do something like this and make a constant.
@@ -69,7 +69,7 @@ fn get_search(lua: &Lua, args: (String,)) -> LuaResult<LuaValue> {
     let path = args.0;
     let rt = tokio::runtime::Runtime::new().to_lua_err()?;
     let search_results = rt
-        .block_on(async { search::get_search(path.as_str()).await })
+        .block_on(async { sg::get_search(path).await })
         .to_lua_err()?;
 
     // TODO: We kind of silently skip the ones that fail here...

@@ -1,10 +1,10 @@
 use {
-    ::reqwest::Client,
     anyhow::{Context, Result},
-    graphql_client::{reqwest::post_graphql, GraphQLQuery},
+    graphql_client::GraphQLQuery,
+    lsp_types::Location,
     once_cell::sync::Lazy,
     regex::Regex,
-    serde::Serialize,
+    reqwest::Client,
     sg_types::*,
 };
 
@@ -21,10 +21,7 @@ pub fn normalize_url(url: &str) -> String {
     .to_string()
 }
 
-pub mod definition;
 pub mod entry;
-pub mod references;
-pub mod search;
 
 mod graphql {
     use {super::*, futures::Future};
@@ -57,7 +54,7 @@ mod graphql {
     });
 
     pub async fn request_wrap<Q: GraphQLQuery, F, T, R>(
-        variables: Q::Variables,
+        variables: impl Into<Q::Variables>,
         get: F,
     ) -> Result<T>
     where
@@ -65,7 +62,7 @@ mod graphql {
         R: Future<Output = Result<T>>,
         T: Sized,
     {
-        get(&CLIENT, GRAPHQL_ENDPOINT.to_string(), variables).await
+        get(&CLIENT, GRAPHQL_ENDPOINT.to_string(), variables.into()).await
     }
 }
 
@@ -138,30 +135,8 @@ pub async fn get_file_contents(remote: &str, commit: &str, path: &str) -> Result
     )
 }
 
-// #[derive(GraphQLQuery)]
-// #[graphql(
-//     schema_path = "gql/schema.graphql",
-//     query_path = "gql/version_query.graphql",
-//     response_derives = "Debug"
-// )]
-// pub struct VersionQuery;
-
-pub struct SourcegraphVersion {
-    pub product: String,
-    pub build: String,
-}
-
 pub async fn get_sourcegraph_version() -> Result<SourcegraphVersion> {
-    // get_graphql::<VersionQuery>(version_query::Variables {})
-    //     .await
-    //     .map(|response_body| {
-    //         let version = response_body.site;
-    //         SourcegraphVersion {
-    //             product: version.product_version,
-    //             build: version.build_version,
-    //         }
-    //     })
-    todo!()
+    wrap_request!(sg_gql::sourcegraph_version, Variables {})
 }
 
 pub async fn get_embeddings_context(
@@ -170,15 +145,15 @@ pub async fn get_embeddings_context(
     code: i64,
     text: i64,
 ) -> Result<Vec<Embedding>> {
-    // let response = get_graphql::<EmbeddingsContextQuery>(embeddings_context_query::Variables {
-    //     repo,
-    //     query,
-    //     code,
-    //     text,
-    // })
-    // .await?;
-
-    todo!()
+    wrap_request!(
+        sg_gql::embeddings_context,
+        Variables {
+            repo,
+            query,
+            code,
+            text,
+        }
+    )
 }
 
 pub async fn get_hover(uri: String, line: i64, character: i64) -> Result<String> {
@@ -204,21 +179,79 @@ pub async fn get_repository_id(name: String) -> Result<String> {
     wrap_request!(sg_gql::repository_id, Variables { name })
 }
 
-pub async fn get_cody_completions(text: String, temp: Option<f64>) -> Result<String> {
+pub async fn get_cody_completions(text: String, temperature: Option<f64>) -> Result<String> {
     // TODO: Figure out how to deal with messages
-    let variables = sg_gql::cody_completion::Variables {
-        messages: vec![],
-        temperature: temp.unwrap_or(0.5),
-        max_tokens_to_sample: 1000,
-        top_k: -1,
-        top_p: -1,
+
+    let messages = vec![
+            CodyMessage {
+                speaker: CodySpeaker::Assistant,
+                text: "I am Cody, an AI-powered coding assistant developed by Sourcegraph. I operate inside a Language Server Protocol implementation. My task is to help programmers with programming tasks in the %s programming language.
+    I have access to your currently open files in the editor.
+    I will generate suggestions as concisely and clearly as possible.
+    I only suggest something if I am certain about my answer.".to_string(),
+            },
+            CodyMessage {
+                speaker: CodySpeaker::Human,
+                text,
+            },
+            CodyMessage {
+                speaker: CodySpeaker::Assistant,
+                text: "".to_string(),
+            },
+        ];
+
+    wrap_request!(
+        sg_gql::cody_completion,
+        Variables {
+            messages,
+            temperature,
+        }
+    )
+}
+
+pub async fn get_definitions(
+    uri: String,
+    line: i64,
+    character: i64,
+) -> Result<Vec<lsp_types::Location>> {
+    // TODO: Could put the line and character in here directly as well...
+    let remote_file = entry::Entry::new(&uri).await?;
+    let remote_file = match remote_file {
+        entry::Entry::File(file) => file,
+        _ => return Err(anyhow::anyhow!("Can only get references of a file")),
     };
 
-    let _ = graphql::request_wrap::<sg_gql::cody_completion::Query, _, _, _>(
-        variables,
-        sg_gql::cody_completion::request,
+    wrap_request!(
+        sg_gql::definition,
+        Variables {
+            repository: remote_file.remote.0,
+            revision: remote_file.oid.0,
+            path: remote_file.path,
+            line,
+            character,
+        }
     )
-    .await?;
+}
 
-    todo!()
+pub async fn get_references(uri: String, line: i64, character: i64) -> Result<Vec<Location>> {
+    let remote_file = entry::Entry::new(&uri).await?;
+    let remote_file = match remote_file {
+        entry::Entry::File(file) => file,
+        _ => return Err(anyhow::anyhow!("Can only get references of a file")),
+    };
+
+    wrap_request!(
+        sg_gql::references,
+        Variables {
+            repository: remote_file.remote.0,
+            revision: remote_file.oid.0,
+            path: remote_file.path,
+            line,
+            character,
+        }
+    )
+}
+
+pub async fn get_search(query: String) -> Result<Vec<SearchResult>> {
+    wrap_request!(sg_gql::search, Variables { query })
 }

@@ -12,36 +12,48 @@ pub(super) mod private {
     pub struct CompletionQuery;
 }
 
-use private::completion_query::{Message, SpeakerType};
-pub use private::{
-    // TODO: Weird to export message here...
-    completion_query::Variables,
-    CompletionQuery as Query,
-};
+pub use private::CompletionQuery as Query;
+
+#[derive(Debug)]
+pub struct Variables {
+    pub messages: Vec<CodyMessage>,
+    pub temperature: Option<f64>,
+}
+
+impl From<Variables> for private::completion_query::Variables {
+    fn from(val: Variables) -> Self {
+        use private::completion_query::{Message, SpeakerType};
+        let Variables {
+            messages,
+            temperature,
+        } = val;
+
+        let messages = messages
+            .into_iter()
+            .map(|msg| Message {
+                speaker: match msg.speaker {
+                    sg_types::CodySpeaker::Human => SpeakerType::HUMAN,
+                    sg_types::CodySpeaker::Assistant => SpeakerType::ASSISTANT,
+                },
+                text: msg.text,
+            })
+            .collect();
+
+        Self {
+            messages,
+            temperature: temperature.unwrap_or(0.5),
+            max_tokens_to_sample: 1000,
+            top_k: -1,
+            top_p: -1,
+        }
+    }
+}
 
 pub async fn request(
     client: &reqwest::Client,
     endpoint: String,
-    variables: Variables,
-) -> Result<Vec<CodyMessage>> {
-    //     let messages = vec![
-    //         Message {
-    //             speaker: SpeakerType::ASSISTANT,
-    //             text: "I am Cody, an AI-powered coding assistant developed by Sourcegraph. I operate inside a Language Server Protocol implementation. My task is to help programmers with programming tasks in the %s programming language.
-    // I have access to your currently open files in the editor.
-    // I will generate suggestions as concisely and clearly as possible.
-    // I only suggest something if I am certain about my answer.".to_string(),
-    //         },
-    //         Message {
-    //             speaker: SpeakerType::HUMAN,
-    //             text,
-    //         },
-    //         Message {
-    //             speaker: SpeakerType::ASSISTANT,
-    //             text: "".to_string(),
-    //         },
-    //     ];
-    let _ = crate::get_graphql::<Query>(client, endpoint, variables).await?;
-
-    todo!()
+    variables: private::completion_query::Variables,
+) -> Result<String> {
+    let response = crate::get_graphql::<Query>(client, endpoint, variables).await?;
+    Ok(response.completions)
 }

@@ -3,7 +3,7 @@ use {
     anyhow::Result,
     mlua::{ToLua, UserData},
     regex::Regex,
-    std::str::FromStr,
+    sg_types::*,
     userdata_defaults::LuaDefaults,
 };
 
@@ -157,68 +157,6 @@ impl<'lua> ToLua<'lua> for Entry {
         )?;
 
         Ok(mlua::Value::Table(tbl))
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct Remote(pub String);
-
-impl Remote {
-    pub fn shortened(&self) -> String {
-        if self.0 == "github.com" {
-            "gh".to_string()
-        } else {
-            self.0.to_owned()
-        }
-    }
-}
-
-impl From<String> for Remote {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
-impl<'lua> ToLua<'lua> for Remote {
-    fn to_lua(self, lua: &'lua mlua::Lua) -> mlua::Result<mlua::Value<'lua>> {
-        self.0.to_lua(lua)
-    }
-}
-
-impl FromStr for Remote {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.to_string()))
-    }
-}
-
-#[derive(Debug, Clone)]
-pub struct OID(pub String);
-
-impl OID {
-    pub fn shortened(&self) -> String {
-        self.0[..5].to_string()
-    }
-}
-
-impl From<String> for OID {
-    fn from(value: String) -> Self {
-        Self(value)
-    }
-}
-
-impl<'lua> ToLua<'lua> for OID {
-    fn to_lua(self, lua: &'lua mlua::Lua) -> mlua::Result<mlua::Value<'lua>> {
-        self.0.to_lua(lua)
-    }
-}
-
-impl FromStr for OID {
-    type Err = anyhow::Error;
-
-    fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(Self(s.to_string()))
     }
 }
 

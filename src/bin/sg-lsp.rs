@@ -109,7 +109,7 @@ async fn handle_definition(
 ) -> Result<()> {
     let params = params.text_document_position_params;
     let uri = params.text_document.uri;
-    let definitions = sg::definition::get_definitions(
+    let definitions = sg::get_definitions(
         uri.to_string(),
         params.position.line as i64,
         params.position.character as i64,
@@ -160,7 +160,7 @@ async fn handle_references(
 ) -> Result<()> {
     let params = params.text_document_position;
     let uri = params.text_document.uri;
-    let references = sg::references::get_references(
+    let references = sg::get_references(
         uri.to_string(),
         params.position.line as i64,
         params.position.character as i64,

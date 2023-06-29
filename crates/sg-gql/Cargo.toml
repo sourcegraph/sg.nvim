@@ -8,8 +8,10 @@ edition = "2021"
 [dependencies]
 anyhow.workspace = true
 graphql_client.workspace = true
+lsp-types.workspace = true
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+url.workspace = true
 
 sg-types = { path = "../sg-types" }

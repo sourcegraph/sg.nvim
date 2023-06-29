@@ -1,7 +1,4 @@
-use {
-    anyhow::{Context, Result},
-    graphql_client::GraphQLQuery,
-};
+use {anyhow::Result, graphql_client::GraphQLQuery};
 
 pub(super) mod private {
     use super::*;

@@ -1207,10 +1207,12 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "graphql_client",
+ "lsp-types",
  "reqwest",
  "serde",
  "serde_json",
  "sg-types",
+ "url",
 ]
 
 [[package]]
@@ -1229,6 +1231,8 @@ dependencies = [
 name = "sg-types"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "mlua",
  "serde",
 ]
 
