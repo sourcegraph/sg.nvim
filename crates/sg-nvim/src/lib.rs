@@ -32,7 +32,7 @@ fn get_remote_file_contents(lua: &Lua, args: (String, String, String)) -> LuaRes
 
     let rt = tokio::runtime::Runtime::new().to_lua_err()?;
     let remote_file = rt
-        .block_on(async { sg::maybe_read_stuff(&remote, &hash, &path).await })
+        .block_on(async { sg::get_file_contents(&remote, &hash, &path).await })
         .to_lua_err()?;
 
     to_lua(

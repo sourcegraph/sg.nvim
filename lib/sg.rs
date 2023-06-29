@@ -4,17 +4,30 @@ use {
     graphql_client::{reqwest::post_graphql, GraphQLQuery},
     once_cell::sync::Lazy,
     regex::Regex,
+    serde::Serialize,
+    sg_types::*,
 };
 
-pub mod cody;
+pub fn normalize_url(url: &str) -> String {
+    let re = Regex::new(r"^/").unwrap();
+
+    re.replace_all(
+        &url.to_string()
+            .replace(&get_endpoint(), "")
+            .replace("//gh/", "//github.com/")
+            .replace("sg://", ""),
+        "",
+    )
+    .to_string()
+}
+
 pub mod definition;
 pub mod entry;
-pub mod hover;
 pub mod references;
 pub mod search;
 
 mod graphql {
-    use super::*;
+    use {super::*, futures::Future};
 
     static GRAPHQL_ENDPOINT: Lazy<String> = Lazy::new(|| {
         let endpoint = get_endpoint();
@@ -43,30 +56,25 @@ mod graphql {
         }
     });
 
-    pub async fn get_graphql<Q: GraphQLQuery>(variables: Q::Variables) -> Result<Q::ResponseData> {
-        let vars_ser = serde_json::to_string(&variables)?;
-        let response =
-            match post_graphql::<Q, _>(&CLIENT, GRAPHQL_ENDPOINT.to_string(), variables).await {
-                Ok(response) => response,
-                Err(err) => {
-                    return Err(anyhow::anyhow!(
-                        "Failed with (OH NO) status: {:?} || {err:?} TESTING: {}",
-                        err.status(),
-                        vars_ser
-                    ))
-                }
-            };
-
-        if let Some(errors) = response.errors {
-            return Err(anyhow::anyhow!("Errors in response: {:?}", errors));
-        }
-
-        response.data.context("get_graphql -> data")
+    pub async fn request_wrap<Q: GraphQLQuery, F, T, R>(
+        variables: Q::Variables,
+        get: F,
+    ) -> Result<T>
+    where
+        F: Fn(&'static Client, String, Q::Variables) -> R,
+        R: Future<Output = Result<T>>,
+        T: Sized,
+    {
+        get(&CLIENT, GRAPHQL_ENDPOINT.to_string(), variables).await
     }
 }
 
-pub use graphql::get_graphql;
-use serde::{Deserialize, Serialize};
+macro_rules! wrap_request {
+    ($path:path, $variables: expr) => {{
+        use $path::*;
+        graphql::request_wrap::<Query, _, _, _>($variables, request).await
+    }};
+}
 
 pub fn get_access_token() -> Result<String> {
     std::env::var("SRC_ACCESS_TOKEN").context("No access token found")
@@ -79,197 +87,64 @@ pub fn get_endpoint() -> String {
         .to_string()
 }
 
-pub type GitObjectID = String;
-
-#[derive(GraphQLQuery)]
-#[graphql(
-    schema_path = "gql/schema.graphql",
-    query_path = "gql/file_query.graphql",
-    response_derives = "Debug"
-)]
-pub struct FileQuery;
-
-#[derive(GraphQLQuery)]
-#[graphql(
-    schema_path = "gql/schema.graphql",
-    query_path = "gql/commit_query.graphql",
-    response_derives = "Debug"
-)]
-pub struct CommitQuery;
-
-#[derive(GraphQLQuery)]
-#[graphql(
-    schema_path = "gql/schema.graphql",
-    query_path = "gql/path_info_query.graphql",
-    response_derives = "Debug"
-)]
-pub struct PathInfoQuery;
-
-#[derive(Serialize)]
-pub struct PathInfo {
-    pub remote: String,
-    pub oid: String,
-    // TODO: Maybe should split out path and name...
-    //          Or just always include path, don't just include name
-    //          Just do the string manipulation to show the end of the path
-    pub path: String,
-    pub is_directory: bool,
-}
-
 pub async fn get_path_info(remote: String, revision: String, path: String) -> Result<PathInfo> {
-    use path_info_query::*;
-    let failure = format!("Failed with {}, {}, {}", &remote, &revision, &path);
-
-    let response_body = get_graphql::<PathInfoQuery>(Variables {
-        name: remote.to_string(),
-        revision,
-        path,
-    })
-    .await?;
-
-    let repository = response_body
-        .repository
-        .context("No matching repository found")?;
-
-    let commit = repository.commit.context("No matching commit found")?;
-    let oid = commit.abbreviated_oid;
-
-    let gql_path = commit
-        .path
-        .ok_or_else(|| anyhow::anyhow!(failure + ": path"))?;
-
-    let is_directory = match &gql_path {
-        PathInfoQueryRepositoryCommitPath::GitTree(tree) => tree.is_directory,
-        PathInfoQueryRepositoryCommitPath::GitBlob(blob) => blob.is_directory,
-    };
-
-    let path = match gql_path {
-        PathInfoQueryRepositoryCommitPath::GitTree(tree) => tree.path,
-        PathInfoQueryRepositoryCommitPath::GitBlob(blob) => blob.path,
-    };
-
-    Ok(PathInfo {
-        remote: repository.name,
-        oid,
-        path,
-        is_directory,
-    })
+    wrap_request!(
+        sg_gql::path_info,
+        Variables {
+            name: remote,
+            revision,
+            path
+        }
+    )
 }
-
-#[derive(GraphQLQuery)]
-#[graphql(
-    schema_path = "gql/schema.graphql",
-    query_path = "gql/list_files.graphql",
-    response_derives = "Debug"
-)]
-pub struct ListFilesQuery;
 
 pub async fn get_remote_directory_contents(
     remote: &str,
     commit: &str,
     path: &str,
 ) -> Result<Vec<PathInfo>> {
-    let response_body = get_graphql::<ListFilesQuery>(list_files_query::Variables {
-        name: remote.to_string(),
-        rev: commit.to_string(),
-        path: path.to_string(),
-    })
-    .await?;
-
-    let commit = response_body
-        .repository
-        .context("No matching repository found")?
-        .commit
-        .context("No matching commit found")?;
-
-    let oid = commit.abbreviated_oid;
-    Ok(commit
-        .tree
-        .context("expected tree")?
-        .entries
-        .into_iter()
-        .map(|e| PathInfo {
-            remote: remote.to_string(),
-            oid: oid.clone(),
-            path: e.path,
-            is_directory: e.is_directory,
-        })
-        .collect())
+    wrap_request!(
+        sg_gql::list_files,
+        Variables {
+            name: remote.to_string(),
+            rev: commit.to_string(),
+            path: path.to_string()
+        }
+    )
 }
 
 pub async fn get_commit_hash(remote: String, revision: String) -> Result<String> {
     if revision.len() == 40 {
-        return Ok(revision.to_owned());
+        return Ok(revision);
     }
 
-    let response_body = get_graphql::<CommitQuery>(commit_query::Variables {
-        name: remote.to_string(),
-        rev: revision.to_string(),
-    })
-    .await?;
-
-    Ok(response_body
-        .repository
-        .context("No matching repository found")?
-        .commit
-        .context("No matching commit found")?
-        .oid)
-}
-
-pub async fn get_remote_file_contents(remote: &str, commit: &str, path: &str) -> Result<String> {
-    let response_body = get_graphql::<FileQuery>(file_query::Variables {
-        name: remote.to_string(),
-        rev: commit.to_string(),
-        path: path.to_string(),
-    })
-    .await?;
-
-    Ok(response_body
-        .repository
-        .context("No matching repository found")?
-        .commit
-        .context("No matching commit found")?
-        .file
-        .context("No matching File")?
-        .content)
-}
-
-pub async fn maybe_read_stuff(remote: &str, commit: &str, path: &str) -> Result<String> {
-    // let file = entry::File {
-    //     remote: entry::Remote(remote.to_string()),
-    //     oid: entry::OID(commit.to_string()),
-    //     path: path.to_string(),
-    //     position: entry::Position::default(),
-    // };
-
-    // let result = db::get_remote_file_contents(&file).await?;
-    // if let Some(result) = result {
-    //     return Ok(result);
-    // }
-
-    get_remote_file_contents(remote, commit, path).await
-}
-
-pub fn normalize_url(url: &str) -> String {
-    let re = Regex::new(r"^/").unwrap();
-
-    re.replace_all(
-        &url.to_string()
-            .replace(&get_endpoint(), "")
-            .replace("//gh/", "//github.com/")
-            .replace("sg://", ""),
-        "",
+    wrap_request!(
+        sg_gql::commit_oid,
+        Variables {
+            name: remote,
+            rev: revision
+        }
     )
-    .to_string()
 }
 
-#[derive(GraphQLQuery)]
-#[graphql(
-    schema_path = "gql/schema.graphql",
-    query_path = "gql/version_query.graphql",
-    response_derives = "Debug"
-)]
-pub struct VersionQuery;
+pub async fn get_file_contents(remote: &str, commit: &str, path: &str) -> Result<String> {
+    wrap_request!(
+        sg_gql::file,
+        Variables {
+            name: remote.to_string(),
+            rev: commit.to_string(),
+            path: path.to_string(),
+        }
+    )
+}
+
+// #[derive(GraphQLQuery)]
+// #[graphql(
+//     schema_path = "gql/schema.graphql",
+//     query_path = "gql/version_query.graphql",
+//     response_derives = "Debug"
+// )]
+// pub struct VersionQuery;
 
 pub struct SourcegraphVersion {
     pub product: String,
@@ -277,59 +152,16 @@ pub struct SourcegraphVersion {
 }
 
 pub async fn get_sourcegraph_version() -> Result<SourcegraphVersion> {
-    get_graphql::<VersionQuery>(version_query::Variables {})
-        .await
-        .map(|response_body| {
-            let version = response_body.site;
-            SourcegraphVersion {
-                product: version.product_version,
-                build: version.build_version,
-            }
-        })
-}
-
-#[derive(GraphQLQuery)]
-#[graphql(
-    schema_path = "gql/schema.graphql",
-    query_path = "gql/repo.graphql",
-    response_derives = "Debug"
-)]
-pub struct RepoQuery;
-
-pub async fn get_repo(name: String) -> Result<String> {
-    let response = get_graphql::<RepoQuery>(repo_query::Variables { name }).await?;
-    match response.repository {
-        Some(repo) => Ok(repo.id),
-        None => Err(anyhow::anyhow!("Could not find repo")),
-    }
-}
-
-pub type ID = String;
-
-#[derive(GraphQLQuery)]
-#[graphql(
-    schema_path = "gql/schema.graphql",
-    query_path = "gql/embeddings_context.graphql",
-    response_derives = "Debug"
-)]
-pub struct EmbeddingsContextQuery;
-
-#[derive(Debug, Serialize, Deserialize)]
-pub enum Embedding {
-    Code {
-        repo: String,
-        file: String,
-        start: usize,
-        finish: usize,
-        content: String,
-    },
-    Text {
-        repo: String,
-        file: String,
-        start: usize,
-        finish: usize,
-        content: String,
-    },
+    // get_graphql::<VersionQuery>(version_query::Variables {})
+    //     .await
+    //     .map(|response_body| {
+    //         let version = response_body.site;
+    //         SourcegraphVersion {
+    //             product: version.product_version,
+    //             build: version.build_version,
+    //         }
+    //     })
+    todo!()
 }
 
 pub async fn get_embeddings_context(
@@ -338,34 +170,55 @@ pub async fn get_embeddings_context(
     code: i64,
     text: i64,
 ) -> Result<Vec<Embedding>> {
-    let response = get_graphql::<EmbeddingsContextQuery>(embeddings_context_query::Variables {
-        repo,
-        query,
-        code,
-        text,
-    })
+    // let response = get_graphql::<EmbeddingsContextQuery>(embeddings_context_query::Variables {
+    //     repo,
+    //     query,
+    //     code,
+    //     text,
+    // })
+    // .await?;
+
+    todo!()
+}
+
+pub async fn get_hover(uri: String, line: i64, character: i64) -> Result<String> {
+    let remote_file = entry::Entry::new(&uri).await?;
+    let remote_file = match remote_file {
+        entry::Entry::File(file) => file,
+        _ => return Err(anyhow::anyhow!("Can only get references of a file")),
+    };
+
+    wrap_request!(
+        sg_gql::hover,
+        Variables {
+            repository: remote_file.remote.0,
+            revision: remote_file.oid.0,
+            path: remote_file.path,
+            line,
+            character,
+        }
+    )
+}
+
+pub async fn get_repository_id(name: String) -> Result<String> {
+    wrap_request!(sg_gql::repository_id, Variables { name })
+}
+
+pub async fn get_cody_completions(text: String, temp: Option<f64>) -> Result<String> {
+    // TODO: Figure out how to deal with messages
+    let variables = sg_gql::cody_completion::Variables {
+        messages: vec![],
+        temperature: temp.unwrap_or(0.5),
+        max_tokens_to_sample: 1000,
+        top_k: -1,
+        top_p: -1,
+    };
+
+    let _ = graphql::request_wrap::<sg_gql::cody_completion::Query, _, _, _>(
+        variables,
+        sg_gql::cody_completion::request,
+    )
     .await?;
 
-    let mut embeddings = vec![];
-    for result in response.embeddings_search.code_results {
-        embeddings.push(Embedding::Code {
-            repo: result.repo_name,
-            file: result.file_name,
-            start: result.start_line as usize,
-            finish: result.end_line as usize,
-            content: result.content,
-        })
-    }
-
-    for result in response.embeddings_search.text_results {
-        embeddings.push(Embedding::Text {
-            repo: result.repo_name,
-            file: result.file_name,
-            start: result.start_line as usize,
-            finish: result.end_line as usize,
-            content: result.content,
-        })
-    }
-
-    Ok(embeddings)
+    todo!()
 }

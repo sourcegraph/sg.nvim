@@ -129,7 +129,7 @@ async fn handle_definition(
 
 async fn handle_hover(connection: &Connection, id: RequestId, params: HoverParams) -> Result<()> {
     let params = params.text_document_position_params;
-    let hover = sg::hover::get_hover(
+    let hover = sg::get_hover(
         params.text_document.uri.to_string(),
         params.position.line as i64,
         params.position.character as i64,

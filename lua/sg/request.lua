@@ -4,14 +4,13 @@ local function discover_sg_cody()
 
   if vim.fn.executable(cmd) ~= 1 then
     cmd = nil
-    local rtfile = vim.api.nvim_get_runtime_file
     local cmd_paths = {
       "target/release/sg-cody",
       "target/debug/sg-cody",
-      "bin/sg-cody"
+      "bin/sg-cody",
     }
     for _, path in ipairs(cmd_paths) do
-      local res = rtfile(path, false)[1]
+      local res = vim.api.nvim_get_runtime_file(path, false)[1]
       if res then
         cmd = res
         break
@@ -25,8 +24,7 @@ local function discover_sg_cody()
 
   return cmd
 end
-
-local sg_cody_process = discover_sg_cody()
+local bin_sg_cody = discover_sg_cody()
 
 local uv = vim.loop
 
@@ -62,7 +60,7 @@ M.start = function(force)
     stdout = assert(uv.new_pipe())
     stderr = assert(uv.new_pipe())
 
-    handle, pid = uv.spawn(sg_cody_process, {
+    handle, pid = uv.spawn(bin_sg_cody, {
       stdio = { stdin, stdout, stderr },
       env = {
         "PATH=" .. vim.env.PATH,

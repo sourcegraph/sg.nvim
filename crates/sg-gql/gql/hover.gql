@@ -2,8 +2,6 @@ query HoverQuery($repository: String!, $revision: String!, $path: String!, $line
   repository(name: $repository) {
     commit(rev: $revision) {
       blob(path: $path) {
-        name
-        path
         lsif {
           hover(line: $line, character: $character) {
             markdown {text}
