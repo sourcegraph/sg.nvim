@@ -1,6 +1,7 @@
 use {
     anyhow::Result,
     serde::{Deserialize, Serialize},
+    sg_types::*,
     std::{collections::HashMap, io, sync::atomic::AtomicUsize},
 };
 
@@ -116,14 +117,6 @@ impl Request {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ServerInfo {
     pub name: String,
-}
-
-pub type RecipeID = String;
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-pub struct RecipeInfo {
-    pub id: RecipeID,
-    pub title: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

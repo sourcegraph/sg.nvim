@@ -2,7 +2,7 @@
 
 sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com into Neovim.
 
-**Status**: Alpha (see #Features for currently supported features)
+**Status**: Beta (see #Features for currently supported features)
 
 ## Bug Reporting
 
@@ -19,41 +19,17 @@ that are used for `src-cli`. See [this](https://github.com/sourcegraph/src-cli#l
 If you have these environment variables set when opening Neovim, you'll connect to your
 instance of Sourcegraph
 
-## Features:
-
-- [x] Read files:
-  - [x] Directly from sourcegraph links: `:edit <sourcegraph url>`
-    - `sg.nvim` will automatically add protocols for handling `https://sourcegraph.com/*` links.
-  - [x] Directly from buffer names: `:edit sg://github.com/tjdevries/sam.py/-/src/sam.py`
-  - [x] Use `:SourcegraphLink` to get a link for the location under your cursor
-- [x] Reading non-files:
-  - [ ] Repository roots
-  - [x] Folders
-    - [x] Expand Folders
-    - [x] Unexpand Folders
-    - [x] Open file from folder
-- [x] Use builtin LSP client to connect to SG
-  - [x] Goto Definition
-  - [ ] Goto References
-    - [x] <20 references
-    - [ ] kind of broken right now for lots of references
-- [x] Basic Search
-  - [x] literal, regexp and structural search support
-  - [x] `type:symbol` support
-  - [ ] repo support
-- [ ] Advanced Search Features
-  - [ ] Autocompletion
-  - [ ] Memory of last searches
-- More ??
-
 ## Installation
+
+
+Requires nvim 0.9 or nvim nightly to run.
 
 ```lua
 -- Use your favorite package manager to install, for example in lazy.nvim
 return {
   {
     "sourcegraph/sg.nvim",
-    build = "cargo build --workspace",
+    build = "nvim -l build/init.lua",
     dependencies = { "nvim-lua/plenary.nvim" },
   },
 }
@@ -123,3 +99,31 @@ nnoremap <space>ss <cmd>lua require('sg.telescope').fuzzy_search_results()<CR>
 
 [nix-flakes]: https://nixos.wiki/wiki/Flakes
 [crate2nix]: https://github.com/kolloch/crate2nix
+
+## Features:
+
+- [x] Read files:
+  - [x] Directly from sourcegraph links: `:edit <sourcegraph url>`
+    - `sg.nvim` will automatically add protocols for handling `https://sourcegraph.com/*` links.
+  - [x] Directly from buffer names: `:edit sg://github.com/tjdevries/sam.py/-/src/sam.py`
+  - [x] Use `:SourcegraphLink` to get a link for the location under your cursor
+- [x] Reading non-files:
+  - [ ] Repository roots
+  - [x] Folders
+    - [x] Expand Folders
+    - [x] Unexpand Folders
+    - [x] Open file from folder
+- [x] Use builtin LSP client to connect to SG
+  - [x] Goto Definition
+  - [ ] Goto References
+    - [x] <20 references
+    - [ ] kind of broken right now for lots of references
+- [x] Basic Search
+  - [x] literal, regexp and structural search support
+  - [x] `type:symbol` support
+  - [ ] repo support
+- [ ] Advanced Search Features
+  - [ ] Autocompletion
+  - [ ] Memory of last searches
+- More ??
+

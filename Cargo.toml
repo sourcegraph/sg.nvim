@@ -26,7 +26,7 @@ userdata_defaults = { path = "crates/userdata-defaults/" }
 cody = { path = "crates/cody/" }
 sg-gql = { path  = "crates/sg-gql" }
 sg-types = { path  = "crates/sg-types" }
-
+nvim = { path = "crates/nvim" }
 
 [workspace.dependencies]
 anyhow = "1"
@@ -49,6 +49,7 @@ path = "lib/sg.rs"
 [workspace]
 members = [
     "crates/cody/",
+    "crates/nvim/",
     "crates/sg-gql/",
     "crates/sg-nvim/",
     "crates/sg-types/",

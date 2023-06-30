@@ -41,6 +41,12 @@ local get_next_id = function()
   return _id
 end
 
+M.notifications = {}
+
+M.add_notification_handler = function(name, func)
+  M.notifications[name] = func
+end
+
 -- Process vars, could be encapsulated some other way, but this is fine for now.
 local handle, pid, stdin, stdout, stderr = nil, nil, nil, nil, nil
 M.start = function(force)

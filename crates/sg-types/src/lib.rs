@@ -8,7 +8,7 @@ use {
 pub type ID = String;
 pub type GitObjectID = String;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub enum Embedding {
     Code {
         repo: String,
@@ -122,4 +122,12 @@ pub struct SearchResult {
     pub file: String,
     pub preview: String,
     pub line: usize,
+}
+
+pub type RecipeID = String;
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RecipeInfo {
+    pub id: RecipeID,
+    pub title: String,
 }
