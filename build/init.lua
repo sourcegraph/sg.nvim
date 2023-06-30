@@ -23,7 +23,8 @@ print "====================="
 print "installing sg.nvim..."
 print "====================="
 
-local status = system { "cargo", "build", "--workspace", "--bins" }
+local status = system { "cargo", "build", "--workspace" }
+local status = system { "cargo", "build", "--bins" }
 
 -- Wait for up to ten minutes...? Idk, maybe that's too long
 -- or short haha. I don't know what build times are for other people
