@@ -44,14 +44,13 @@ url = "2.4.0"
 
 [lib]
 name = "sg"
-path = "lib/sg.rs"
 
 [workspace]
 members = [
     "crates/cody/",
+    "crates/libsg/",
     "crates/nvim/",
     "crates/sg-gql/",
-    "crates/sg-nvim/",
     "crates/sg-types/",
     "crates/userdata-defaults/",
 ]
