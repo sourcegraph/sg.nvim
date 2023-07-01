@@ -1,34 +1,28 @@
-local function discover_sg_cody()
-  ---@type string | nil
-  local cmd = "sg-cody"
-
-  if vim.fn.executable(cmd) ~= 1 then
-    cmd = nil
-    local cmd_paths = {
-      "target/release/sg-cody",
-      "target/debug/sg-cody",
-      "bin/sg-cody",
-    }
-    for _, path in ipairs(cmd_paths) do
-      local res = vim.api.nvim_get_runtime_file(path, false)[1]
-      if res then
-        cmd = res
-        break
-      end
-    end
-  end
-
-  if cmd == nil then
-    error "Failed to load sg-cody: You probably did not run `cargo build --bin sg-cody`"
-  end
-
-  return cmd
-end
-local bin_sg_cody = discover_sg_cody()
+local log = require "sg.log"
 
 local uv = vim.loop
 
-local log = require "sg.log"
+---@type string
+local bin_sg_cody = (function()
+  local cmd = "sg-cody"
+  if vim.fn.executable(cmd) == 1 then
+    return cmd
+  end
+
+  local cmd_paths = {
+    "target/release/sg-cody",
+    "target/debug/sg-cody",
+    "bin/sg-cody",
+  }
+  for _, path in ipairs(cmd_paths) do
+    local res = vim.api.nvim_get_runtime_file(path, false)[1]
+    if res then
+      return res
+    end
+  end
+
+  error "Failed to load sg-cody: You probably did not run `nvim -l build/init.lua`"
+end)()
 
 local M = {}
 
@@ -74,6 +68,8 @@ M.start = function(force)
         "SRC_ENDPOINT=" .. (vim.env.SRC_ENDPOINT or ""),
       },
     }, function(code, signal) -- on exit
+      vim.notify "[cody] exited!"
+
       if code ~= 0 then
         log.warn("[cody] exit code", code)
         log.warn("[cody] exit signal", signal)
@@ -97,14 +93,23 @@ M.start = function(force)
             if line ~= "" then
               local ok, parsed = pcall(vim.json.decode, line, { luanil = { object = true } })
               if ok and parsed then
-                log.trace("stdout chunk", parsed)
+                log.info("stdout chunk", parsed)
 
-                if M.pending[parsed.id] then
-                  M.pending[parsed.id](parsed)
-                  M.pending[parsed.id] = nil
+                if not parsed.id then
+                  log.info("got a notification", parsed.method)
+                  if M.notifications[parsed.method] then
+                    M.notifications[parsed.method](parsed)
+                  else
+                    log.warn("missing notification handler:", parsed.method)
+                  end
+                else
+                  if M.pending[parsed.id] then
+                    M.pending[parsed.id](parsed)
+                    M.pending[parsed.id] = nil
+                  end
                 end
               else
-                log.trace("failed chunk", parsed)
+                log.info("failed chunk", parsed)
               end
             else
               log.trace "empty line"
@@ -123,18 +128,18 @@ M.start = function(force)
               buffer = ""
             end
 
-            log.trace("chunked", i, vim.json.decode(lines[i]))
+            log.info("chunked", i, vim.json.decode(lines[i]))
           end
 
           buffer = buffer .. lines[#lines]
-          log.trace("unchunked... for now!", buffer)
+          log.info("unchunked... for now!", buffer)
         end
       end
     end))
 
     stderr:read_start(vim.schedule_wrap(function(err, data)
       if err or data then
-        log.info("[cody] ", err, data)
+        log.info("[cody-stderr] ", err, data)
       end
     end))
 
@@ -168,5 +173,23 @@ M.request = function(method, data, cb)
 end
 
 M.async_request = require("plenary.async").wrap(M.request, 3)
+
+M.add_notification_handler("chat/updateMessageInProgress", function(noti)
+  log.info "chat in progres..."
+
+  local Message = require "sg.cody.message"
+  local Speaker = require "sg.cody.speaker"
+
+  local CodyLayout = require "sg.components.cody_layout"
+  local active = CodyLayout.active
+
+  if active then
+    print("text:", noti.params.text)
+    active.state:append(Message.init(Speaker.cody, { noti.params.text }))
+    active:render()
+  else
+    print "failed to render... no active"
+  end
+end)
 
 return M

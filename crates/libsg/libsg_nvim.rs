@@ -163,6 +163,11 @@ fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
     )?;
 
     exports.set(
+        "get_remote_file_contents",
+        lua.create_function(get_remote_file_contents)?,
+    )?;
+
+    exports.set(
         "get_remote_directory_contents",
         lua.create_function(get_remote_directory_contents)?,
     )?;

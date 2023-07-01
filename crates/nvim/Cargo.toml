@@ -6,6 +6,11 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+anyhow.workspace = true
 serde.workspace = true
+tokio.workspace = true
 
 sg-types = { path = "../sg-types/" }
+
+# TODO: I don't like this depending on the crate explicitly
+cody = { path = "../cody/" }

@@ -13,7 +13,7 @@ end
 
 -- TODO
 function M.complete_stream(snippet)
-  local data = req("Complete", { message = snippet })
+  local data = req("StreamingComplete", { message = snippet })
   return data.completion
 end
 

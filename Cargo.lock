@@ -644,18 +644,6 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "f92be4933c13fd498862a9e02a3055f8a8d9c039ce33db97306fd5a6caa7f29b"
 
 [[package]]
-name = "libsg"
-version = "0.1.1"
-dependencies = [
- "mlua",
- "once_cell",
- "reqwest",
- "serde",
- "sg",
- "tokio",
-]
-
-[[package]]
 name = "linked-hash-map"
 version = "0.5.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -858,8 +846,11 @@ dependencies = [
 name = "nvim"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
+ "cody",
  "serde",
  "sg-types",
+ "tokio",
 ]
 
 [[package]]
@@ -1244,6 +1235,18 @@ dependencies = [
  "anyhow",
  "mlua",
  "serde",
+]
+
+[[package]]
+name = "sg_nvim"
+version = "0.1.1"
+dependencies = [
+ "mlua",
+ "once_cell",
+ "reqwest",
+ "serde",
+ "sg",
+ "tokio",
 ]
 
 [[package]]
