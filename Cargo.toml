@@ -23,9 +23,9 @@ log = "0.4"
 once_cell = "1"
 
 userdata_defaults = { path = "crates/userdata-defaults/" }
-cody = { path = "crates/cody/" }
 sg-gql = { path  = "crates/sg-gql" }
 sg-types = { path  = "crates/sg-types" }
+jsonrpc = { path = "crates/jsonrpc" }
 nvim = { path = "crates/nvim" }
 
 [workspace.dependencies]
@@ -47,7 +47,7 @@ name = "sg"
 
 [workspace]
 members = [
-    "crates/cody/",
+    "crates/jsonrpc",
     "crates/libsg/",
     "crates/nvim/",
     "crates/sg-gql/",

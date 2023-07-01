@@ -3,7 +3,6 @@ use {
     serde::{Deserialize, Serialize},
     sg_types::{Embedding, RecipeInfo},
     std::{thread, time::Duration},
-    tokio::sync::broadcast::{Receiver, Sender},
 };
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -44,21 +43,11 @@ pub enum RequestData {
         code: i64,
         text: i64,
     },
-
-    ListRecipes {},
-
-    StreamingComplete {
-        message: String,
-    },
 }
 
 #[allow(unused_variables)]
 impl Request {
-    pub async fn respond(
-        self,
-        tx_cody: &Sender<cody::Message>,
-        rx_cody: &mut Receiver<cody::Message>,
-    ) -> Result<Response> {
+    pub async fn respond(self) -> Result<Response> {
         let Self { id, data } = self;
         match data {
             RequestData::Echo { message, delay } => {
@@ -108,42 +97,6 @@ impl Request {
                 //
                 // Ok(Response::Embedding { id, embeddings })
                 todo!()
-            }
-            RequestData::ListRecipes {} => {
-                eprintln!("[sg-cody] list recipes {id}");
-                tx_cody.send(cody::Message::new_request(
-                    cody::RequestMethods::RecipesList,
-                ))?;
-
-                // TODO: I don't like that I can't be 100% sure that we're going to
-                // get this response next... I'm a little worried about race conditions...
-                // but oh well :)
-                loop {
-                    let msg = rx_cody.recv().await;
-                    match msg {
-                        Ok(cody::Message::Response(cody::Response {
-                            id,
-                            result: cody::ResponseTypes::Recipes(recipes),
-                        })) => return Ok(Response::new(id, ResponseData::ListRecipes { recipes })),
-                        _ => continue,
-                    }
-                }
-            }
-            RequestData::StreamingComplete { message } => {
-                eprintln!("[sg-cody] streaming complete {message:?}");
-                tx_cody.send(cody::Message::new_request(
-                    cody::RequestMethods::RecipesExecute {
-                        id: "chat-question".to_string(),
-                        human_chat_input: message,
-                    },
-                ))?;
-
-                Ok(Response::new(
-                    id,
-                    ResponseData::Echo {
-                        message: "started a chat".to_string(),
-                    },
-                ))
             }
         }
     }

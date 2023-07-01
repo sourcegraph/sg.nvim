@@ -25,3 +25,34 @@
 ---@field start number
 ---@field finish number
 ---@field content string
+
+---@class CodyClientInfo
+---@field name string
+---@field version string
+---@field workspaceRootPath string
+---@field connectionConfiguration CodyConnectionConfiguration?
+---@field capabilities CodyClientCapabilities?
+
+---@class CodyConnectionConfiguration
+---@field serverEndpoint string
+---@field accessToken string
+---@field customHeaders table<string, string>
+
+---@class CodyClientCapabilities
+---@field completions 'none'?
+---@field chat 'none' | 'streaming' | nil
+
+---@class CodyTextDocument
+---@field filePath string
+---@field content string?
+---@field selection CodyRange?
+
+---@class CodyPosition
+---@field line number
+--- 0-indexed
+---@field character number
+---  0-indexed
+
+---@class CodyRange
+---@field start CodyPosition
+---@field end CodyPosition

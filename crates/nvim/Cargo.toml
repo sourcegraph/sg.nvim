@@ -11,6 +11,3 @@ serde.workspace = true
 tokio.workspace = true
 
 sg-types = { path = "../sg-types/" }
-
-# TODO: I don't like this depending on the crate explicitly
-cody = { path = "../cody/" }

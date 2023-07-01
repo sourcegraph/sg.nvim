@@ -1,12 +1,11 @@
 local void = require("plenary.async").void
-local rpc = require "sg.rpc"
+-- local rpc = require "sg.rpc"
+local rpc = require "sg.cody.rpc"
 
 vim.defer_fn(function()
   void(function()
-    -- local recipes = rpc.list_recipes()
-    -- vim.print(recipes)
-
-    rpc.complete_stream "say 'hello'"
+    local err, data = rpc.execute.list_recipes()
+    vim.print("err", err, "data", data)
   end)()
 end, 100)
 

@@ -174,22 +174,4 @@ end
 
 M.async_request = require("plenary.async").wrap(M.request, 3)
 
-M.add_notification_handler("chat/updateMessageInProgress", function(noti)
-  log.info "chat in progres..."
-
-  local Message = require "sg.cody.message"
-  local Speaker = require "sg.cody.speaker"
-
-  local CodyLayout = require "sg.components.cody_layout"
-  local active = CodyLayout.active
-
-  if active then
-    print("text:", noti.params.text)
-    active.state:append(Message.init(Speaker.cody, { noti.params.text }))
-    active:render()
-  else
-    print "failed to render... no active"
-  end
-end)
-
 return M

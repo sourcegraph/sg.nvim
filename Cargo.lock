@@ -117,17 +117,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "cody"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "serde",
- "serde_json",
- "sg-types",
- "tokio",
-]
-
-[[package]]
 name = "combine"
 version = "3.8.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -632,6 +621,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonrpc"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -847,7 +846,6 @@ name = "nvim"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "cody",
  "serde",
  "sg-types",
  "tokio",
@@ -1194,9 +1192,9 @@ name = "sg"
 version = "0.1.1"
 dependencies = [
  "anyhow",
- "cody",
  "futures",
  "graphql_client",
+ "jsonrpc",
  "log",
  "log4rs",
  "lsp-server",
