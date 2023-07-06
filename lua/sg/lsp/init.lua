@@ -1,17 +1,8 @@
-local lib = require "sg.lib"
-
-local config = {
-  on_attach = function(_, bufnr)
-    vim.keymap.set("n", "gd", vim.lsp.buf.definition, { buffer = bufnr })
-    vim.keymap.set("n", "gr", vim.lsp.buf.references, { buffer = bufnr })
-  end,
-}
+local config = require "sg.config"
 
 local M = {}
 
-M.setup = function(opts)
-  config.on_attach = opts.on_attach
-
+M.setup = function(_)
   -- TODO: Figure out how we might do this beforehand...
   M.get_client_id()
 

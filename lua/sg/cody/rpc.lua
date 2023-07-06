@@ -2,6 +2,7 @@ local async = require "plenary.async"
 local void = async.void
 
 local log = require "sg.log"
+local config = require "sg.config"
 
 local notification_handlers = {
   ["chat/updateMessageInProgress"] = function(noti)
@@ -24,8 +25,7 @@ local notification_handlers = {
   end,
 }
 
-local agent = vim.api.nvim_get_runtime_file("dist/agent-linux-x64", false)[1]
-local client = vim.lsp.rpc.start(agent, {}, {
+local client = vim.lsp.rpc.start(config.node_executable, { config.cody_agent }, {
   notification = function(method, data)
     if notification_handlers[method] then
       notification_handlers[method](data)
