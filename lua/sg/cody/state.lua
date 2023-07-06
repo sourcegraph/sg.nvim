@@ -1,8 +1,3 @@
-local log = require "sg.log"
-
-local rpc = require "sg.rpc"
-local cody_rpc = require "sg.cody.rpc"
-
 local Speaker = require "sg.cody.speaker"
 local Message = require "sg.cody.message"
 
@@ -80,7 +75,7 @@ function State:complete(bufnr, win)
   self:render(bufnr, win)
   vim.cmd [[mode]]
 
-  local completion = cody_rpc.execute.chat_question(snippet)
+  local completion = require("sg.cody.rpc").execute.chat_question(snippet)
   -- self:append(Message.init(Speaker.cody, vim.split(vim.trim(completion), "\n")))
   -- self:render(bufnr, win)
 end
