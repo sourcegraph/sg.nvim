@@ -1,5 +1,5 @@
--- Setup telescope with defaults
-(R or require)("sg").setup()
+-- Setup sg with defaults
+(R or require)("sg").setup { accept_tos = true }
 
 -- tree-sitter-lua docgen
 local _ = (R or require) "docgen.transformers"

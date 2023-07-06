@@ -33,8 +33,12 @@ local write_cody_data = function(cody_data)
   vim.fn.writefile({ vim.json.encode(cody_data) }, data_file)
 end
 
-local accept_tos = function()
+local accept_tos = function(opts)
   local cody_data = get_cody_data()
+  if opts.accept_tos then
+    cody_data.tos_accepted = true
+  end
+
   if not cody_data.tos_accepted then
     local choice = vim.fn.inputlist {
       "By using Cody, you agree to its license and privacy statement:"
@@ -53,7 +57,7 @@ end
 M.setup = function(opts)
   opts = opts or {}
 
-  accept_tos()
+  accept_tos(opts)
   require("sg.lsp").setup { on_attach = opts.on_attach }
 end
 
