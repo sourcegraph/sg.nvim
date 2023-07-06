@@ -26,6 +26,9 @@
 ---@field finish number
 ---@field content string
 
+---@class CodyConfig
+---@field tos_accepted boolean
+
 ---@class CodyClientInfo
 ---@field name string
 ---@field version string

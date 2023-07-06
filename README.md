@@ -29,13 +29,86 @@ Requires nvim 0.9 or nvim nightly to run.
 return {
   {
     "sourcegraph/sg.nvim",
-    build = "nvim -l build/init.lua",
     dependencies = { "nvim-lua/plenary.nvim" },
+
+    -- If you have a recent version of lazy.nvim, you don't need to add this!
+    build = "nvim -l build/init.lua",
   },
 }
+
 ```
 
+```lua
+-- Packer.nvim, also make sure to install nvim-lua/plenary.nvim
+use { 'sourcegraph/sg.nvim', run = 'nvim -l build/init.lua' }
+```
+
+(Nix instructions at the end of the readme)
+
 You also need to have the appropriate environment variables to log in to your sourcegraph instance, as described in https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance
+
+
+### Setup:
+
+```lua
+-- Setup the LSP server to attach when you edit an sg:// buffer
+require("sg").setup {
+  -- Pass your own custom attach function
+  --    If you do not pass your own attach function, then the following maps are provide:
+  --        - gd -> goto definition
+  --        - gr -> goto references
+  on_attach = your_custom_lsp_attach_function
+}
+
+
+```vim
+" Example mapping for doing searches from within neovim (may change) using telescope.
+" (requires telescope.nvim to be installed)
+nnoremap <space>ss <cmd>lua require('sg.telescope').fuzzy_search_results()<CR>
+```
+
+## Demos:
+
+- Latest Demo: [Alpha Release](https://youtu.be/j5sfHG3z3ao)
+- Short clip of cross repository jump to definition: [Clip](https://clips.twitch.tv/AmazonianSullenSwordBloodTrail-l8H5WKEd8sNpEdIT)
+- Demo v2: [YouTube](https://www.youtube.com/watch?v=RCyBnAx-4Q4)
+- Demo v1: [YouTube](https://youtu.be/iCdsD6MiLQs)
+
+## Features:
+
+Cody:
+
+- [x] Chat interface and associated commands
+- [ ] Autocompletions, prompted
+- [ ] Autocompletions, suggested
+
+Sourcegraph Browsing:
+
+- [x] Read files:
+  - [x] Directly from sourcegraph links: `:edit <sourcegraph url>`
+    - `sg.nvim` will automatically add protocols for handling `https://sourcegraph.com/*` links.
+  - [x] Directly from buffer names: `:edit sg://github.com/tjdevries/sam.py/-/src/sam.py`
+  - [x] Use `:SourcegraphLink` to get a link for the location under your cursor
+- [x] Reading non-files:
+  - [ ] Repository roots
+  - [x] Folders
+    - [x] Expand Folders
+    - [x] Unexpand Folders
+    - [x] Open file from folder
+- [x] Use builtin LSP client to connect to SG
+  - [x] Goto Definition
+  - [ ] Goto References
+    - [x] <20 references
+    - [ ] kind of broken right now for lots of references
+- [x] Basic Search
+  - [x] literal, regexp and structural search support
+  - [x] `type:symbol` support
+  - [ ] repo support
+- [ ] Advanced Search Features
+  - [ ] Autocompletion
+  - [ ] Memory of last searches
+- More? Make an issue with something you're missing :)
+
 
 ### Nix(OS)
 
@@ -72,58 +145,6 @@ in {
 };
 ```
 
-### Setup:
-
-```lua
--- Setup the LSP server to attach when you edit an sg:// buffer
-require("sg").setup {
-  -- Pass your own custom attach function
-  --    If you do not pass your own attach function, then the following maps are provide:
-  --        - gd -> goto definition
-  --        - gr -> goto references
-  on_attach = your_custom_lsp_attach_function
-}
-
-
-```vim
-" Example mapping for doing searches from within neovim (may change)
-nnoremap <space>ss <cmd>lua require('sg.telescope').fuzzy_search_results()<CR>
-```
-
-## Demos:
-
-- Latest Demo: [Alpha Release](https://youtu.be/j5sfHG3z3ao)
-- Short clip of cross repository jump to definition: [Clip](https://clips.twitch.tv/AmazonianSullenSwordBloodTrail-l8H5WKEd8sNpEdIT)
-- Demo v2: [YouTube](https://www.youtube.com/watch?v=RCyBnAx-4Q4)
-- Demo v1: [YouTube](https://youtu.be/iCdsD6MiLQs)
-
 [nix-flakes]: https://nixos.wiki/wiki/Flakes
 [crate2nix]: https://github.com/kolloch/crate2nix
-
-## Features:
-
-- [x] Read files:
-  - [x] Directly from sourcegraph links: `:edit <sourcegraph url>`
-    - `sg.nvim` will automatically add protocols for handling `https://sourcegraph.com/*` links.
-  - [x] Directly from buffer names: `:edit sg://github.com/tjdevries/sam.py/-/src/sam.py`
-  - [x] Use `:SourcegraphLink` to get a link for the location under your cursor
-- [x] Reading non-files:
-  - [ ] Repository roots
-  - [x] Folders
-    - [x] Expand Folders
-    - [x] Unexpand Folders
-    - [x] Open file from folder
-- [x] Use builtin LSP client to connect to SG
-  - [x] Goto Definition
-  - [ ] Goto References
-    - [x] <20 references
-    - [ ] kind of broken right now for lots of references
-- [x] Basic Search
-  - [x] literal, regexp and structural search support
-  - [x] `type:symbol` support
-  - [ ] repo support
-- [ ] Advanced Search Features
-  - [ ] Autocompletion
-  - [ ] Memory of last searches
-- More ??
 

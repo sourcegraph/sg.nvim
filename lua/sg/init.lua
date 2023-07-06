@@ -1,9 +1,13 @@
+---@tag sg.nvim
+---@config { ["name"] = "INTRODUCTION" }
+
+---@brief [[
+--- sg.nvim is a plugin for interfacing with Sourcegraph and Cody
+---@brief ]]
+
 local data_file = require("sg.utils").joinpath(vim.fn.stdpath "data", "cody.json")
 
 local M = {}
-
----@class CodyConfig
----@field tos_accepted boolean
 
 local get_cody_data = function()
   local handle = io.open(data_file, "r")
@@ -47,6 +51,8 @@ local accept_tos = function()
 end
 
 M.setup = function(opts)
+  opts = opts or {}
+
   accept_tos()
   require("sg.lsp").setup { on_attach = opts.on_attach }
 end
