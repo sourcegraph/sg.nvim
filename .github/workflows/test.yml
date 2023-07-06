@@ -42,10 +42,6 @@ jobs:
             target/
           key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
 
-      - name: Build rust items
-        run: |
-          cargo build --workspace --bins
-
       - name: Prepare
         run: |
           # ${{ matrix.manager }} update
@@ -57,6 +53,11 @@ jobs:
           mkdir -p ~/.local/share/nvim/site/pack/vendor/start
           git clone --depth 1 https://github.com/nvim-lua/plenary.nvim ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
           ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
+
+      - name: Run build scripts
+        run: |
+          nvim -l build/init.lua
+
 
       - name: Run tests
         run: |

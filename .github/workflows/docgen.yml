@@ -24,6 +24,18 @@ jobs:
           path: _neovim
           key: ${{ runner.os }}-${{ matrix.url }}-${{ hashFiles('todays-date') }}
 
+      - name: Cache rust items
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.rustup/
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Prepare
         run: |
           test -d _neovim || {
@@ -34,6 +46,10 @@ jobs:
           git clone --depth 1 https://github.com/nvim-lua/plenary.nvim ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
           git clone https://github.com/tjdevries/tree-sitter-lua ~/.local/share/nvim/site/pack/vendor/start/tree-sitter-lua
           ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
+
+      - name: Run build scripts
+        run: |
+          nvim -l build/init.lua
 
       - name: Build parser
         run: |
