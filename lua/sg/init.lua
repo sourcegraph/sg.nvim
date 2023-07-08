@@ -34,9 +34,12 @@ local write_cody_data = function(cody_data)
 end
 
 local accept_tos = function(opts)
+  opts = opts or {}
+
   local cody_data = get_cody_data()
-  if opts.accept_tos then
+  if opts.accept_tos and not cody_data.tos_accepted then
     cody_data.tos_accepted = true
+    write_cody_data(cody_data)
   end
 
   if not cody_data.tos_accepted then

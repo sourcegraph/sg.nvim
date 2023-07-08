@@ -9,6 +9,7 @@ local docgen = (R or require) "docgen"
 local input_files = {
   "./lua/sg/init.lua",
   "./plugin/cody.lua",
+  "./plugin/sg.lua",
 }
 
 local output_file = "./doc/sg.txt"

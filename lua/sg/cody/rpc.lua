@@ -1,8 +1,10 @@
 local async = require "plenary.async"
-local void = async.void
 
 local log = require "sg.log"
 local config = require "sg.config"
+local env = require "sg.env"
+
+local M = {}
 
 local notification_handlers = {
   ["chat/updateMessageInProgress"] = function(noti)
@@ -36,21 +38,27 @@ local client = vim.lsp.rpc.start(config.node_executable, { config.cody_agent }, 
 })
 
 if not client then
-  error "failed!!"
+  vim.notify "[sg.nvim] failed to start cody-agent"
+  return nil
 end
 
-local request = async.wrap(client.request, 3)
-local notify = client.notify
+M.notify = function(...)
+  client.notify(...)
+end
 
-local function initialize()
+M.request = async.wrap(function(method, params, callback)
+  return client.request(method, params, callback)
+end, 3)
+
+M.initialize = function()
   ---@type CodyClientInfo
   local info = {
     name = "neovim",
     version = "0.1",
     workspaceRootPath = vim.uv.cwd(),
     connectionConfiguration = {
-      accessToken = vim.env.SRC_ACCESS_TOKEN,
-      serverEndpoint = vim.env.SRC_ENDPOINT,
+      accessToken = env.token(),
+      serverEndpoint = env.endpoint(),
       -- TODO: Custom Headers for neovim
       -- customHeaders = { "
     },
@@ -59,20 +67,22 @@ local function initialize()
     },
   }
 
-  return request("initialize", info)
+  return M.request("initialize", info)
 end
 
--- Run initialize as first message to send
-void(function()
-  local _ = initialize()
-  local _ = notify("initialized", {})
-end)()
+M.shutdown = function()
+  return M.request "shutdown"
+end
 
-local execute = {}
+M.exit = function()
+  M.notify "exit"
+end
+
+M.execute = {}
 
 --- List currently available messages
-execute.list_recipes = function()
-  local err, data = request("recipes/list", {})
+M.execute.list_recipes = function()
+  local err, data = M.request("recipes/list", {})
   return err, data
 end
 
@@ -82,26 +92,10 @@ end
 ---@param message string
 ---@return table | nil
 ---@return table | nil
-execute.chat_question = function(message)
-  return request("recipes/execute", { id = "chat-question", humanChatInput = message })
+M.execute.chat_question = function(message)
+  return M.request("recipes/execute", { id = "chat-question", humanChatInput = message })
 end
 
-vim.api.nvim_create_autocmd({ "BufReadPost" }, {
-  callback = function(data)
-    ---@type CodyTextDocument
-    local document = {
-      filePath = data.file,
-      content = table.concat(vim.api.nvim_buf_get_lines(data.buf, 0, -1, false), "\n"),
-    }
+M.execute.fixup = function(message) end
 
-    notify("textDocument/didOpen", document)
-  end,
-})
-
-return {
-  client = client,
-  notify = notify,
-  request = request,
-  initialize = initialize,
-  execute = execute,
-}
+return M

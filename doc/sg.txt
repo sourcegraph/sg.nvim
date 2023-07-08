@@ -23,6 +23,28 @@ Default commands for interacting with Cody
 :CodyToggle ~
     Toggles the current Cody Chat window.
 
+                                                                *:CodyHistory*
+:CodyHistory ~
+    Select a previous chat from the current neovim session
+
+
+
+
+================================================================================
+COMMANDS                                                           *sg.commands*
+
+Default commands for interacting with Sourcegraph
+
+                                                            *:SourcegraphLink*
+:SourcegraphLink ~
+    Get a sourcegraph link to the current repo + file + line. Automatically
+    adds it to your '+' register
+
+                                                          *:SourcegraphSearch*
+:SourcegraphSearch ~
+    Run a search. For more sourcegraph search syntax, refer to online
+    documentation
+
 
 
 

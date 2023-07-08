@@ -4,10 +4,6 @@ sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com 
 
 **Status**: Beta (see #Features for currently supported features)
 
-## Bug Reporting
-
-If you encounter a bug, please run `:SourcegraphInfo` and copy the contents of the information into your bug report.
-It will greatly help in debugging what is happening (and there will probably be some bugs to start... Sorry!)
 
 ## Setup
 
@@ -43,12 +39,16 @@ return {
 use { 'sourcegraph/sg.nvim', run = 'nvim -l build/init.lua' }
 ```
 
+After installation, you can run `:checkhealth sg` to see if the plugin is set up correctly.
+
 (Nix instructions at the end of the readme)
 
 You also need to have the appropriate environment variables to log in to your sourcegraph instance, as described in https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance
 
 
 ### Setup:
+
+You can use the `:SourcegraphLogin` command to login.
 
 ```lua
 -- Setup the LSP server to attach when you edit an sg:// buffer

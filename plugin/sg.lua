@@ -1,3 +1,9 @@
+---@tag sg.commands
+
+---@brief [[
+--- Default commands for interacting with Sourcegraph
+---@brief ]]
+
 local bufread = require "sg.bufread"
 
 -- TODO: I don't know how to turn off this https://* stuff and not make netrw users mad
@@ -13,6 +19,7 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
   callback = function()
     bufread.edit(vim.fn.expand "<amatch>")
   end,
+  desc = "Sourcegraph link and protocol handler",
 })
 
 vim.api.nvim_create_user_command("SourcegraphInfo", function()
@@ -32,6 +39,10 @@ vim.api.nvim_create_user_command("SourcegraphInfo", function()
   end)
 end, {})
 
+---@command SourcegraphLink [[
+--- Get a sourcegraph link to the current repo + file + line.
+--- Automatically adds it to your '+' register
+---@command ]]
 vim.api.nvim_create_user_command("SourcegraphLink", function()
   local cursor = vim.api.nvim_win_get_cursor(0)
   local ok, link = pcall(require("sg.lib").get_link, vim.api.nvim_buf_get_name(0), cursor[1], cursor[2] + 1)
@@ -42,13 +53,37 @@ vim.api.nvim_create_user_command("SourcegraphLink", function()
 
   print("Setting '+' register to:", link)
   vim.fn.setreg("+", link)
-end, {})
+end, {
+  desc = "Get a sourcegraph link to the current location",
+})
 
+---@command SourcegraphSearch [[
+--- Run a search. For more sourcegraph search syntax, refer to online documentation
+---@command ]]
 vim.api.nvim_create_user_command("SourcegraphSearch", function(args)
   local input = nil
   if args.args and #args.args > 0 then
     input = args.args
   end
 
-  require("sg.telescope").fuzzy_search_results { input = input }
-end, {})
+  require("sg.extensions.telescope").fuzzy_search_results { input = input }
+end, {
+  desc = "Run a search on your connected Sourcegraph instance",
+})
+
+---@command SourcegraphLogin [[
+--- Get prompted for endpoint and access_token if you don't
+--- want to set them via environment variables.
+---@command ]]
+vim.api.nvim_create_user_command("SourcegraphLogin", function()
+  local env = require "sg.env"
+
+  -- TODO: Maybe this is bad hack?...
+  vim.env.SRC_ENDPOINT = nil
+  vim.env.SRC_ACCESS_TOKEN = nil
+
+  env.endpoint(true)
+  env.token(true)
+end, {
+  desc = "Login and store credentials for later use (an alternative to the environment variables",
+})

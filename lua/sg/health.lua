@@ -67,10 +67,10 @@ M.check = function()
 
   local ok = true
 
-  ok = ok and report_nvim()
-  ok = ok and report_lib()
-  ok = ok and report_env()
-  ok = ok and report_agent()
+  ok = report_nvim() and ok
+  ok = report_lib() and ok
+  ok = report_env() and ok
+  ok = report_agent() and ok
 
   if ok then
     vim.health.ok "sg.nvim is ready to run"

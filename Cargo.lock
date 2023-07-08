@@ -1240,7 +1240,6 @@ name = "sg_nvim"
 version = "0.1.1"
 dependencies = [
  "mlua",
- "once_cell",
  "reqwest",
  "serde",
  "sg",

@@ -1,4 +1,5 @@
 ---@tag cody.commands
+
 ---@brief [[
 --- Default commands for interacting with Cody
 ---@brief ]]
@@ -38,10 +39,15 @@ vim.api.nvim_create_user_command("CodyToggle", function(command)
   cody_commands.toggle()
 end, {})
 
+---@command CodyHistory [[
+--- Select a previous chat from the current neovim session
+---@command ]]
 vim.api.nvim_create_user_command("CodyHistory", function()
   cody_commands.history()
 end, {})
 
+-- TODO: Decide if this makes sense to still be here after
+-- using cody agent now.
 vim.api.nvim_create_user_command("CodyContext", function(command)
   local bufnr = vim.api.nvim_get_current_buf()
   local start_line = command.line1 - 1

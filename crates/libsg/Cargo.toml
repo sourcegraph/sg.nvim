@@ -12,8 +12,6 @@ crate-type = ["cdylib"]
 sg = { path = "../../" }
 
 mlua.workspace = true
+reqwest.workspace = true
 tokio.workspace = true
-
-reqwest = "0.11.3"
-serde = "1.0.125"
-once_cell = "1.7.2"
+serde.workspace = true

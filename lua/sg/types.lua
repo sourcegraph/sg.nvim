@@ -28,6 +28,8 @@
 
 ---@class CodyConfig
 ---@field tos_accepted boolean
+---@field token string
+---@field endpoint string
 
 ---@class CodyClientInfo
 ---@field name string

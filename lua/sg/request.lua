@@ -1,3 +1,4 @@
+local env = require "sg.env"
 local log = require "sg.log"
 
 local uv = vim.loop
@@ -48,11 +49,11 @@ M.start = function(force)
   if force or handle == nil then
     M.shutdown()
 
-    if not vim.env.SRC_ACCESS_TOKEN or vim.env.SRC_ACCESS_TOKEN == "" then
+    if env.token() == "" then
       vim.notify("[cody] Missing SRC_ACCESS_TOKEN env var", vim.log.levels.WARN)
     end
 
-    if not vim.env.SRC_ENDPOINT or vim.env.SRC_ENDPOINT == "" then
+    if not env.endpoint() or env.endpoint() == "" then
       vim.notify("[cody] Missing SRC_ENDPOINT env var", vim.log.levels.WARN)
     end
 
@@ -64,8 +65,8 @@ M.start = function(force)
       stdio = { stdin, stdout, stderr },
       env = {
         "PATH=" .. vim.env.PATH,
-        "SRC_ACCESS_TOKEN=" .. (vim.env.SRC_ACCESS_TOKEN or ""),
-        "SRC_ENDPOINT=" .. (vim.env.SRC_ENDPOINT or ""),
+        "SRC_ACCESS_TOKEN=" .. env.token(),
+        "SRC_ENDPOINT=" .. env.endpoint(),
       },
     }, function(code, signal) -- on exit
       vim.notify "[cody] exited!"
