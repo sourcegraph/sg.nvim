@@ -45,6 +45,11 @@ Default commands for interacting with Sourcegraph
     Run a search. For more sourcegraph search syntax, refer to online
     documentation
 
+                                                           *:SourcegraphLogin*
+:SourcegraphLogin ~
+    Get prompted for endpoint and access_token if you don't want to set them
+    via environment variables.
+
 
 
 
