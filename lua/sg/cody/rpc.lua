@@ -1,10 +1,13 @@
 local async = require "plenary.async"
+local void = async.void
 
 local log = require "sg.log"
 local config = require "sg.config"
 local env = require "sg.env"
 
 local M = {}
+
+M.messages = {}
 
 local notification_handlers = {
   ["chat/updateMessageInProgress"] = function(noti)
@@ -42,12 +45,36 @@ if not client then
   return nil
 end
 
-M.notify = function(...)
-  client.notify(...)
+M.notify = function(method, params)
+  if config.testing then
+    table.insert(M.messages, {
+      type = "notify",
+      method = method,
+      -- params = params,
+    })
+  end
+
+  client.notify(method, params)
 end
 
 M.request = async.wrap(function(method, params, callback)
-  return client.request(method, params, callback)
+  if config.testing then
+    table.insert(M.messages, {
+      type = "request",
+      method = method,
+    })
+  end
+
+  return client.request(method, params, function(err, result)
+    if config.testing then
+      table.insert(M.messages, {
+        type = "response",
+        method = method,
+      })
+    end
+
+    return callback(err, result)
+  end)
 end, 3)
 
 M.initialize = function()
@@ -97,5 +124,13 @@ M.execute.chat_question = function(message)
 end
 
 M.execute.fixup = function(message) end
+
+void(function()
+  -- Run initialize as first message to send
+  local _ = M.initialize()
+
+  -- And then respond that we've initialized
+  local _ = M.notify("initialized", {})
+end)()
 
 return M

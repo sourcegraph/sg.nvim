@@ -8,4 +8,6 @@ config.on_attach = function(_, bufnr)
   vim.keymap.set("n", "gr", vim.lsp.buf.references, { buffer = bufnr })
 end
 
+config.testing = (vim.env.SG_NVIM_TESTING or "") == "true"
+
 return config

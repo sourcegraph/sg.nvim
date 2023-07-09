@@ -8,14 +8,6 @@ if not rpc then
   return
 end
 
-void(function()
-  -- Run initialize as first message to send
-  local _ = rpc.initialize()
-
-  -- And then respond that we've initialized
-  local _ = rpc.notify("initialized", {})
-end)()
-
 local notify = rpc.notify
 local debounce_handles = {}
 
