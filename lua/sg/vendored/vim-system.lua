@@ -1,3 +1,5 @@
+-- COMPAT(0.10) - Can just remove this whole file
+
 -- vim/_system.lua
 local uv = vim.loop
 
@@ -253,4 +255,10 @@ function M.run(cmd, opts, on_exit)
   return obj
 end
 
-return M
+return function(cmd, opts, on_exit)
+  if type(opts) == "function" then
+    on_exit = opts
+    opts = nil
+  end
+  return M.run(cmd, opts, on_exit)
+end
