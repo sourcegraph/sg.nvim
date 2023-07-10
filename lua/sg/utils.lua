@@ -62,19 +62,6 @@ end
 -- COMPAT(0.10.0)
 -- So far only handle stdout, no other items are handled.
 -- Probably will break on me unexpectedly. Nice
-utils.system = vim.system
-  or function(cmd, opts, on_exit)
-    local stdout = ""
-    opts.stdout_buffered = true
-    opts.on_stdout = function(_, data)
-      stdout = stdout .. table.concat(data, "")
-    end
-    opts.on_exit = function()
-      stdout = stdout .. "\n"
-      on_exit { stdout = stdout, compat = true }
-    end
-
-    vim.fn.jobstart(cmd, opts)
-  end
+utils.system = vim.system or require "sg.vendored.vim-system"
 
 return utils
