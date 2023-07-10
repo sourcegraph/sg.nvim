@@ -46,7 +46,10 @@ aucmd {
   cb = function(data)
     local bufnr = data.buf
     if debounce_handles[bufnr] then
-      debounce_handles[bufnr]:close()
+      local handle = debounce_handles[bufnr]
+      if not handle:is_closing() then
+        handle:close()
+      end
     end
 
     local document = protocol.get_text_document(data.buf, { content = false })

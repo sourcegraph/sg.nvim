@@ -1,9 +1,20 @@
+-- Attempt to clear SG_CODY_CLIENT if one is already
+-- running currently.
+--
+-- This should hopefully prevent multiple cody clients from
+-- running at a time.
+if SG_CODY_CLIENT then
+  pcall(SG_CODY_CLIENT.terminate)
+  SG_CODY_CLIENT = nil
+end
+
 local async = require "plenary.async"
 local void = async.void
 
 local log = require "sg.log"
 local config = require "sg.config"
 local env = require "sg.env"
+local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
 
 local M = {}
 
@@ -25,12 +36,26 @@ local notification_handlers = {
       active.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n")))
       active:render()
     else
-      print "failed to render... no active"
+      local layout = CodyLayout.init {}
+      layout:mount()
+
+      layout.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n")))
+      layout:render()
     end
   end,
 }
 
-local client = vim.lsp.rpc.start(config.node_executable, { config.cody_agent }, {
+local server_handlers = {
+  ["showQuickPick"] = function(_, params)
+    return function(respond)
+      vim.ui.select(params, nil, function(selected)
+        respond(selected)
+      end)
+    end
+  end,
+}
+
+SG_CODY_CLIENT = vendored_rpc.start(config.node_executable, { config.cody_agent }, {
   notification = function(method, data)
     if notification_handlers[method] then
       notification_handlers[method](data)
@@ -38,8 +63,25 @@ local client = vim.lsp.rpc.start(config.node_executable, { config.cody_agent }, 
       log.warn("[cody-agent] unhandled method:", method)
     end
   end,
+  server_request = function(method, params)
+    if config.testing then
+      table.insert(M.messages, {
+        type = "server_request",
+        method = method,
+        params = params,
+      })
+    end
+
+    local handler = server_handlers[method]
+    if handler then
+      return handler(method, params)
+    else
+      log.warn("[cody-agent] unhandled server request:", method)
+    end
+  end,
 })
 
+local client = SG_CODY_CLIENT
 if not client then
   vim.notify "[sg.nvim] failed to start cody-agent"
   return nil
@@ -62,6 +104,7 @@ M.request = async.wrap(function(method, params, callback)
     table.insert(M.messages, {
       type = "request",
       method = method,
+      params = params,
     })
   end
 
@@ -70,6 +113,8 @@ M.request = async.wrap(function(method, params, callback)
       table.insert(M.messages, {
         type = "response",
         method = method,
+        result = result or "none",
+        err = err,
       })
     end
 
@@ -124,6 +169,10 @@ M.execute.chat_question = function(message)
 end
 
 M.execute.fixup = function(message) end
+
+M.execute.git_history = function()
+  return M.request("recipes/execute", { id = "git-history", humanChatInput = "" })
+end
 
 void(function()
   -- Run initialize as first message to send

@@ -989,14 +989,14 @@ var require_url_state_machine = __commonJS({
       return url.replace(/\u0009|\u000A|\u000D/g, "");
     }
     function shortenPath(url) {
-      const path3 = url.path;
-      if (path3.length === 0) {
+      const path4 = url.path;
+      if (path4.length === 0) {
         return;
       }
-      if (url.scheme === "file" && path3.length === 1 && isNormalizedWindowsDriveLetter(path3[0])) {
+      if (url.scheme === "file" && path4.length === 1 && isNormalizedWindowsDriveLetter(path4[0])) {
         return;
       }
-      path3.pop();
+      path4.pop();
     }
     function includesCredentials(url) {
       return url.username !== "" || url.password !== "";
@@ -4626,11 +4626,11 @@ var require_lodash = __commonJS({
             return isFunction(object[key]);
           });
         }
-        function baseGet(object, path3) {
-          path3 = castPath(path3, object);
-          var index = 0, length = path3.length;
+        function baseGet(object, path4) {
+          path4 = castPath(path4, object);
+          var index = 0, length = path4.length;
           while (object != null && index < length) {
-            object = object[toKey(path3[index++])];
+            object = object[toKey(path4[index++])];
           }
           return index && index == length ? object : undefined2;
         }
@@ -4694,10 +4694,10 @@ var require_lodash = __commonJS({
           });
           return accumulator;
         }
-        function baseInvoke(object, path3, args) {
-          path3 = castPath(path3, object);
-          object = parent(object, path3);
-          var func = object == null ? object : object[toKey(last(path3))];
+        function baseInvoke(object, path4, args) {
+          path4 = castPath(path4, object);
+          object = parent(object, path4);
+          var func = object == null ? object : object[toKey(last(path4))];
           return func == null ? undefined2 : apply(func, object, args);
         }
         function baseIsArguments(value) {
@@ -4853,13 +4853,13 @@ var require_lodash = __commonJS({
             return object === source || baseIsMatch(object, source, matchData);
           };
         }
-        function baseMatchesProperty(path3, srcValue) {
-          if (isKey(path3) && isStrictComparable(srcValue)) {
-            return matchesStrictComparable(toKey(path3), srcValue);
+        function baseMatchesProperty(path4, srcValue) {
+          if (isKey(path4) && isStrictComparable(srcValue)) {
+            return matchesStrictComparable(toKey(path4), srcValue);
           }
           return function(object) {
-            var objValue = get(object, path3);
-            return objValue === undefined2 && objValue === srcValue ? hasIn(object, path3) : baseIsEqual(srcValue, objValue, COMPARE_PARTIAL_FLAG | COMPARE_UNORDERED_FLAG);
+            var objValue = get(object, path4);
+            return objValue === undefined2 && objValue === srcValue ? hasIn(object, path4) : baseIsEqual(srcValue, objValue, COMPARE_PARTIAL_FLAG | COMPARE_UNORDERED_FLAG);
           };
         }
         function baseMerge(object, source, srcIndex, customizer, stack) {
@@ -4956,23 +4956,23 @@ var require_lodash = __commonJS({
           });
         }
         function basePick(object, paths) {
-          return basePickBy(object, paths, function(value, path3) {
-            return hasIn(object, path3);
+          return basePickBy(object, paths, function(value, path4) {
+            return hasIn(object, path4);
           });
         }
         function basePickBy(object, paths, predicate) {
           var index = -1, length = paths.length, result2 = {};
           while (++index < length) {
-            var path3 = paths[index], value = baseGet(object, path3);
-            if (predicate(value, path3)) {
-              baseSet(result2, castPath(path3, object), value);
+            var path4 = paths[index], value = baseGet(object, path4);
+            if (predicate(value, path4)) {
+              baseSet(result2, castPath(path4, object), value);
             }
           }
           return result2;
         }
-        function basePropertyDeep(path3) {
+        function basePropertyDeep(path4) {
           return function(object) {
-            return baseGet(object, path3);
+            return baseGet(object, path4);
           };
         }
         function basePullAll(array, values2, iteratee2, comparator) {
@@ -5046,14 +5046,14 @@ var require_lodash = __commonJS({
           var array = values(collection);
           return shuffleSelf(array, baseClamp(n, 0, array.length));
         }
-        function baseSet(object, path3, value, customizer) {
+        function baseSet(object, path4, value, customizer) {
           if (!isObject(object)) {
             return object;
           }
-          path3 = castPath(path3, object);
-          var index = -1, length = path3.length, lastIndex = length - 1, nested = object;
+          path4 = castPath(path4, object);
+          var index = -1, length = path4.length, lastIndex = length - 1, nested = object;
           while (nested != null && ++index < length) {
-            var key = toKey(path3[index]), newValue = value;
+            var key = toKey(path4[index]), newValue = value;
             if (key === "__proto__" || key === "constructor" || key === "prototype") {
               return object;
             }
@@ -5061,7 +5061,7 @@ var require_lodash = __commonJS({
               var objValue = nested[key];
               newValue = customizer ? customizer(objValue, key, nested) : undefined2;
               if (newValue === undefined2) {
-                newValue = isObject(objValue) ? objValue : isIndex(path3[index + 1]) ? [] : {};
+                newValue = isObject(objValue) ? objValue : isIndex(path4[index + 1]) ? [] : {};
               }
             }
             assignValue(nested, key, newValue);
@@ -5227,13 +5227,13 @@ var require_lodash = __commonJS({
             }
           return result2;
         }
-        function baseUnset(object, path3) {
-          path3 = castPath(path3, object);
-          object = parent(object, path3);
-          return object == null || delete object[toKey(last(path3))];
+        function baseUnset(object, path4) {
+          path4 = castPath(path4, object);
+          object = parent(object, path4);
+          return object == null || delete object[toKey(last(path4))];
         }
-        function baseUpdate(object, path3, updater, customizer) {
-          return baseSet(object, path3, updater(baseGet(object, path3)), customizer);
+        function baseUpdate(object, path4, updater, customizer) {
+          return baseSet(object, path4, updater(baseGet(object, path4)), customizer);
         }
         function baseWhile(array, predicate, isDrop, fromRight) {
           var length = array.length, index = fromRight ? length : -1;
@@ -6116,11 +6116,11 @@ var require_lodash = __commonJS({
           var match = source.match(reWrapDetails);
           return match ? match[1].split(reSplitDetails) : [];
         }
-        function hasPath(object, path3, hasFunc) {
-          path3 = castPath(path3, object);
-          var index = -1, length = path3.length, result2 = false;
+        function hasPath(object, path4, hasFunc) {
+          path4 = castPath(path4, object);
+          var index = -1, length = path4.length, result2 = false;
           while (++index < length) {
-            var key = toKey(path3[index]);
+            var key = toKey(path4[index]);
             if (!(result2 = object != null && hasFunc(object, key))) {
               break;
             }
@@ -6322,8 +6322,8 @@ var require_lodash = __commonJS({
             return apply(func, this, otherArgs);
           };
         }
-        function parent(object, path3) {
-          return path3.length < 2 ? object : baseGet(object, baseSlice(path3, 0, -1));
+        function parent(object, path4) {
+          return path4.length < 2 ? object : baseGet(object, baseSlice(path4, 0, -1));
         }
         function reorder(array, indexes) {
           var arrLength = array.length, length = nativeMin(indexes.length, arrLength), oldArray = copyArray(array);
@@ -6958,10 +6958,10 @@ var require_lodash = __commonJS({
           }
           return isString(collection) ? fromIndex <= length && collection.indexOf(value, fromIndex) > -1 : !!length && baseIndexOf(collection, value, fromIndex) > -1;
         }
-        var invokeMap = baseRest(function(collection, path3, args) {
-          var index = -1, isFunc = typeof path3 == "function", result2 = isArrayLike(collection) ? Array2(collection.length) : [];
+        var invokeMap = baseRest(function(collection, path4, args) {
+          var index = -1, isFunc = typeof path4 == "function", result2 = isArrayLike(collection) ? Array2(collection.length) : [];
           baseEach(collection, function(value) {
-            result2[++index] = isFunc ? apply(path3, value, args) : baseInvoke(value, path3, args);
+            result2[++index] = isFunc ? apply(path4, value, args) : baseInvoke(value, path4, args);
           });
           return result2;
         });
@@ -7613,15 +7613,15 @@ var require_lodash = __commonJS({
         function functionsIn(object) {
           return object == null ? [] : baseFunctions(object, keysIn(object));
         }
-        function get(object, path3, defaultValue) {
-          var result2 = object == null ? undefined2 : baseGet(object, path3);
+        function get(object, path4, defaultValue) {
+          var result2 = object == null ? undefined2 : baseGet(object, path4);
           return result2 === undefined2 ? defaultValue : result2;
         }
-        function has(object, path3) {
-          return object != null && hasPath(object, path3, baseHas);
+        function has(object, path4) {
+          return object != null && hasPath(object, path4, baseHas);
         }
-        function hasIn(object, path3) {
-          return object != null && hasPath(object, path3, baseHasIn);
+        function hasIn(object, path4) {
+          return object != null && hasPath(object, path4, baseHasIn);
         }
         var invert = createInverter(function(result2, value, key) {
           if (value != null && typeof value.toString != "function") {
@@ -7674,10 +7674,10 @@ var require_lodash = __commonJS({
             return result2;
           }
           var isDeep = false;
-          paths = arrayMap(paths, function(path3) {
-            path3 = castPath(path3, object);
-            isDeep || (isDeep = path3.length > 1);
-            return path3;
+          paths = arrayMap(paths, function(path4) {
+            path4 = castPath(path4, object);
+            isDeep || (isDeep = path4.length > 1);
+            return path4;
           });
           copyObject(object, getAllKeysIn(object), result2);
           if (isDeep) {
@@ -7703,19 +7703,19 @@ var require_lodash = __commonJS({
             return [prop];
           });
           predicate = getIteratee(predicate);
-          return basePickBy(object, props, function(value, path3) {
-            return predicate(value, path3[0]);
+          return basePickBy(object, props, function(value, path4) {
+            return predicate(value, path4[0]);
           });
         }
-        function result(object, path3, defaultValue) {
-          path3 = castPath(path3, object);
-          var index = -1, length = path3.length;
+        function result(object, path4, defaultValue) {
+          path4 = castPath(path4, object);
+          var index = -1, length = path4.length;
           if (!length) {
             length = 1;
             object = undefined2;
           }
           while (++index < length) {
-            var value = object == null ? undefined2 : object[toKey(path3[index])];
+            var value = object == null ? undefined2 : object[toKey(path4[index])];
             if (value === undefined2) {
               index = length;
               value = defaultValue;
@@ -7724,12 +7724,12 @@ var require_lodash = __commonJS({
           }
           return object;
         }
-        function set(object, path3, value) {
-          return object == null ? object : baseSet(object, path3, value);
+        function set(object, path4, value) {
+          return object == null ? object : baseSet(object, path4, value);
         }
-        function setWith(object, path3, value, customizer) {
+        function setWith(object, path4, value, customizer) {
           customizer = typeof customizer == "function" ? customizer : undefined2;
-          return object == null ? object : baseSet(object, path3, value, customizer);
+          return object == null ? object : baseSet(object, path4, value, customizer);
         }
         var toPairs = createToPairs(keys);
         var toPairsIn = createToPairs(keysIn);
@@ -7751,15 +7751,15 @@ var require_lodash = __commonJS({
           });
           return accumulator;
         }
-        function unset(object, path3) {
-          return object == null ? true : baseUnset(object, path3);
+        function unset(object, path4) {
+          return object == null ? true : baseUnset(object, path4);
         }
-        function update(object, path3, updater) {
-          return object == null ? object : baseUpdate(object, path3, castFunction(updater));
+        function update(object, path4, updater) {
+          return object == null ? object : baseUpdate(object, path4, castFunction(updater));
         }
-        function updateWith(object, path3, updater, customizer) {
+        function updateWith(object, path4, updater, customizer) {
           customizer = typeof customizer == "function" ? customizer : undefined2;
-          return object == null ? object : baseUpdate(object, path3, castFunction(updater), customizer);
+          return object == null ? object : baseUpdate(object, path4, castFunction(updater), customizer);
         }
         function values(object) {
           return object == null ? [] : baseValues(object, keys(object));
@@ -8140,17 +8140,17 @@ var require_lodash = __commonJS({
         function matches(source) {
           return baseMatches(baseClone(source, CLONE_DEEP_FLAG));
         }
-        function matchesProperty(path3, srcValue) {
-          return baseMatchesProperty(path3, baseClone(srcValue, CLONE_DEEP_FLAG));
+        function matchesProperty(path4, srcValue) {
+          return baseMatchesProperty(path4, baseClone(srcValue, CLONE_DEEP_FLAG));
         }
-        var method = baseRest(function(path3, args) {
+        var method = baseRest(function(path4, args) {
           return function(object) {
-            return baseInvoke(object, path3, args);
+            return baseInvoke(object, path4, args);
           };
         });
         var methodOf = baseRest(function(object, args) {
-          return function(path3) {
-            return baseInvoke(object, path3, args);
+          return function(path4) {
+            return baseInvoke(object, path4, args);
           };
         });
         function mixin(object, source, options) {
@@ -8197,12 +8197,12 @@ var require_lodash = __commonJS({
         var over = createOver(arrayMap);
         var overEvery = createOver(arrayEvery);
         var overSome = createOver(arraySome);
-        function property(path3) {
-          return isKey(path3) ? baseProperty(toKey(path3)) : basePropertyDeep(path3);
+        function property(path4) {
+          return isKey(path4) ? baseProperty(toKey(path4)) : basePropertyDeep(path4);
         }
         function propertyOf(object) {
-          return function(path3) {
-            return object == null ? undefined2 : baseGet(object, path3);
+          return function(path4) {
+            return object == null ? undefined2 : baseGet(object, path4);
           };
         }
         var range = createRange();
@@ -8655,12 +8655,12 @@ var require_lodash = __commonJS({
         LazyWrapper.prototype.findLast = function(predicate) {
           return this.reverse().find(predicate);
         };
-        LazyWrapper.prototype.invokeMap = baseRest(function(path3, args) {
-          if (typeof path3 == "function") {
+        LazyWrapper.prototype.invokeMap = baseRest(function(path4, args) {
+          if (typeof path4 == "function") {
             return new LazyWrapper(this);
           }
           return this.map(function(value) {
-            return baseInvoke(value, path3, args);
+            return baseInvoke(value, path4, args);
           });
         });
         LazyWrapper.prototype.reject = function(predicate) {
@@ -10245,6 +10245,92 @@ ${selection.selectedText}
   }
 };
 
+// ../cody-shared/src/chat/recipes/git-log.ts
+var import_child_process = require("child_process");
+var import_path3 = __toESM(require("path"));
+var GitHistory = class {
+  constructor() {
+    this.id = "git-history";
+  }
+  async getInteraction(_humanChatInput, context) {
+    const dirPath = context.editor.getWorkspaceRootPath();
+    if (!dirPath) {
+      return null;
+    }
+    const logFormat = '--pretty="Commit author: %an%nCommit message: %s%nChange description:%b%n"';
+    const items = [
+      {
+        label: "Last 5 items",
+        args: ["log", "-n5", logFormat],
+        rawDisplayText: "What changed in my codebase in the last 5 commits?"
+      },
+      {
+        label: "Last day",
+        args: ["log", "--since", "1 day", logFormat],
+        rawDisplayText: "What has changed in my codebase in the last day?"
+      },
+      {
+        label: "Last week",
+        args: ["log", "--since='1 week'", logFormat],
+        rawDisplayText: "What changed in my codebase in the last week?"
+      }
+    ];
+    const selection = context.editor.getActiveTextEditorSelectionOrEntireFile();
+    if (selection) {
+      const name = import_path3.default.basename(selection.fileName);
+      items.push({
+        label: `Last 5 items for ${name}`,
+        args: ["log", "-n5", logFormat, "--", selection.fileName],
+        rawDisplayText: `What changed in ${name} in the last 5 commits`
+      });
+    }
+    const selectedLabel = await context.editor.showQuickPick(items.map((e) => e.label));
+    if (!selectedLabel) {
+      return null;
+    }
+    const selected = Object.fromEntries(
+      items.map(({ label, args, rawDisplayText: rawDisplayText2 }) => [label, { args, rawDisplayText: rawDisplayText2 }])
+    )[selectedLabel];
+    const { args: gitArgs, rawDisplayText } = selected;
+    const gitLogCommand = (0, import_child_process.spawnSync)("git", ["--no-pager", ...gitArgs], { cwd: dirPath });
+    const gitLogOutput = gitLogCommand.stdout.toString().trim();
+    if (!gitLogOutput) {
+      const emptyGitLogMessage = "No recent changes found";
+      return new Interaction(
+        { speaker: "human", displayText: rawDisplayText },
+        {
+          speaker: "assistant",
+          prefix: emptyGitLogMessage,
+          text: emptyGitLogMessage
+        },
+        Promise.resolve([]),
+        []
+      );
+    }
+    const truncatedGitLogOutput = truncateText(gitLogOutput, MAX_RECIPE_INPUT_TOKENS);
+    let truncatedLogMessage = "";
+    if (truncatedGitLogOutput.length < gitLogOutput.length) {
+      truncatedLogMessage = "Truncated extra long git log output, so summary may be incomplete.";
+    }
+    const promptMessage = `Summarize these commits:
+${truncatedGitLogOutput}
+
+Provide your response in the form of a bulleted list. Do not mention the commit hashes.`;
+    const assistantResponsePrefix = `Here is a summary of recent changes:
+${truncatedLogMessage}`;
+    return new Interaction(
+      { speaker: "human", text: promptMessage, displayText: rawDisplayText },
+      {
+        speaker: "assistant",
+        prefix: assistantResponsePrefix,
+        text: assistantResponsePrefix
+      },
+      Promise.resolve([]),
+      []
+    );
+  }
+};
+
 // ../cody-shared/src/chat/recipes/improve-variable-names.ts
 var ImproveVariableNames = class {
   constructor() {
@@ -10391,7 +10477,8 @@ function init() {
     new GenerateTest(),
     new ImproveVariableNames(),
     new TranslateToLanguage(),
-    new FindCodeSmells()
+    new FindCodeSmells(),
+    new GitHistory()
   ];
   for (const recipe of recipes) {
     const existingRecipe = getRecipe(recipe.id);
@@ -10688,6 +10775,7 @@ async function createClient({
     const humanChatInput = options?.humanChatInput ?? "";
     const recipe = getRecipe(recipeId);
     if (!recipe) {
+      process.stderr.write("did not find recipe: " + recipeId);
       return;
     }
     const interaction = await recipe.getInteraction(humanChatInput, {
@@ -11098,8 +11186,9 @@ var AgentEditor = class {
   replaceSelection() {
     throw new Error("Not implemented");
   }
-  showQuickPick() {
-    throw new Error("Not implemented");
+  showQuickPick(labels) {
+    process.stderr.write("trying to quick pick stuff?");
+    return this.agent.request("showQuickPick", labels);
   }
   showWarningMessage() {
     throw new Error("Not implemented");
@@ -11300,6 +11389,7 @@ var Agent = class extends MessageHandler {
       accessToken: process.env.SRC_ACCESS_TOKEN || "",
       serverEndpoint: process.env.SRC_ENDPOINT || "https://sourcegraph.com"
     });
+    process.stderr.write("starting up!");
     this.registerRequest("initialize", (client) => {
       process.stderr.write(
         `Cody Agent: handshake with client '${client.name}' (version '${client.version}') at workspace root path '${client.workspaceRootPath}'
@@ -11350,10 +11440,12 @@ var Agent = class extends MessageHandler {
       )
     );
     this.registerRequest("recipes/execute", async (data) => {
+      process.stderr.write("executing recipes..." + data.id);
       const client = await this.client;
       if (!client) {
         return null;
       }
+      process.stderr.write("got client");
       await client.executeRecipe(data.id, {
         humanChatInput: data.humanChatInput
       });

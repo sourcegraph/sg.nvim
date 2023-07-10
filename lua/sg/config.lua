@@ -9,5 +9,6 @@ config.on_attach = function(_, bufnr)
 end
 
 config.testing = (vim.env.SG_NVIM_TESTING or "") == "true"
+config.testing = true
 
 return config
