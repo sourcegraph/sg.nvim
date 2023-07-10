@@ -62,6 +62,6 @@ end
 -- COMPAT(0.10.0)
 -- So far only handle stdout, no other items are handled.
 -- Probably will break on me unexpectedly. Nice
-utils.system = vim.system or require "sg.vendored.vim-system"
+utils.system = vim.system or (require "sg.vendored.vim-system")
 
 return utils
