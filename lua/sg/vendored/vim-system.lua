@@ -1,4 +1,4 @@
--- COMPAT(0.10) - Can just remove this whole file
+-- COMPAT(0.10) - Can just remove this whole file, vim.system will work instead
 
 -- vim/_system.lua
 local uv = vim.loop
