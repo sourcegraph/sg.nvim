@@ -95,7 +95,7 @@ M.notify = function(method, params)
     table.insert(M.messages, {
       type = "notify",
       method = method,
-      -- params = params,
+      params = params,
     })
   end
 

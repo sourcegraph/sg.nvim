@@ -1,6 +1,14 @@
+-- For some reason this doesn't always get loaded?...
+vim.cmd [[runtime! plugin/cody-agent.lua]]
+-- local augroup_cody = vim.api.nvim_create_augroup("augroup-cody", { clear = false })
+
 require("plenary.async").tests.add_to_env()
 
 local rpc = assert(require "sg.cody.rpc", "able to load cody rpc")
+
+local filter_msg = function(pred)
+  return vim.tbl_filter(pred, rpc.messages)
+end
 
 local find_initialized = function()
   return vim.tbl_filter(function(msg)
@@ -16,7 +24,7 @@ describe("cody", function()
     end)
 
     local initialized = find_initialized()
-    eq(initialized, { type = "notify", method = "initialized" })
+    eq(initialized, { type = "notify", method = "initialized", params = {} })
   end)
 
   a.it("should be able to list recipes", function()
@@ -32,5 +40,16 @@ describe("cody", function()
     end, data)[1]
 
     eq(chat_question, { id = "chat-question", title = "chat-question" })
+  end)
+
+  a.it("should be able to see what file is open", function()
+    vim.cmd.edit [[README.md]]
+
+    local opened = filter_msg(function(msg)
+      return msg.type == "notify" and msg.method == "textDocument/didOpen"
+    end)[1]
+
+    assert(opened, "Did not open readme")
+    assert(string.find(opened.params.filePath, "README.md"), "Did not send correct filename")
   end)
 end)
