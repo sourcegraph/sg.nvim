@@ -1,3 +1,7 @@
+-- Force environment variables when loading the library
+vim.env.SRC_ACCESS_TOKEN = require("sg.env").token()
+vim.env.SRC_ENDPOINT = require("sg.env").endpoint()
+
 -- Add the compiled version of the library to our cpath,
 -- so that we can require it
 local root_dir = vim.fn.fnamemodify(require("plenary.debug_utils").sourced_filepath(), ":p:h:h:h")
@@ -50,7 +54,7 @@ end
 -- Return the required libsg_nvim
 local ok, lib = pcall(require, "libsg_nvim")
 if not ok then
-  print "Failed to load libsg_nvim: You probably did not run `cargo build --workspace`"
+  print("Failed to load libsg_nvim: You probably did not run `cargo build --workspace`", lib)
   return {}
 end
 

@@ -51,7 +51,7 @@ end
 function State:update_message(message)
   set_last_state(self)
 
-  if not vim.tbl_isempty(self.messages) then
+  if not vim.tbl_isempty(self.messages) and self.messages[#self.messages].speaker ~= Speaker.user then
     self.messages[#self.messages] = message
   else
     self:append(message)

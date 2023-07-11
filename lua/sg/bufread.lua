@@ -26,7 +26,7 @@ M.edit = function(path)
     if type(entry) == "string" then
       contents = vim.split(entry, "\n")
     else
-      table.insert(contents, tostring(entry))
+      vim.list_extend(contents, vim.split(tostring(entry), "\n"))
     end
 
     table.insert(contents, 1, "failed to load file")
@@ -42,9 +42,17 @@ M.edit = function(path)
   local bufnr = vim.api.nvim_get_current_buf()
 
   if entry.type == "directory" then
-    return M._open_remote_folder(bufnr, entry.bufname, entry.data --[[@as SgDirectory]])
+    return M._open_remote_folder(
+      bufnr,
+      entry.bufname,
+      entry.data --[[@as SgDirectory]]
+    )
   elseif entry.type == "file" then
-    return M._open_remote_file(bufnr, entry.bufname, entry.data --[[@as SgFile]])
+    return M._open_remote_file(
+      bufnr,
+      entry.bufname,
+      entry.data --[[@as SgFile]]
+    )
   else
     error("unknown path type: " .. entry.type)
   end

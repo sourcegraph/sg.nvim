@@ -1,7 +1,7 @@
 -- COMPAT(0.10) -> vim.uv
 local uv = vim.loop
 
-local log = require "vim.lsp.log"
+local log = require "sg.log"
 local protocol = require "vim.lsp.protocol"
 local validate, schedule, schedule_wrap = vim.validate, vim.schedule, vim.schedule_wrap
 
@@ -47,7 +47,6 @@ local function parse_headers(header)
       key = key:lower():gsub("%-", "_")
       headers[key] = value
     else
-      local _ = log.error() and log.error("invalid header line %q", line)
       error(string.format("invalid header line %q", line))
     end
   end
@@ -178,7 +177,7 @@ local default_dispatchers = {}
 ---@param method string: The invoked LSP method
 ---@param params table: Parameters for the invoked LSP method
 function default_dispatchers.notification(method, params)
-  local _ = log.debug() and log.debug("notification", method, params)
+  local _ = log.debug("notification", method, params)
 end
 ---@private
 --- Default dispatcher for requests sent to an LSP server.
@@ -188,7 +187,7 @@ end
 ---@return nil
 ---@return table
 function default_dispatchers.server_request(method, params)
-  local _ = log.debug() and log.debug("server_request", method, params)
+  local _ = log.debug("server_request", method, params)
   return nil, rpc_response_error(protocol.ErrorCodes.MethodNotFound)
 end
 ---@private
@@ -198,7 +197,7 @@ end
 ---@param signal integer: Number describing the signal used to terminate (if
 ---any)
 function default_dispatchers.on_exit(code, signal)
-  local _ = log.info() and log.info("client_exit", { code = code, signal = signal })
+  local _ = log.info("client_exit", { code = code, signal = signal })
 end
 ---@private
 --- Default dispatcher for client errors.
@@ -206,7 +205,7 @@ end
 ---@param code integer: Error code
 ---@param err any: Details about the error
 function default_dispatchers.on_error(code, err)
-  local _ = log.error() and log.error("client_error:", client_errors[code], err)
+  local _ = log.error("client_error:", client_errors[code], err)
 end
 
 ---@private
@@ -255,7 +254,7 @@ local Client = {}
 
 ---@private
 function Client:encode_and_send(payload)
-  local _ = log.debug() and log.debug("rpc.send", payload)
+  local _ = log.debug("rpc.send", payload)
   if self.transport.is_closing() then
     return false
   end
@@ -355,7 +354,7 @@ function Client:handle_body(body)
     self:on_error(client_errors.INVALID_SERVER_JSON, decoded)
     return
   end
-  local _ = log.debug() and log.debug("rpc.receive", decoded)
+  local _ = log.debug("rpc.receive", decoded)
 
   assert(decoded, "must have decoded a message")
   if type(decoded.method) == "string" and decoded.id then
@@ -427,7 +426,7 @@ function Client:handle_body(body)
     if decoded.error then
       local mute_error = false
       if decoded.error.code == protocol.ErrorCodes.RequestCancelled then
-        local _ = log.debug() and log.debug("Received cancellation ack", decoded)
+        local _ = log.debug("Received cancellation ack", decoded)
         mute_error = true
       end
 
@@ -458,7 +457,7 @@ function Client:handle_body(body)
       self:try_call(client_errors.SERVER_RESULT_CALLBACK_ERROR, callback, decoded.error, decoded.result)
     else
       self:on_error(client_errors.NO_RESULT_CALLBACK_FOUND, decoded)
-      local _ = log.error() and log.error("No callback found for server response id " .. result_id)
+      local _ = log.error("No callback found for server response id " .. result_id)
     end
   elseif type(decoded.method) == "string" then
     -- Notification
@@ -620,9 +619,7 @@ end
 --- - {env} (table) Additional environment variables for LSP server process
 ---@return VendoredPublicClient: RPC object.
 local function start(cmd, cmd_args, dispatchers, extra_spawn_params)
-  if log.info() then
-    log.info("Starting RPC client", { cmd = cmd, args = cmd_args, extra = extra_spawn_params })
-  end
+  log.debug("Starting RPC client", { cmd = cmd, args = cmd_args, extra = extra_spawn_params })
 
   validate {
     cmd = { cmd, "s" },
@@ -662,9 +659,8 @@ local function start(cmd, cmd_args, dispatchers, extra_spawn_params)
   end)
 
   local stderr_handler = function(_, chunk)
-    if chunk and log.error() then
-      _ = log.error("rpc", cmd, "stderr", chunk)
-      _ = print("rpc", cmd, "stderr", chunk)
+    if chunk then
+      _ = log.debug("[cody] stderr", cmd, "stderr", chunk)
     end
   end
 

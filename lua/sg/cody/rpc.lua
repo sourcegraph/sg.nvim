@@ -79,6 +79,9 @@ SG_CODY_CLIENT = vendored_rpc.start(config.node_executable, { config.cody_agent 
       log.warn("[cody-agent] unhandled server request:", method)
     end
   end,
+  on_exit = function(code, signal)
+    log.warn("[cody-agen] closed cody agent", code, signal)
+  end,
 })
 
 local client = SG_CODY_CLIENT
@@ -96,6 +99,7 @@ M.notify = function(method, params)
     })
   end
 
+  log.trace("notify", method, params)
   client.notify(method, params)
 end
 
@@ -108,6 +112,7 @@ M.request = async.wrap(function(method, params, callback)
     })
   end
 
+  log.trace("request", method, params)
   return client.request(method, params, function(err, result)
     if config.testing then
       table.insert(M.messages, {
@@ -148,6 +153,10 @@ end
 
 M.exit = function()
   M.notify "exit"
+
+  -- Force closing the connection.
+  -- I think this is good to make sure we don't leave anything running
+  client.terminate()
 end
 
 M.execute = {}

@@ -1,7 +1,9 @@
 local async = require "plenary.async"
+local block_on = require "plenary.async.util"
 local void = async.void
 
 local debounce = require "sg.debounce"
+local document = require "sg.document"
 local rpc = require "sg.cody.rpc"
 local protocol = require "sg.cody.protocol"
 if not rpc then
@@ -28,16 +30,23 @@ end
 aucmd {
   "BufReadPost",
   cb = function(data)
-    local document = protocol.get_text_document(data.buf)
-    notify("textDocument/didOpen", document)
+    if not document.is_useful(data.buf) then
+      return
+    end
+    local doc = protocol.get_text_document(data.buf)
+    notify("textDocument/didOpen", doc)
   end,
 }
 
 aucmd {
   "BufEnter",
   cb = function(data)
-    local document = protocol.get_text_document(data.buf, { content = false })
-    notify("textDocument/didFocus", document)
+    if not document.is_useful(data.buf) then
+      return
+    end
+
+    local doc = protocol.get_text_document(data.buf, { content = false })
+    notify("textDocument/didFocus", doc)
   end,
 }
 
@@ -52,8 +61,8 @@ aucmd {
       end
     end
 
-    local document = protocol.get_text_document(data.buf, { content = false })
-    notify("textDocument/didClose", document)
+    local doc = protocol.get_text_document(data.buf, { content = false })
+    notify("textDocument/didClose", doc)
   end,
 }
 
@@ -65,8 +74,7 @@ aucmd {
       return
     end
 
-    -- TODO: Probably other buffers that we should not send events for
-    if vim.bo[bufnr].buflisted == 0 then
+    if not document.is_useful(bufnr) then
       return
     end
 
@@ -87,10 +95,14 @@ aucmd {
 aucmd {
   "VimLeavePre",
   cb = function()
-    void(function()
+    local f = async.wrap(function(cb)
       rpc.shutdown()
-      rpc.exit()
-    end)()
+      cb()
+    end, 1)
+
+    block_on(f)
+
+    rpc.exit()
   end,
 }
 
