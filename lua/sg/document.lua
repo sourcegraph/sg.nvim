@@ -8,7 +8,8 @@ document.is_useful = function(bufnr)
     return false
   end
 
-  if vim.api.nvim_buf_get_name(bufnr) == "" then
+  local name = vim.api.nvim_buf_get_name(bufnr)
+  if not name or name == "" then
     return false
   end
 

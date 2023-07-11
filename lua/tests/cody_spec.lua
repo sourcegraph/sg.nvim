@@ -42,7 +42,7 @@ describe("cody", function()
     eq(chat_question, { id = "chat-question", title = "chat-question" })
   end)
 
-  a.it("should be able to see what file is open", function()
+  a.it("should handle file lifecycle", function()
     vim.cmd.edit [[README.md]]
 
     local opened = filter_msg(function(msg)
@@ -51,5 +51,18 @@ describe("cody", function()
 
     assert(opened, "Did not open readme")
     assert(string.find(opened.params.filePath, "README.md"), "Did not send correct filename")
+
+    local readme_bufnr = vim.api.nvim_get_current_buf()
+
+    vim.cmd.edit [[Cargo.toml]]
+
+    vim.api.nvim_buf_delete(readme_bufnr, { force = true })
+
+    local deleted = filter_msg(function(msg)
+      return msg.type == "notify" and msg.method == "textDocument/didClose"
+    end)[1]
+
+    assert(deleted, "Did not close readme")
+    assert(string.find(deleted.params.filePath, "README.md"), "Did not close correct filename")
   end)
 end)

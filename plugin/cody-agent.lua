@@ -33,6 +33,7 @@ aucmd {
     if not document.is_useful(data.buf) then
       return
     end
+
     local doc = protocol.get_text_document(data.buf)
     notify("textDocument/didOpen", doc)
   end,
@@ -61,7 +62,15 @@ aucmd {
       end
     end
 
+    if not document.is_useful(data.buf) then
+      return
+    end
+
     local doc = protocol.get_text_document(data.buf, { content = false })
+    if not doc.filePath then
+      return
+    end
+
     notify("textDocument/didClose", doc)
   end,
 }
