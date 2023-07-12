@@ -18,17 +18,17 @@ local log = require "sg.log"
 local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
 
 ---@type string
-local bin_sg_cody = (function()
-  local cmd = "sg-cody"
+local bin_sg_nvim = (function()
+  local cmd = "sg-nvim-agent"
   if vim.fn.executable(cmd) == 1 then
     return cmd
   end
 
   -- TODO: Should pick the one with the most recent priority?
   local cmd_paths = {
-    "target/debug/sg-cody",
-    -- "target/release/sg-cody",
-    "bin/sg-cody",
+    "target/debug/sg-nvim-agent",
+    -- "target/release/sg-nvim-agent",
+    "bin/sg-nvim-agent",
   }
 
   for _, path in ipairs(cmd_paths) do
@@ -38,7 +38,7 @@ local bin_sg_cody = (function()
     end
   end
 
-  error "Failed to load sg-cody: You probably did not run `nvim -l build/init.lua`"
+  error "Failed to load sg-nvim-agent: You probably did not run `nvim -l build/init.lua`"
 end)()
 
 local M = {}
@@ -49,7 +49,7 @@ local notification_handlers = {
 
 local server_handlers = {}
 
-SG_SG_CLIENT = vendored_rpc.start(bin_sg_cody, {}, {
+SG_SG_CLIENT = vendored_rpc.start(bin_sg_nvim, {}, {
   cmd_env = {
     PATH = vim.env.PATH,
     SRC_ACCESS_TOKEN = env.token(),
