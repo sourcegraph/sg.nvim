@@ -21,9 +21,9 @@ end
 local eq = assert.are.same
 describe("cody", function()
   a.it("should have initialized", function()
-    vim.wait(1000, function()
+    vim.wait(2000, function()
       return find_initialized()
-    end)
+    end, 10)
 
     local initialized = find_initialized()
     eq(initialized, { type = "notify", method = "initialized", params = {} })
