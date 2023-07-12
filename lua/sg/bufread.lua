@@ -158,7 +158,7 @@ M._open_remote_folder = function(bufnr, bufname, data)
       local row = get_row()
       local children = lib.get_remote_directory_contents(selected.data.remote, selected.data.oid, selected.data.path)
       with_modifiable(bufnr, function()
-        for idx, _ in ipairs(children) do
+        for _ in ipairs(children) do
           vim.api.nvim_buf_set_lines(bufnr, row, row + 1, false, {})
           table.remove(entries, row + 1)
         end

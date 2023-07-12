@@ -75,9 +75,8 @@ function State:complete(bufnr, win)
   self:render(bufnr, win)
   vim.cmd [[mode]]
 
-  local completion = require("sg.cody.rpc").execute.chat_question(snippet)
-  -- self:append(Message.init(Speaker.cody, vim.split(vim.trim(completion), "\n")))
-  -- self:render(bufnr, win)
+  -- Execute chat question. Will be completed async
+  require("sg.cody.rpc").execute.chat_question(snippet)
 end
 
 --- Render the state to a buffer and window

@@ -96,7 +96,7 @@ local function setup_output(output)
     return assert(uv.new_pipe(false)), output
   end
 
-  assert(output == false)
+  assert(output == false, "must not have output")
   return nil, nil
 end
 

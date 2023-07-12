@@ -326,7 +326,7 @@ function Client:request(method, params, callback, notify_reply_callback)
 end
 
 function Client:on_error(errkind, ...)
-  assert(client_errors[errkind])
+  assert(client_errors[errkind], "must have an errkind")
   -- TODO what to do if this fails?
   pcall(self.dispatchers.on_error, errkind, ...)
 end

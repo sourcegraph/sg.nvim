@@ -1,6 +1,6 @@
 -- local rpc = require "sg.rpc"
 local void = require("plenary.async").void
-local rpc = assert((R or require) "sg.rpc", "loads rpc")
+local rpc = assert(require "sg.rpc", "loads rpc")
 
 vim.wait(100)
 

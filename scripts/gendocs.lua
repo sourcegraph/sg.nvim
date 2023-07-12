@@ -1,9 +1,9 @@
 -- Setup sg with defaults
-(R or require)("sg").setup { accept_tos = true }
+require("sg").setup { accept_tos = true }
 
 -- tree-sitter-lua docgen
-local _ = (R or require) "docgen.transformers"
-local docgen = (R or require) "docgen"
+local _ = require "docgen.transformers"
+local docgen = require "docgen"
 
 -- TODO: Fix the other files so that we can add them here.
 local input_files = {

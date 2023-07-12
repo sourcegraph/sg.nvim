@@ -5,9 +5,9 @@ local putils = require "telescope.previewers.utils"
 local conf = require("telescope.config").values
 local finders = require "telescope.finders"
 local entry_display = require "telescope.pickers.entry_display"
-local actions = require "telescope.actions"
-local action_state = require "telescope.actions.state"
-local action_set = require "telescope.actions.set"
+-- local actions = require "telescope.actions"
+-- local action_state = require "telescope.actions.state"
+-- local action_set = require "telescope.actions.set"
 
 local telescope = {}
 
@@ -16,6 +16,8 @@ local ns_previewer = vim.api.nvim_create_namespace "sg.telescope.previewers"
 -- Usage:
 -- lua require'telescope.builtin'.lsp_references { previewer = R'sg.telescope'.sg_previewer.new{} }
 telescope.sg_previewer = defaulter(function(opts)
+  opts = opts or {}
+
   local jump_to_line = function(self, bufnr, lnum, status)
     if lnum and lnum > 0 then
       pcall(vim.api.nvim_buf_add_highlight, bufnr, ns_previewer, "TelescopePreviewLine", lnum - 1, 0, -1)
@@ -96,36 +98,34 @@ telescope.fuzzy_search_results = function(opts)
     }
   end
 
-  require("telescope.pickers")
-    .new({
-      sorter = conf.file_sorter(opts),
+  require("telescope.pickers").new({
+    sorter = conf.file_sorter(opts),
 
-      finder = finders.new_table {
-        results = search_results,
-        entry_maker = function(entry)
-          print(string.format("sg://%s/-/%s", entry.repo, entry.file))
-          return {
-            value = entry,
-            ordinal = string.format("%s %s", entry.file, entry.preview),
-            display = display,
-            filename = string.format("sg://%s/-/%s", entry.repo, entry.file),
-            row = entry.line + 1,
-          }
-        end,
-      },
-      attach_mappings = function()
-        --       actions.select_default:replace(function(prompt_bufnr)
-        --         local selection = action_state.get_selected_entry()
-        --         local entry = selection.value
-        --         local uri =
-        -- return action_set.edit(prompt_bufnr, "edit")
-        --         vim.cmd.edit(uri)
-        --       end)
-
-        return true
+    finder = finders.new_table {
+      results = search_results,
+      entry_maker = function(entry)
+        print(string.format("sg://%s/-/%s", entry.repo, entry.file))
+        return {
+          value = entry,
+          ordinal = string.format("%s %s", entry.file, entry.preview),
+          display = display,
+          filename = string.format("sg://%s/-/%s", entry.repo, entry.file),
+          row = entry.line + 1,
+        }
       end,
-    }, {})
-    :find()
+    },
+    attach_mappings = function()
+      --       actions.select_default:replace(function(prompt_bufnr)
+      --         local selection = action_state.get_selected_entry()
+      --         local entry = selection.value
+      --         local uri =
+      -- return action_set.edit(prompt_bufnr, "edit")
+      --         vim.cmd.edit(uri)
+      --       end)
+
+      return true
+    end,
+  }, {}):find()
 end
 
 return telescope

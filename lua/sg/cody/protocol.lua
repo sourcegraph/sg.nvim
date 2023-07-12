@@ -38,9 +38,9 @@ proto.get_text_document = function(bufnr, opts)
     document.content = table.concat(lines, "\n")
   end
 
-  if opts.selection then
-    -- TODO:
-  end
+  -- TODO:
+  -- if opts.selection then
+  -- end
 
   return document
 end

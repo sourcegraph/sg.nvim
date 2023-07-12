@@ -35,7 +35,7 @@ end, { nargs = "*" })
 ---@command CodyToggle [[
 --- Toggles the current Cody Chat window.
 ---@command ]]
-vim.api.nvim_create_user_command("CodyToggle", function(command)
+vim.api.nvim_create_user_command("CodyToggle", function(_)
   cody_commands.toggle()
 end, {})
 

@@ -51,11 +51,5 @@ for _, pattern in ipairs(patterns) do
   end
 end
 
--- Return the required libsg_nvim
-local ok, lib = pcall(require, "libsg_nvim")
-if not ok then
-  print("Failed to load libsg_nvim: You probably did not run `cargo build --workspace`", lib)
-  return {}
-end
-
-return lib
+print "Failed to load libsg_nvim: You probably did not run `nvim -l build/init.lua`"
+return {}

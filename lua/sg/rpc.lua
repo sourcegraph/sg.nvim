@@ -43,11 +43,11 @@ function M.embeddings(repo, query)
     return err, nil
   end
 
-  local err, data = req("Embedding", { repo = repo_id, query = query, code = 5, text = 0 })
-  if not err then
+  local embedding_err, data = req("Embedding", { repo = repo_id, query = query, code = 5, text = 0 })
+  if not embedding_err then
     return nil, data.embeddings
   else
-    return err, nil
+    return embedding_err, nil
   end
 end
 
