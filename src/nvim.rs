@@ -1,3 +1,5 @@
+use crate::{get_embeddings_context, get_repository_id};
+
 use {
     anyhow::Result,
     serde::{Deserialize, Serialize},
@@ -71,15 +73,14 @@ impl Request {
             }
             RequestData::Repository { name } => {
                 eprintln!("[sg-cody] repo: {id} {name}");
-                // let repository = match get_repository_id(name).await {
-                //     Ok(repo) => repo,
-                //     Err(err) => {
-                //         return Err(anyhow::anyhow!("failed to get completions: {err:?}"));
-                //     }
-                // };
-                //
-                // Ok(Response::Repository { id, repository })
-                todo!()
+                let repository = match get_repository_id(name).await {
+                    Ok(repo) => repo,
+                    Err(err) => {
+                        return Err(anyhow::anyhow!("failed to get repository: {err:?}"));
+                    }
+                };
+
+                Ok(Response::new(id, ResponseData::Repository { repository }))
             }
             RequestData::Embedding {
                 repo,
@@ -88,15 +89,14 @@ impl Request {
                 text,
             } => {
                 eprintln!("[sg-cody] repo: {id} {repo}");
-                // let embeddings = match get_embeddings_context(repo, query, code, text).await {
-                //     Ok(embeddings) => embeddings,
-                //     Err(err) => {
-                //         return Err(anyhow::anyhow!("failed to get completions: {err:?}"));
-                //     }
-                // };
-                //
-                // Ok(Response::Embedding { id, embeddings })
-                todo!()
+                let embeddings = match get_embeddings_context(repo, query, code, text).await {
+                    Ok(embeddings) => embeddings,
+                    Err(err) => {
+                        return Err(anyhow::anyhow!("failed to get embeddings: {err:?}"));
+                    }
+                };
+
+                Ok(Response::new(id, ResponseData::Embedding { embeddings }))
             }
         }
     }

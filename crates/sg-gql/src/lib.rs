@@ -28,9 +28,7 @@ pub async fn get_graphql<Q: GraphQLQuery>(
         Ok(response) => response,
         Err(err) => {
             return Err(anyhow::anyhow!(
-                "Failed with (OH NO) status: {:?} || {err:?} TESTING: {}",
-                err.status(),
-                vars_ser
+                "Graphql failed with status:\n{err:?}\nvars: {vars_ser}",
             ))
         }
     };

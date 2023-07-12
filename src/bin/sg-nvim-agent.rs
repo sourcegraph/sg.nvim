@@ -1,4 +1,4 @@
-use {anyhow::Result, tokio::io::BufReader};
+use {anyhow::Result, sg::nvim, tokio::io::BufReader};
 
 #[tokio::main]
 async fn main() -> Result<()> {
@@ -13,7 +13,10 @@ async fn main() -> Result<()> {
             Ok(Some(nvim::Message::Request(message))) => {
                 // got some messages
                 eprintln!("Recieved a message: {message:?}");
-                let _ = jsonrpc::write_msg(&mut stdout, message.respond().await?).await;
+                match message.respond().await {
+                    Ok(response) => jsonrpc::write_msg(&mut stdout, response).await?,
+                    Err(err) => eprintln!("Failed to respond: {err:?}"),
+                };
             }
             Ok(Some(message)) => {
                 eprintln!("Somehow got a not request: {message:?}");

@@ -842,16 +842,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nvim"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "serde",
- "sg-types",
- "tokio",
-]
-
-[[package]]
 name = "once_cell"
 version = "1.18.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1200,7 +1190,6 @@ dependencies = [
  "lsp-server",
  "lsp-types",
  "mlua",
- "nvim",
  "once_cell",
  "regex",
  "reqwest",

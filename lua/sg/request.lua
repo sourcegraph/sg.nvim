@@ -43,19 +43,10 @@ end)()
 
 local M = {}
 
-local notification_handlers = {
-  ["Echo"] = function(_) end,
-}
-
+local notification_handlers = {}
 local server_handlers = {}
 
 SG_SG_CLIENT = vendored_rpc.start(bin_sg_nvim, {}, {
-  cmd_env = {
-    PATH = vim.env.PATH,
-    SRC_ACCESS_TOKEN = env.token(),
-    SRC_ENDPOINT = env.endpoint(),
-  },
-
   notification = function(method, data)
     if notification_handlers[method] then
       notification_handlers[method](data)
@@ -71,6 +62,12 @@ SG_SG_CLIENT = vendored_rpc.start(bin_sg_nvim, {}, {
       log.error("[cody-agent] unhandled server request:", method)
     end
   end,
+}, {
+  env = {
+    PATH = vim.env.PATH,
+    SRC_ACCESS_TOKEN = env.token(),
+    SRC_ENDPOINT = env.endpoint(),
+  },
 })
 
 if not SG_SG_CLIENT then

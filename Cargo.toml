@@ -26,7 +26,6 @@ userdata_defaults = { path = "crates/userdata-defaults/" }
 sg-gql = { path  = "crates/sg-gql" }
 sg-types = { path  = "crates/sg-types" }
 jsonrpc = { path = "crates/jsonrpc" }
-nvim = { path = "crates/nvim" }
 
 [workspace.dependencies]
 anyhow = "1"
@@ -49,7 +48,6 @@ name = "sg"
 members = [
     "crates/jsonrpc",
     "crates/libsg/",
-    "crates/nvim/",
     "crates/sg-gql/",
     "crates/sg-types/",
     "crates/userdata-defaults/",

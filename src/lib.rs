@@ -8,6 +8,9 @@ use {
     sg_types::*,
 };
 
+pub mod entry;
+pub mod nvim;
+
 pub fn normalize_url(url: &str) -> String {
     let re = Regex::new(r"^/").unwrap();
 
@@ -20,8 +23,6 @@ pub fn normalize_url(url: &str) -> String {
     )
     .to_string()
 }
-
-pub mod entry;
 
 mod graphql {
     use {super::*, futures::Future};
