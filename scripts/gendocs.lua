@@ -8,6 +8,7 @@ local docgen = (R or require) "docgen"
 -- TODO: Fix the other files so that we can add them here.
 local input_files = {
   "./lua/sg/init.lua",
+  "./lua/sg/config.lua",
   "./plugin/cody.lua",
   "./plugin/sg.lua",
 }

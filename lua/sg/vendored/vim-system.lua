@@ -63,6 +63,14 @@ function SystemObj:write(data)
     end
   elseif type(data) == "string" then
     stdin:write(data)
+    -- local done = false
+    -- stdin:write(data, function()
+    --   done = true
+    -- end)
+    --
+    -- vim.wait(100, function()
+    --   return done
+    -- end, 1)
   elseif data == nil then
     stdin:write("", function()
       stdin:shutdown(function()

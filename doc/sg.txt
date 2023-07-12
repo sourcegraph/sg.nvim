@@ -5,6 +5,29 @@ sg.nvim is a plugin for interfacing with Sourcegraph and Cody
 
 
 ================================================================================
+SETUP                                                                 *sg.setup*
+
+Config options for sg.nvim
+
+All options can be set via
+
+>lua
+  require("sg").setup { ... }
+<
+
+sg.config                                                          *sg.config*
+
+
+  Configuration Options: ~
+    {node_executable}     (string)    path to node executable
+    {cody_agent}          (string)    path to the cody-agent js bundle
+    {did_change_debounce} (number)    Number of ms to debounce changes
+    {on_attach}           (function)  function to run when attaching to
+                                      sourcegraph buffers
+
+
+
+================================================================================
 COMMANDS                                                         *cody.commands*
 
 Default commands for interacting with Cody

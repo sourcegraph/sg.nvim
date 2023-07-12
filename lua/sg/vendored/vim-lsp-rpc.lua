@@ -670,7 +670,7 @@ local function start(cmd, cmd_args, dispatchers, extra_spawn_params)
   end
 
   local cmd1 = { cmd }
-  vim.list_extend(cmd1, cmd_args)
+  _ = vim.list_extend(cmd1, cmd_args)
 
   local ok, sysobj_or_err = pcall(require("sg.utils").system, cmd1, {
     stdin = true,
@@ -680,7 +680,7 @@ local function start(cmd, cmd_args, dispatchers, extra_spawn_params)
     env = extra_spawn_params.env,
     detach = detached,
   }, function(obj)
-    dispatchers.on_exit(obj.code, obj.signal)
+    return dispatchers.on_exit(obj.code, obj.signal)
   end)
 
   if not ok then

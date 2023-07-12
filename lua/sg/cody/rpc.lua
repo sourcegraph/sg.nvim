@@ -23,6 +23,11 @@ local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
 local M = {}
 
 M.messages = {}
+local track = function(msg)
+  if config.testing then
+    table.insert(M.messages, msg)
+  end
+end
 
 local notification_handlers = {
   ["chat/updateMessageInProgress"] = function(noti)
@@ -59,7 +64,14 @@ local server_handlers = {
   end,
 }
 
-SG_CODY_CLIENT = vendored_rpc.start(config.node_executable, { config.cody_agent }, {
+local cody_args = { config.cody_agent }
+
+-- We can insert node breakpoint to debug the agent if needed
+if false then
+  table.insert(cody_args, 1, "--insert-brk")
+end
+
+SG_CODY_CLIENT = vendored_rpc.start(config.node_executable, cody_args, {
   notification = function(method, data)
     if notification_handlers[method] then
       notification_handlers[method](data)
@@ -68,13 +80,11 @@ SG_CODY_CLIENT = vendored_rpc.start(config.node_executable, { config.cody_agent 
     end
   end,
   server_request = function(method, params)
-    if config.testing then
-      table.insert(M.messages, {
-        type = "server_request",
-        method = method,
-        params = params,
-      })
-    end
+    track {
+      type = "server_request",
+      method = method,
+      params = params,
+    }
 
     local handler = server_handlers[method]
     if handler then
@@ -95,37 +105,31 @@ if not client then
 end
 
 M.notify = function(method, params)
-  if config.testing then
-    table.insert(M.messages, {
-      type = "notify",
-      method = method,
-      params = params,
-    })
-  end
+  track {
+    type = "notify",
+    method = method,
+    params = params,
+  }
 
   log.trace("notify", method, params)
   client.notify(method, params)
 end
 
 M.request = async.wrap(function(method, params, callback)
-  if config.testing then
-    table.insert(M.messages, {
-      type = "request",
-      method = method,
-      params = params,
-    })
-  end
+  track {
+    type = "request",
+    method = method,
+    params = params,
+  }
 
   log.trace("request", method, params)
   return client.request(method, params, function(err, result)
-    if config.testing then
-      table.insert(M.messages, {
-        type = "response",
-        method = method,
-        result = result or "none",
-        err = err,
-      })
-    end
+    track {
+      type = "response",
+      method = method,
+      result = result or "none",
+      err = err,
+    }
 
     return callback(err, result)
   end)
@@ -136,7 +140,7 @@ M.initialize = function()
   local info = {
     name = "neovim",
     version = "0.1",
-    workspaceRootPath = vim.loop.cwd(),
+    workspaceRootPath = vim.loop.cwd() or "",
     connectionConfiguration = {
       accessToken = env.token(),
       serverEndpoint = env.endpoint(),
@@ -152,7 +156,15 @@ M.initialize = function()
 end
 
 M.shutdown = function()
-  return M.request "shutdown"
+  local done = false
+  client.request("shutdown", {}, function()
+    track { type = "shutdown" }
+    done = true
+  end)
+
+  vim.wait(100, function()
+    return done
+  end)
 end
 
 M.exit = function()
@@ -181,12 +193,14 @@ M.execute.chat_question = function(message)
   return M.request("recipes/execute", { id = "chat-question", humanChatInput = message })
 end
 
-M.execute.fixup = function(message) end
+-- M.execute.fixup = function(message) end
 
-M.execute.git_history = function()
-  return M.request("recipes/execute", { id = "git-history", humanChatInput = "" })
-end
+-- M.execute.git_history = function()
+--   return M.request("recipes/execute", { id = "git-history", humanChatInput = "" })
+-- end
 
+-- ===== REQUIRE RUNTIME SIDE EFFECT HERE ======
+-- Always attempt to the start the server when loading.
 void(function()
   -- Run initialize as first message to send
   local _ = M.initialize()
@@ -194,5 +208,6 @@ void(function()
   -- And then respond that we've initialized
   local _ = M.notify("initialized", {})
 end)()
+-- =============================================
 
 return M

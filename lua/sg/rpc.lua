@@ -1,6 +1,10 @@
-local req = require("sg.request").async_request
+local req = require("sg.request").request
 
 local M = {}
+
+function M.echo(message, delay)
+  return req("Echo", { message = message, delay = delay })
+end
 
 --- Complete a single string snippet
 --- NOTE: Must be called from async context
@@ -8,12 +12,6 @@ local M = {}
 ---@return string
 function M.complete(snippet)
   local data = req("Complete", { message = snippet })
-  return data.completion
-end
-
--- TODO
-function M.complete_stream(snippet)
-  local data = req("StreamingComplete", { message = snippet })
   return data.completion
 end
 
@@ -28,11 +26,6 @@ end
 function M.embeddings(repo, query)
   local data = req("Embedding", { repo = repo, query = query, code = 5, text = 0 })
   return data.embeddings
-end
-
-function M.list_recipes()
-  local data = req("ListRecipes", {})
-  return data.recipes
 end
 
 return M

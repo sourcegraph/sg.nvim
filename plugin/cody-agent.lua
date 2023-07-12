@@ -1,7 +1,8 @@
 local async = require "plenary.async"
-local block_on = require "plenary.async.util"
+local block_on = require("plenary.async.util").block_on
 local void = async.void
 
+local config = require "sg.config"
 local debounce = require "sg.debounce"
 local document = require "sg.document"
 local rpc = require "sg.cody.rpc"
@@ -90,7 +91,7 @@ aucmd {
     local notify_changes, timer = debounce.debounce_trailing(function()
       local doc = protocol.get_text_document(data.buf)
       notify("textDocument/didChange", doc)
-    end, 500)
+    end, config.did_change_debounce)
 
     debounce_handles[bufnr] = timer
 
@@ -107,13 +108,7 @@ aucmd {
 aucmd {
   "VimLeavePre",
   cb = function()
-    local f = async.wrap(function(cb)
-      rpc.shutdown()
-      cb()
-    end, 1)
-
-    block_on(f)
-
+    rpc.shutdown()
     rpc.exit()
   end,
 }
