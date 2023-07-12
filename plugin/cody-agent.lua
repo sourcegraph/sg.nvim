@@ -3,7 +3,7 @@ local block_on = require("plenary.async.util").block_on
 local void = async.void
 
 local config = require "sg.config"
-local debounce = require "sg.debounce"
+local debounce = require "sg.vendored.debounce"
 local document = require "sg.document"
 local rpc = require "sg.cody.rpc"
 local protocol = require "sg.cody.protocol"
