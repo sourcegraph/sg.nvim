@@ -88,15 +88,18 @@ aucmd {
     end
 
     local notify_changes, timer = debounce.debounce_trailing(function()
-      local document = protocol.get_text_document(data.buf)
-      notify("textDocument/didChange", document)
+      local doc = protocol.get_text_document(data.buf)
+      notify("textDocument/didChange", doc)
     end, 500)
 
     debounce_handles[bufnr] = timer
+
     vim.schedule(function()
-      vim.api.nvim_buf_attach(bufnr, true, {
-        on_lines = notify_changes,
-      })
+      if vim.api.nvim_buf_is_valid(bufnr) then
+        vim.api.nvim_buf_attach(bufnr, true, {
+          on_lines = notify_changes,
+        })
+      end
     end)
   end,
 }

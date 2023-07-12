@@ -4,6 +4,8 @@ vim.cmd [[runtime! plugin/cody-agent.lua]]
 
 require("plenary.async").tests.add_to_env()
 
+local async_util = require "plenary.async.util"
+
 local rpc = assert(require "sg.cody.rpc", "able to load cody rpc")
 
 local filter_msg = function(pred)
@@ -56,7 +58,9 @@ describe("cody", function()
 
     vim.cmd.edit [[Cargo.toml]]
 
+    async_util.scheduler()
     vim.api.nvim_buf_delete(readme_bufnr, { force = true })
+    async_util.scheduler()
 
     local deleted = filter_msg(function(msg)
       return msg.type == "notify" and msg.method == "textDocument/didClose"
@@ -64,5 +68,27 @@ describe("cody", function()
 
     assert(deleted, "Did not close readme")
     assert(string.find(deleted.params.filePath, "README.md"), "Did not close correct filename")
+
+    -- Update the buffer
+    async_util.scheduler()
+    vim.api.nvim_buf_set_lines(0, 0, 0, false, { "inserted" })
+    async_util.scheduler()
+
+    -- Wait til we get the notificaiton (it's debounced, so won't happen right away)
+    vim.wait(10000, function()
+      local changed = filter_msg(function(msg)
+        return msg.type == "notify" and msg.method == "textDocument/didChange"
+      end)[1]
+
+      return changed ~= nil
+    end, 10, false)
+    async_util.scheduler()
+
+    local changed = filter_msg(function(msg)
+      return msg.type == "notify" and msg.method == "textDocument/didChange"
+    end)[1]
+
+    eq({ "inserted" }, vim.api.nvim_buf_get_lines(0, 0, 1, false))
+    assert(string.find(changed.params.filePath, "Cargo.toml"), "Did not update correct filename")
   end)
 end)

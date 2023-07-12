@@ -4,7 +4,11 @@
 -- This should hopefully prevent multiple cody clients from
 -- running at a time.
 if SG_CODY_CLIENT then
-  pcall(SG_CODY_CLIENT.terminate)
+  local ok, err = pcall(SG_CODY_CLIENT.terminate)
+  if not ok then
+    vim.notify(string.format("[cody-agent] Attempting to close existing client failed:%s", err))
+  end
+
   SG_CODY_CLIENT = nil
 end
 
