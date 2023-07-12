@@ -125,6 +125,12 @@ function CodyLayout:mount()
   self.prompt = CodyPrompt.init(self.opts.prompt)
   self.prompt:mount()
 
+  -- TODO: add ? as shortcut to display shortcuts haha
+
+  vim.keymap.set("n", "<CR>", function()
+    self.prompt:on_submit()
+  end, { buffer = self.prompt.bufnr })
+
   vim.keymap.set("i", "<C-CR>", function()
     self.prompt:on_submit()
   end, { buffer = self.prompt.bufnr })
