@@ -22,7 +22,7 @@ pub struct Request {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "method")]
+#[serde(tag = "method", content = "params")]
 pub enum RequestData {
     Echo {
         message: String,
@@ -103,22 +103,19 @@ impl Request {
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "method")]
 pub struct Response {
     pub id: usize,
-
-    #[serde(flatten)]
-    pub data: ResponseData,
+    pub result: ResponseData,
 }
 
 impl Response {
-    pub fn new(id: usize, data: ResponseData) -> Self {
-        Self { id, data }
+    pub fn new(id: usize, result: ResponseData) -> Self {
+        Self { id, result }
     }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(tag = "method")]
+#[serde(untagged)]
 pub enum ResponseData {
     Echo { message: String },
     Complete { completion: String },

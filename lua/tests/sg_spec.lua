@@ -5,7 +5,7 @@ local rpc = require "sg.rpc"
 
 describe("sg-agent", function()
   a.it("can send echo request", function()
-    local echoed = rpc.echo "hello"
-    eq("hello", echoed)
+    local _, echoed = rpc.echo "hello"
+    eq("hello", echoed.message)
   end)
 end)

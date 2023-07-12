@@ -17,8 +17,6 @@ local log = require "sg.log"
 
 local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
 
-local uv = vim.loop
-
 ---@type string
 local bin_sg_cody = (function()
   local cmd = "sg-cody"
@@ -46,7 +44,7 @@ end)()
 local M = {}
 
 local notification_handlers = {
-  ["Echo"] = function() end,
+  ["Echo"] = function(_) end,
 }
 
 local server_handlers = {}

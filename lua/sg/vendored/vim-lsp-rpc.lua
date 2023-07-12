@@ -177,7 +177,7 @@ local default_dispatchers = {}
 ---@param method string: The invoked LSP method
 ---@param params table: Parameters for the invoked LSP method
 function default_dispatchers.notification(method, params)
-  local _ = log.debug("notification", method, params)
+  local _ = log.trace("notification", method, params)
 end
 ---@private
 --- Default dispatcher for requests sent to an LSP server.
@@ -187,7 +187,7 @@ end
 ---@return nil
 ---@return table
 function default_dispatchers.server_request(method, params)
-  local _ = log.debug("server_request", method, params)
+  local _ = log.trace("server_request", method, params)
   return nil, rpc_response_error(protocol.ErrorCodes.MethodNotFound)
 end
 ---@private
@@ -254,7 +254,8 @@ local Client = {}
 
 ---@private
 function Client:encode_and_send(payload)
-  local _ = log.debug("rpc.send", payload)
+  local _ = log.trace("rpc.send", payload)
+
   if self.transport.is_closing() then
     return false
   end
@@ -354,7 +355,7 @@ function Client:handle_body(body)
     self:on_error(client_errors.INVALID_SERVER_JSON, decoded)
     return
   end
-  local _ = log.debug("rpc.receive", decoded)
+  local _ = log.trace("rpc.receive", decoded)
 
   assert(decoded, "must have decoded a message")
   if type(decoded.method) == "string" and decoded.id then
@@ -363,7 +364,6 @@ function Client:handle_body(body)
     -- we can still use the result.
     schedule(function()
       coroutine.wrap(function()
-        print("[server] trying to handle", decoded.method, decoded.params)
         local status, result
         status, result, err = self:try_call(
           client_errors.SERVER_REQUEST_HANDLER_ERROR,
@@ -371,8 +371,8 @@ function Client:handle_body(body)
           decoded.method,
           decoded.params
         )
-        local _ = log.debug()
-          and log.debug("server_request: callback result", { status = status, result = result, err = err })
+
+        local _ = log.debug("server_request: callback result", { status = status, result = result, err = err })
         if status then
           if result == nil and err == nil then
             error(
