@@ -26,8 +26,8 @@ end
 
 --- Get the repository ID for a repo with a name
 ---@param name string
----@return string?
----@return string?
+---@return string?: The error, if any
+---@return string?: The repository ID, if found
 function M.repository(name)
   local err, data = req("Repository", { name = name })
   if not err then
