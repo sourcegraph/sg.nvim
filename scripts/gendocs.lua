@@ -1,3 +1,5 @@
+(loadfile "./scripts/init.lua")()
+
 -- Setup sg with defaults
 require("sg").setup { accept_tos = true }
 
