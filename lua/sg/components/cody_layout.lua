@@ -1,4 +1,5 @@
 local _ = require "sg.components.shared"
+local keymaps = require "sg.keymaps"
 
 local CodyPrompt = require "sg.components.cody_prompt"
 local CodyHistory = require "sg.components.cody_history"
@@ -127,38 +128,44 @@ function CodyLayout:mount()
 
   -- TODO: add ? as shortcut to display shortcuts haha
 
-  vim.keymap.set("n", "<CR>", function()
+  keymaps.map(self.prompt.bufnr, "n", "<CR>", "[cody] submit message", function()
     self.prompt:on_submit()
-  end, { buffer = self.prompt.bufnr })
+  end)
 
-  vim.keymap.set("i", "<C-CR>", function()
+  keymaps.map(self.prompt.bufnr, "i", "<C-CR>", "[cody] submit message", function()
     self.prompt:on_submit()
-  end, { buffer = self.prompt.bufnr })
+  end)
 
-  vim.keymap.set("i", "<M-CR>", function()
-    self.prompt:on_submit { request_embeddings = true }
-  end, { buffer = self.prompt.bufnr })
+  -- TODO: We'll add this back after thinking about it a bit more
+  -- keymaps.map(self.prompt.bufnr, "i", "<M-CR>", function()
+  --   self.prompt:on_submit { request_embeddings = true }
+  -- end)
 
-  vim.keymap.set("i", "<c-c>", function()
+  keymaps.map(self.prompt.bufnr, "i", "<c-c>", "[cody] quit chat", function()
     self.prompt:on_close()
-  end, { buffer = self.prompt.bufnr })
+  end)
 
   local with_history = function(key, mapped)
     if not mapped then
       mapped = key
     end
 
-    vim.keymap.set({ "n", "i" }, key, function()
+    local desc = "[cody] execute '" .. key .. "' in history buffer"
+    keymaps.map(self.prompt.bufnr, { "n", "i" }, key, desc, function()
       vim.api.nvim_win_call(self.history.win, function()
         util.execute_keystrokes(mapped)
       end)
-    end, { buffer = self.prompt.bufnr })
+    end)
   end
 
   with_history "<c-f>"
   with_history "<c-b>"
   with_history "<c-e>"
   with_history "<c-y>"
+
+  keymaps.map(self.prompt.bufnr, "n", "?", "[cody] show keymaps", function()
+    keymaps.help(self.prompt.bufnr)
+  end)
 
   self:render()
 
