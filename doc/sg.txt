@@ -54,6 +54,46 @@ Default commands for interacting with Cody
 
 
 ================================================================================
+COMMANDS"                                                      *"cody.commands"*
+
+commands.explain({bufnr}, {start_line}, {end_line})        *sg.cody.explain()*
+    Explain a piece of code
+
+
+    Parameters: ~
+        {bufnr}      (number)
+        {start_line} (number)
+        {end_line}   (number)
+
+
+commands.chat({name})                                         *sg.cody.chat()*
+    Start a new CodyChat
+
+
+    Parameters: ~
+        {name} (string?)
+
+    Return: ~
+        CodyLayout
+
+
+commands.history()                                         *sg.cody.history()*
+    Open a selection to get an existing Cody conversation
+
+
+
+commands.add_context({start_line}, {end_line}, {state}) *sg.cody.add_context()*
+    Add context to an existing state
+
+
+    Parameters: ~
+        {start_line} (any)
+        {end_line}   (any)
+        {state}      (CodyState?)
+
+
+
+================================================================================
 COMMANDS                                                           *sg.commands*
 
 Default commands for interacting with Sourcegraph
@@ -73,6 +113,49 @@ Default commands for interacting with Sourcegraph
     Get prompted for endpoint and access_token if you don't want to set them
     via environment variables.
 
+
+
+
+================================================================================
+RPC                                                                     *sg.rpc*
+
+rpc.complete({snippet})                                    *sg.rpc.complete()*
+    Complete a single string snippet NOTE: Must be called from async context
+
+
+    Parameters: ~
+        {snippet} (string)
+
+    Return: ~
+        string?: The error
+        string?: The completion
+
+
+rpc.repository({name})                                   *sg.rpc.repository()*
+    Get the repository ID for a repo with a name
+
+
+    Parameters: ~
+        {name} (string)
+
+    Return: ~
+        string?: The error, if any
+        string?: The repository ID, if found
+
+
+rpc.embeddings({repo}, {query}, {opts})                  *sg.rpc.embeddings()*
+    Get embeddings for the a repo & associated query.
+
+
+    Parameters: ~
+        {repo}  (string)  Repo name (github.com/neovim/neovim)
+        {query} (any)     query string (the question you want to ask)
+        {opts}  (table)   `code`: number of code results, `text`: number of
+                          text results
+
+    Return: ~
+        string?: err, if any
+        table?: list of embeddings
 
 
 

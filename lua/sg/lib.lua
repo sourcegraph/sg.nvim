@@ -1,6 +1,6 @@
 -- Force environment variables when loading the library
-vim.env.SRC_ACCESS_TOKEN = require("sg.env").token()
-vim.env.SRC_ENDPOINT = require("sg.env").endpoint()
+vim.env.SRC_ACCESS_TOKEN = vim.env.SRC_ACCESS_TOKEN or require("sg.env").token()
+vim.env.SRC_ENDPOINT = vim.env.SRC_ENDPOINT or require("sg.env").endpoint()
 
 -- Add the compiled version of the library to our cpath,
 -- so that we can require it

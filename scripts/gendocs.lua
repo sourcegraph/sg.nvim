@@ -12,7 +12,9 @@ local input_files = {
   "./lua/sg/init.lua",
   "./lua/sg/config.lua",
   "./plugin/cody.lua",
+  "./lua/sg/cody/commands.lua",
   "./plugin/sg.lua",
+  "./lua/sg/rpc.lua",
 }
 
 local output_file = "./doc/sg.txt"

@@ -27,7 +27,6 @@ local bin_sg_nvim = (function()
   -- TODO: Should pick the one with the most recent priority?
   local cmd_paths = {
     "target/debug/sg-nvim-agent",
-    -- "target/release/sg-nvim-agent",
     "bin/sg-nvim-agent",
   }
 
