@@ -45,7 +45,7 @@ end
 ---@param only string?
 ---@return SourcegraphEmbedding[]
 context.embeddings = function(repo, query, only)
-  local proto_embeddings = rpc.embeddings(repo, query)
+  local proto_embeddings = rpc.embeddings(repo, query, {})
 
   local embeddings = {}
   if not only or only == "Text" then

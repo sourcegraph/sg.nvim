@@ -17,34 +17,12 @@ local log = require "sg.log"
 
 local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
 
----@type string
-local bin_sg_nvim = (function()
-  local cmd = "sg-nvim-agent"
-  if vim.fn.executable(cmd) == 1 then
-    return cmd
-  end
-
-  -- TODO: Should pick the one with the most recent priority?
-  local cmd_paths = {
-    "target/debug/sg-nvim-agent",
-    "bin/sg-nvim-agent",
-  }
-
-  for _, path in ipairs(cmd_paths) do
-    local res = vim.api.nvim_get_runtime_file(path, false)[1]
-    if res then
-      return res
-    end
-  end
-
-  error "Failed to load sg-nvim-agent: You probably did not run `nvim -l build/init.lua`"
-end)()
-
 local M = {}
 
 local notification_handlers = {}
 local server_handlers = {}
 
+local bin_sg_nvim = require("sg._find_artifact").find_rust_bin "sg-nvim-agent"
 SG_SG_CLIENT = vendored_rpc.start(bin_sg_nvim, {}, {
   notification = function(method, data)
     if notification_handlers[method] then
