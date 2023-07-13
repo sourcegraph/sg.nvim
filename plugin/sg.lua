@@ -78,12 +78,8 @@ end, {
 vim.api.nvim_create_user_command("SourcegraphLogin", function()
   local env = require "sg.env"
 
-  -- TODO: Maybe this is bad hack?...
-  vim.env.SRC_ENDPOINT = nil
-  vim.env.SRC_ACCESS_TOKEN = nil
-
-  env.endpoint(true)
-  env.token(true)
+  env.set_endpoint()
+  env.set_token()
 end, {
   desc = "Login and store credentials for later use (an alternative to the environment variables",
 })
