@@ -1,3 +1,5 @@
+local filetype = require "plenary.filetype"
+
 local log = require "sg.log"
 local lib = require "sg.lib"
 
@@ -193,7 +195,8 @@ M._open_remote_file = function(bufnr, bufname, data)
     end)
 
     vim.cmd [[doautocmd BufRead]]
-    vim.bo[bufnr].filetype = vim.filetype.match { filename = data.path, contents = contents } or ""
+    vim.bo[bufnr].filetype = vim.filetype.match { filename = data.path, contents = contents }
+      or filetype.detect(data.path, {})
   end)
 
   -- TODO: I don't love calling this directly here...
