@@ -10,7 +10,11 @@ local system = function(cmd, opts)
     print(table.concat(data, ""))
   end
 
-  opts.on_exit = function()
+  opts.on_exit = function(code)
+    if code ~= 0 then
+      error("failed to execute: " .. table.concat(cmd, " "))
+    end
+
     status.done = true
     print ""
   end
