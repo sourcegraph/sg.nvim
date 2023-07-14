@@ -50,7 +50,25 @@ local report_agent = function()
     vim.health.error(string.format("config.node_executable (%s) not executable", config.node_executable))
     return false
   else
-    vim.health.ok(string.format("config.node_executable (%s) is executable", config.node_executable))
+    local result = require("sg.utils").system({ config.node_executable, "--version" }, { text = true }):wait()
+    if result.code ~= 0 then
+      vim.health.error(
+        string.format(
+          "config.node_executable (%s) failed to run `%s --version`",
+          config.node_executable,
+          config.node_executable
+        )
+      )
+
+      for _, msg in ipairs(vim.split(result.stdout, "\n")) do
+        vim.health.info(msg)
+      end
+      for _, msg in ipairs(vim.split(result.stderr, "\n")) do
+        vim.health.info(msg)
+      end
+    else
+      vim.health.ok(string.format("config.node_executable (%s) is executable", config.node_executable))
+    end
   end
 
   if not config.cody_agent then
