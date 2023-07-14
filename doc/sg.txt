@@ -113,6 +113,11 @@ Default commands for interacting with Sourcegraph
     Get prompted for endpoint and access_token if you don't want to set them
     via environment variables.
 
+                                                           *:SourcegraphBuild*
+:SourcegraphBuild ~
+    Rebuild the Sourcegraph crates and required dependencies (in case build
+    failed during installation)
+
 
 
 

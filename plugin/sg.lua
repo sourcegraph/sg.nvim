@@ -83,3 +83,25 @@ vim.api.nvim_create_user_command("SourcegraphLogin", function()
 end, {
   desc = "Login and store credentials for later use (an alternative to the environment variables",
 })
+
+---@command SourcegraphBuild [[
+--- Rebuild the Sourcegraph crates and required dependencies (in case build failed during installation)
+---@command ]]
+vim.api.nvim_create_user_command("SourcegraphBuild", function()
+  local plugin_file = require("plenary.debug_utils").sourced_filepath()
+  local root = vim.fn.fnamemodify(plugin_file, ":h:h")
+  local build = require("sg.utils").joinpath(root, "build", "init.lua")
+  print "Starting sourcegraph build:"
+
+  require("sg.utils").system({ "nvim", "-l", build }, { cwd = root, text = true }, function(obj)
+    print(obj.stdout)
+    print(obj.stderr)
+    if obj.code ~= 0 then
+      error "Sourcegraph Build Failed. Check `:messages`"
+    else
+      print "Sourcegraph Build Success! Build log in `:messages`"
+    end
+  end)
+end, {
+  desc = "Rebuild the Sourcegraph crates and required dependencies (in case build failed during installation)",
+})

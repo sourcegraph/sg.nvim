@@ -4,13 +4,18 @@ local system = function(cmd, opts)
   opts = opts or {}
 
   opts.on_stdout = function(_, data)
-    print(table.concat(data, ""))
-  end
-  opts.on_stderr = function(_, data)
-    print(table.concat(data, ""))
+    if data then
+      print(table.concat(data, ""))
+    end
   end
 
-  opts.on_exit = function(code)
+  opts.on_stderr = function(_, data)
+    if data then
+      print(table.concat(data, ""))
+    end
+  end
+
+  opts.on_exit = function(_, code)
     if code ~= 0 then
       error("failed to execute: " .. table.concat(cmd, " "))
     end
