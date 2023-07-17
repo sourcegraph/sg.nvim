@@ -38,6 +38,7 @@ local report_env = function()
 
   if ok then
     vim.health.ok "Environment variables set"
+    vim.health.ok(string.format("  endpoint set to: %s", env.endpoint()))
   end
 
   return ok
