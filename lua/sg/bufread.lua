@@ -1,4 +1,5 @@
 local filetype = require "plenary.filetype"
+
 local log = require "sg.log"
 local lib = require "sg.lib"
 
@@ -10,9 +11,9 @@ local ns = vim.api.nvim_create_namespace "sg-bufread"
 ---@param bufnr number
 ---@param cb function
 local with_modifiable = function(bufnr, cb)
-  vim.api.nvim_buf_set_option(bufnr, "modifiable", true)
+  vim.bo[bufnr].modifiable = true
   local res = cb()
-  vim.api.nvim_buf_set_option(bufnr, "modifiable", false)
+  vim.bo[bufnr].modifiable = false
   return res
 end
 
@@ -26,7 +27,7 @@ M.edit = function(path)
     if type(entry) == "string" then
       contents = vim.split(entry, "\n")
     else
-      table.insert(contents, tostring(entry))
+      vim.list_extend(contents, vim.split(tostring(entry), "\n"))
     end
 
     table.insert(contents, 1, "failed to load file")
@@ -42,9 +43,17 @@ M.edit = function(path)
   local bufnr = vim.api.nvim_get_current_buf()
 
   if entry.type == "directory" then
-    return M._open_remote_folder(bufnr, entry.bufname, entry.data --[[@as SgDirectory]])
+    return M._open_remote_folder(
+      bufnr,
+      entry.bufname,
+      entry.data --[[@as SgDirectory]]
+    )
   elseif entry.type == "file" then
-    return M._open_remote_file(bufnr, entry.bufname, entry.data --[[@as SgFile]])
+    return M._open_remote_file(
+      bufnr,
+      entry.bufname,
+      entry.data --[[@as SgFile]]
+    )
   else
     error("unknown path type: " .. entry.type)
   end
@@ -70,7 +79,7 @@ end
 ---@param data SgDirectory
 M._open_remote_folder = function(bufnr, bufname, data)
   manage_new_buffer(bufnr, bufname, function()
-    vim.api.nvim_buf_set_option(bufnr, "buftype", "nofile")
+    vim.bo[bufnr].buftype = "nofile"
 
     ---@type boolean, SgEntry[]
     local ok, entries = pcall(lib.get_remote_directory_contents, data.remote, data.oid, data.path)
@@ -150,7 +159,7 @@ M._open_remote_folder = function(bufnr, bufname, data)
       local row = get_row()
       local children = lib.get_remote_directory_contents(selected.data.remote, selected.data.oid, selected.data.path)
       with_modifiable(bufnr, function()
-        for idx, _ in ipairs(children) do
+        for _ in ipairs(children) do
           vim.api.nvim_buf_set_lines(bufnr, row, row + 1, false, {})
           table.remove(entries, row + 1)
         end
@@ -186,7 +195,8 @@ M._open_remote_file = function(bufnr, bufname, data)
     end)
 
     vim.cmd [[doautocmd BufRead]]
-    vim.api.nvim_buf_set_option(bufnr, "filetype", filetype.detect(data.path, {}))
+    vim.bo[bufnr].filetype = vim.filetype.match { filename = data.path, contents = contents }
+      or filetype.detect(data.path, {})
   end)
 
   -- TODO: I don't love calling this directly here...
@@ -196,7 +206,8 @@ M._open_remote_file = function(bufnr, bufname, data)
   --    So I'm not worried about that for now (but we should check later)
   require("sg.lsp").attach(bufnr)
   if data.position then
-    error "TODO: handle position"
+    print("Data Position:", data.position)
+    -- error "TODO: handle position"
     -- pcall(vim.api.nvim_win_set_cursor, 0, { remote_file.line, remote_file.col or 0 })
   end
 end

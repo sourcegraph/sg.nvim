@@ -1,17 +1,8 @@
-local lib = require "sg.lib"
-
-local config = {
-  on_attach = function(_, bufnr)
-    vim.keymap.set("n", "gd", vim.lsp.buf.definition, { buffer = bufnr })
-    vim.keymap.set("n", "gr", vim.lsp.buf.references, { buffer = bufnr })
-  end,
-}
+local config = require "sg.config"
 
 local M = {}
 
-M.setup = function(opts)
-  config.on_attach = opts.on_attach
-
+M.setup = function(_)
   -- TODO: Figure out how we might do this beforehand...
   M.get_client_id()
 
@@ -27,11 +18,7 @@ end
 M.get_client_id = function()
   -- TODO: Restart the client if it is no longer active?
   if not M._client then
-    local cmd = "sg-lsp"
-    if vim.fn.executable(cmd) ~= 1 then
-      local root_dir = vim.fn.fnamemodify(require("plenary.debug_utils").sourced_filepath(), ":p:h:h:h:h")
-      cmd = root_dir .. "/target/debug/sg-lsp"
-    end
+    local cmd = require("sg._find_artifact").find_rust_bin "sg-lsp"
 
     M._client = vim.lsp.start_client {
       cmd = { cmd },

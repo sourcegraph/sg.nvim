@@ -1,7 +1,3 @@
-local log = require "sg.log"
-
-local rpc = require "sg.rpc"
-
 local Speaker = require "sg.cody.speaker"
 local Message = require "sg.cody.message"
 
@@ -49,6 +45,19 @@ function State:append(message)
   table.insert(self.messages, message)
 end
 
+--- Update the last message
+--- TODO: Should add a filter or some way to track the message down
+---@param message CodyMessage
+function State:update_message(message)
+  set_last_state(self)
+
+  if not vim.tbl_isempty(self.messages) and self.messages[#self.messages].speaker ~= Speaker.user then
+    self.messages[#self.messages] = message
+  else
+    self:append(message)
+  end
+end
+
 --- Get a new completion, based on the state
 ---@param bufnr number
 ---@param win number
@@ -66,9 +75,8 @@ function State:complete(bufnr, win)
   self:render(bufnr, win)
   vim.cmd [[mode]]
 
-  local completion = rpc.complete(snippet)
-  self:append(Message.init(Speaker.cody, vim.split(vim.trim(completion), "\n")))
-  self:render(bufnr, win)
+  -- Execute chat question. Will be completed async
+  require("sg.cody.rpc").execute.chat_question(snippet)
 end
 
 --- Render the state to a buffer and window

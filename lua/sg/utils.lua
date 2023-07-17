@@ -28,20 +28,6 @@ utils.get_word_around_character = function(line, character)
   return string.sub(line, start_non_matching_index + 1, end_non_matching_index - 1)
 end
 
----@param target_cursor number[]
----@param force? boolean
-utils.patch_cursor_position = function(target_cursor, force)
-  local cursor = vim.api.nvim_win_get_cursor(0)
-
-  if target_cursor[2] == cursor[2] and force then
-    -- didn't exit insert mode yet, but it's gonna
-    vim.api.nvim_win_set_cursor(0, { cursor[1], cursor[2] + 1 })
-  elseif target_cursor[2] - 1 == cursor[2] then
-    -- already exited insert mode
-    vim.api.nvim_win_set_cursor(0, { cursor[1], cursor[2] + 1 })
-  end
-end
-
 --- Format some code based on the filetype
 ---@param bufnr number
 ---@param code string|string[]
@@ -62,19 +48,6 @@ end
 -- COMPAT(0.10.0)
 -- So far only handle stdout, no other items are handled.
 -- Probably will break on me unexpectedly. Nice
-utils.system = vim.system
-  or function(cmd, opts, on_exit)
-    local stdout = ""
-    opts.stdout_buffered = true
-    opts.on_stdout = function(_, data)
-      stdout = stdout .. table.concat(data, "")
-    end
-    opts.on_exit = function()
-      stdout = stdout .. "\n"
-      on_exit { stdout = stdout, compat = true }
-    end
-
-    vim.fn.jobstart(cmd, opts)
-  end
+utils.system = vim.system or (require "sg.vendored.vim-system")
 
 return utils

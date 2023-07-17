@@ -1,3 +1,6 @@
+---@tag "cody.commands"
+---@config { module = "sg.cody" }
+---
 local sg = require "sg"
 local util = require "sg.utils"
 
@@ -8,13 +11,13 @@ local Message = require "sg.cody.message"
 local Speaker = require "sg.cody.speaker"
 local State = require "sg.cody.state"
 
-local M = {}
+local commands = {}
 
 --- Explain a piece of code
 ---@param bufnr number
 ---@param start_line number
 ---@param end_line number
-M.explain = function(bufnr, start_line, end_line)
+commands.explain = function(bufnr, start_line, end_line)
   local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
   local layout = CodyLayout.init {}
 
@@ -36,7 +39,7 @@ end
 --- Start a new CodyChat
 ---@param name string?
 ---@return CodyLayout
-M.chat = function(name)
+commands.chat = function(name)
   local layout = CodyLayout.init { name = name }
   layout:mount()
 
@@ -44,7 +47,7 @@ M.chat = function(name)
 end
 
 --- Open a selection to get an existing Cody conversation
-M.history = function()
+commands.history = function()
   local states = State.history()
 
   vim.ui.select(states, {
@@ -64,7 +67,7 @@ end
 ---@param start_line any
 ---@param end_line any
 ---@param state CodyState?
-M.add_context = function(bufnr, start_line, end_line, state)
+commands.add_context = function(bufnr, start_line, end_line, state)
   local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
 
   local content = vim.tbl_flatten {
@@ -79,7 +82,7 @@ M.add_context = function(bufnr, start_line, end_line, state)
   state:append(Message.init(Speaker.user, content))
 end
 
-M.toggle = function()
+commands.toggle = function()
   if CodyLayout.active then
     CodyLayout.active:unmount()
   else
@@ -90,11 +93,11 @@ M.toggle = function()
 end
 
 -- Wrap all commands with making sure TOS is accepted
-for key, value in pairs(M) do
-  M[key] = function(...)
+for key, value in pairs(commands) do
+  commands[key] = function(...)
     sg.accept_tos()
     return value(...)
   end
 end
 
-return M
+return commands

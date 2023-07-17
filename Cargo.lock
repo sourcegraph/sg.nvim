@@ -621,6 +621,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "jsonrpc"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "serde",
+ "serde_json",
+ "tokio",
+]
+
+[[package]]
 name = "lazy_static"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1174,6 +1184,7 @@ dependencies = [
  "anyhow",
  "futures",
  "graphql_client",
+ "jsonrpc",
  "log",
  "log4rs",
  "lsp-server",
@@ -1184,16 +1195,40 @@ dependencies = [
  "reqwest",
  "serde",
  "serde_json",
+ "sg-gql",
+ "sg-types",
  "tokio",
  "userdata_defaults",
 ]
 
 [[package]]
-name = "sg-nvim"
+name = "sg-gql"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "graphql_client",
+ "lsp-types",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "sg-types",
+ "url",
+]
+
+[[package]]
+name = "sg-types"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "mlua",
+ "serde",
+]
+
+[[package]]
+name = "sg_nvim"
 version = "0.1.1"
 dependencies = [
  "mlua",
- "once_cell",
  "reqwest",
  "serde",
  "sg",

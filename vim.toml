@@ -1,0 +1,61 @@
+[selene]
+base = "lua51"
+name = "vim"
+
+[SG_CODY_CLIENT]
+any = true
+
+[SG_SG_CLIENT]
+any = true
+
+[vim]
+any = true
+
+[jit]
+any = true
+
+[a]
+any = true
+
+[[describe.args]]
+type = "string"
+[[describe.args]]
+type = "function"
+
+[[it.args]]
+type = "string"
+[[it.args]]
+type = "function"
+
+[[before_each.args]]
+type = "function"
+[[after_each.args]]
+type = "function"
+
+[assert.are.same]
+any = true
+
+[assert.is_not]
+any = true
+
+[[assert.equals.args]]
+type = "any"
+[[assert.equals.args]]
+type = "any"
+[[assert.equals.args]]
+type = "any"
+required = false
+
+[[assert.same.args]]
+type = "any"
+[[assert.same.args]]
+type = "any"
+
+[[assert.truthy.args]]
+type = "any"
+
+[[assert.spy.args]]
+type = "any"
+
+[[assert.stub.args]]
+type = "any"

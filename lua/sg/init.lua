@@ -1,9 +1,13 @@
+---@tag sg.nvim
+---@config { ["name"] = "INTRODUCTION" }
+
+---@brief [[
+--- sg.nvim is a plugin for interfacing with Sourcegraph and Cody
+---@brief ]]
+
 local data_file = require("sg.utils").joinpath(vim.fn.stdpath "data", "cody.json")
 
 local M = {}
-
----@class CodyConfig
----@field tos_accepted boolean
 
 local get_cody_data = function()
   local handle = io.open(data_file, "r")
@@ -29,8 +33,15 @@ local write_cody_data = function(cody_data)
   vim.fn.writefile({ vim.json.encode(cody_data) }, data_file)
 end
 
-local accept_tos = function()
+local accept_tos = function(opts)
+  opts = opts or {}
+
   local cody_data = get_cody_data()
+  if opts.accept_tos and not cody_data.tos_accepted then
+    cody_data.tos_accepted = true
+    write_cody_data(cody_data)
+  end
+
   if not cody_data.tos_accepted then
     local choice = vim.fn.inputlist {
       "By using Cody, you agree to its license and privacy statement:"
@@ -47,7 +58,9 @@ local accept_tos = function()
 end
 
 M.setup = function(opts)
-  accept_tos()
+  opts = opts or {}
+
+  accept_tos(opts)
   require("sg.lsp").setup { on_attach = opts.on_attach }
 end
 

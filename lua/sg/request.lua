@@ -1,168 +1,65 @@
-local function discover_sg_cody()
-  ---@type string | nil
-  local cmd = "sg-cody"
-
-  if vim.fn.executable(cmd) ~= 1 then
-    cmd = nil
-    local rtfile = vim.api.nvim_get_runtime_file
-    local cmd_paths = {
-      "target/release/sg-cody",
-      "target/debug/sg-cody",
-      "bin/sg-cody"
-    }
-    for _, path in ipairs(cmd_paths) do
-      local res = rtfile(path, false)[1]
-      if res then
-        cmd = res
-        break
-      end
-    end
+-- Attempt to clear SG_SG_CLIENT if one is already
+-- running currently.
+--
+-- This should hopefully prevent multiple cody clients from
+-- running at a time.
+if SG_SG_CLIENT then
+  local ok, err = pcall(SG_SG_CLIENT.terminate)
+  if not ok then
+    vim.notify(string.format("[sg-agent] Attempting to close existing client failed:%s", err))
   end
 
-  if cmd == nil then
-    error "Failed to load sg-cody: You probably did not run `cargo build --bin sg-cody`"
-  end
-
-  return cmd
+  SG_SG_CLIENT = nil
 end
 
-local sg_cody_process = discover_sg_cody()
-
-local uv = vim.loop
-
+local env = require "sg.env"
 local log = require "sg.log"
+
+local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
 
 local M = {}
 
-M.pending = {}
-M.shutdown = function() end
+local notification_handlers = {}
+local server_handlers = {}
 
-local _id = 0
-local get_next_id = function()
-  _id = _id + 1
-  return _id
+local bin_sg_nvim = require("sg._find_artifact").find_rust_bin "sg-nvim-agent"
+SG_SG_CLIENT = vendored_rpc.start(bin_sg_nvim, {}, {
+  notification = function(method, data)
+    if notification_handlers[method] then
+      notification_handlers[method](data)
+    else
+      log.error("[sg-agent] unhandled method:", method)
+    end
+  end,
+  server_request = function(method, params)
+    local handler = server_handlers[method]
+    if handler then
+      return handler(method, params)
+    else
+      log.error("[cody-agent] unhandled server request:", method)
+    end
+  end,
+}, {
+  env = {
+    PATH = vim.env.PATH,
+    SRC_ACCESS_TOKEN = env.token(),
+    SRC_ENDPOINT = env.endpoint(),
+  },
+})
+
+if not SG_SG_CLIENT then
+  vim.notify "[sg.nvim] failed to start cody-agent"
+  return nil
 end
 
--- Process vars, could be encapsulated some other way, but this is fine for now.
-local handle, pid, stdin, stdout, stderr = nil, nil, nil, nil, nil
-M.start = function(force)
-  -- Debugging usefulness
-  if force or handle == nil then
-    M.shutdown()
-
-    if not vim.env.SRC_ACCESS_TOKEN or vim.env.SRC_ACCESS_TOKEN == "" then
-      vim.notify("[cody] Missing SRC_ACCESS_TOKEN env var", vim.log.levels.WARN)
-    end
-
-    if not vim.env.SRC_ENDPOINT or vim.env.SRC_ENDPOINT == "" then
-      vim.notify("[cody] Missing SRC_ENDPOINT env var", vim.log.levels.WARN)
-    end
-
-    stdin = assert(uv.new_pipe())
-    stdout = assert(uv.new_pipe())
-    stderr = assert(uv.new_pipe())
-
-    handle, pid = uv.spawn(sg_cody_process, {
-      stdio = { stdin, stdout, stderr },
-      env = {
-        "PATH=" .. vim.env.PATH,
-        "SRC_ACCESS_TOKEN=" .. (vim.env.SRC_ACCESS_TOKEN or ""),
-        "SRC_ENDPOINT=" .. (vim.env.SRC_ENDPOINT or ""),
-      },
-    }, function(code, signal) -- on exit
-      if code ~= 0 then
-        log.warn("[cody] exit code", code)
-        log.warn("[cody] exit signal", signal)
-      end
-    end)
-
-    if not handle then
-      error(string.format("Failed to start process: %s", pid))
-    end
-
-    local buffer = ""
-    stdout:read_start(vim.schedule_wrap(function(err, data)
-      assert(not err, err)
-      if data then
-        if vim.endswith(data, "\n") then
-          for idx, line in ipairs(vim.split(data, "\n")) do
-            if idx == 1 then
-              line = buffer .. line
-            end
-
-            if line ~= "" then
-              local ok, parsed = pcall(vim.json.decode, line, { luanil = { object = true } })
-              if ok and parsed then
-                log.trace("stdout chunk", parsed)
-
-                if M.pending[parsed.id] then
-                  M.pending[parsed.id](parsed)
-                  M.pending[parsed.id] = nil
-                end
-              else
-                log.trace("failed chunk", parsed)
-              end
-            else
-              log.trace "empty line"
-            end
-          end
-
-          buffer = ""
-        else
-          local lines = vim.split(data, "\n")
-
-          -- iterate over complete lines
-          for i = 1, (#lines - 1) do
-            local line = lines[i]
-            if i == 1 then
-              line = buffer .. line
-              buffer = ""
-            end
-
-            log.trace("chunked", i, vim.json.decode(lines[i]))
-          end
-
-          buffer = buffer .. lines[#lines]
-          log.trace("unchunked... for now!", buffer)
-        end
-      end
-    end))
-
-    stderr:read_start(vim.schedule_wrap(function(err, data)
-      if err or data then
-        log.info("[cody] ", err, data)
-      end
-    end))
-
-    M.shutdown = function()
-      uv.shutdown(stdin, function()
-        if handle then
-          uv.close(handle, function() end)
-        end
-      end)
-    end
-
-    vim.api.nvim_create_autocmd("ExitPre", {
-      callback = M.shutdown,
-    })
-  end
+M.notify = function(...)
+  return SG_SG_CLIENT.notify(...)
 end
 
-M.request = function(method, data, cb)
-  -- Ensure that we've started a process running
-  M.start(false)
-
-  local message = vim.deepcopy(data)
-  message.id = get_next_id()
-  message.method = method
-
-  M.pending[message.id] = cb
-
-  local encoded = vim.json.encode(message)
-  log.info("sending message:", encoded)
-  stdin:write(encoded .. "\n")
-end
-
-M.async_request = require("plenary.async").wrap(M.request, 3)
+M.request = require("plenary.async").wrap(function(method, params, callback)
+  return SG_SG_CLIENT.request(method, params, function(err, result)
+    return callback(err, result)
+  end)
+end, 3)
 
 return M
