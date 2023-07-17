@@ -22,7 +22,7 @@ local M = {}
 local notification_handlers = {}
 local server_handlers = {}
 
-local bin_sg_nvim = require("sg._find_artifact").find_rust_bin "sg-nvim-agent"
+local bin_sg_nvim = require("sg.config").get_nvim_agent()
 SG_SG_CLIENT = vendored_rpc.start(bin_sg_nvim, {}, {
   notification = function(method, data)
     if notification_handlers[method] then

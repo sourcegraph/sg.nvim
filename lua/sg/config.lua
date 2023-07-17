@@ -33,4 +33,8 @@ config.testing = (vim.env.SG_NVIM_TESTING or "") == "true"
 
 config.did_change_debounce = 500
 
+config.get_nvim_agent = function()
+  return require("sg._find_artifact").find_rust_bin "sg-nvim-agent"
+end
+
 return config

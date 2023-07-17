@@ -66,7 +66,9 @@ M.find_rust_lib = function(name)
   for _, candidate in ipairs(candidates) do
     local dll = package.loadlib(candidate.path, libname)
     if dll then
-      return dll()
+      local loaded = dll()
+      loaded._library_path = candidate.path
+      return loaded
     end
   end
 
