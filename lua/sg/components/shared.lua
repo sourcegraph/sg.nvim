@@ -9,6 +9,7 @@ shared.create = function(bufnr, win, popup_options)
     win = vim.api.nvim_open_win(bufnr, false, popup_options)
   end
 
+  vim.wo[win].wrap = true
   vim.wo[win].winhighlight = "Normal:Normal,FloatBorder:Normal"
 
   return bufnr, win
