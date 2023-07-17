@@ -28,7 +28,7 @@ commands.explain = function(bufnr, start_line, end_line)
   }
 
   layout:run(function()
-    context.add_context(bufnr, table.concat(selection, "\n"), layout.state)
+    -- context.add_context(bufnr, table.concat(selection, "\n"), layout.state)
 
     layout.state:append(Message.init(Speaker.user, contents))
     layout:mount()
