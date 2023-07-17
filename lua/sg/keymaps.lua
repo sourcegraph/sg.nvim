@@ -26,6 +26,7 @@ M.map = function(bufnr, mode, key, desc, cb)
   table.insert(store[bufnr].maps, { mode = mode, key = key, desc = desc })
 
   vim.keymap.set(mode, key, cb, {
+    buffer = bufnr,
     desc = desc,
   })
 end
