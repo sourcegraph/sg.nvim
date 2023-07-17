@@ -152,9 +152,11 @@ function CodyLayout:mount()
 
     local desc = "[cody] execute '" .. key .. "' in history buffer"
     keymaps.map(self.prompt.bufnr, { "n", "i" }, key, desc, function()
-      vim.api.nvim_win_call(self.history.win, function()
-        util.execute_keystrokes(mapped)
-      end)
+      if vim.api.nvim_win_is_valid(self.history.win) then
+        vim.api.nvim_win_call(self.history.win, function()
+          util.execute_keystrokes(mapped)
+        end)
+      end
     end)
   end
 
