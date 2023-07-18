@@ -17,9 +17,11 @@ instance of Sourcegraph
 
 ## Installation
 
-
+### Requirements
 Requires nvim 0.9 or nvim nightly to run.
 
+### Install
+#### Using `lazy.nvim`
 ```lua
 -- Use your favorite package manager to install, for example in lazy.nvim
 return {
@@ -31,20 +33,28 @@ return {
     build = "nvim -l build/init.lua",
   },
 }
-
 ```
+
+#### Using `Packer.nvim`
 
 ```lua
 -- Packer.nvim, also make sure to install nvim-lua/plenary.nvim
 use { 'sourcegraph/sg.nvim', run = 'nvim -l build/init.lua' }
 ```
 
+#### Using `vim-plug`
+```vimrc
+" Using vim-plug
+Plug 'sourcegraph/sg.nvim', { 'do': 'nvim -l build/init.lua' }
+```
+
+### Check & Configure
+
 After installation, you can run `:checkhealth sg` to see if the plugin is set up correctly.
 
 (Nix instructions at the end of the readme)
 
 You also need to have the appropriate environment variables to log in to your sourcegraph instance, as described in https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance
-
 
 ### Setup:
 
