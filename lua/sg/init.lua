@@ -61,7 +61,15 @@ M.setup = function(opts)
   opts = opts or {}
 
   accept_tos(opts)
-  require("sg.lsp").setup { on_attach = opts.on_attach }
+
+  local config = require "sg.config"
+  for key, value in pairs(opts) do
+    if config[key] ~= nil then
+      config[key] = value
+    end
+  end
+
+  require("sg.lsp").setup()
 end
 
 M.accept_tos = accept_tos

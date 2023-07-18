@@ -2,7 +2,7 @@ local config = require "sg.config"
 
 local M = {}
 
-M.setup = function(_)
+M.setup = function()
   -- TODO: Figure out how we might do this beforehand...
   M.get_client_id()
 
@@ -22,8 +22,9 @@ M.get_client_id = function()
 
     M._client = vim.lsp.start_client {
       cmd = { cmd },
-      on_attach = config.on_attach,
-      -- handlers = handlers,
+      on_attach = function(...)
+        return config.on_attach(...)
+      end,
     }
   end
 
