@@ -18,12 +18,12 @@ All options can be set via
 sg.config                                                          *sg.config*
 
 
-  Configuration Options: ~
-    {node_executable}     (string)    path to node executable
-    {cody_agent}          (string)    path to the cody-agent js bundle
-    {did_change_debounce} (number)    Number of ms to debounce changes
-    {on_attach}           (function)  function to run when attaching to
-                                      sourcegraph buffers
+    Configuration Options: ~
+        {node_executable}     (string)    path to node executable
+        {cody_agent}          (string)    path to the cody-agent js bundle
+        {did_change_debounce} (number)    Number of ms to debounce changes
+        {on_attach}           (function)  function to run when attaching to
+                                          sourcegraph buffers
 
 
 
@@ -141,12 +141,14 @@ Default commands for interacting with Sourcegraph
 ================================================================================
 RPC                                                                     *sg.rpc*
 
-rpc.complete({snippet})                                    *sg.rpc.complete()*
-    Complete a single string snippet NOTE: Must be called from async context
+rpc.complete({snippet}, {opts})                            *sg.rpc.complete()*
+    Complete a single string snippet
+
 
 
     Parameters: ~
-        {snippet} (string)
+        {snippet} (string)               Code to send as the prompt
+        {opts}    ({ prefix: string? })
 
     Return: ~
         string?: The error
