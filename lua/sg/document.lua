@@ -3,6 +3,10 @@ local document = {}
 --- Determines if buffer is useful
 ---@param bufnr any
 document.is_useful = function(bufnr)
+  if not vim.api.nvim_buf_is_valid(bufnr) then
+    return false
+  end
+
   local bo = vim.bo[bufnr]
   if bo.buflisted == 0 then
     return false
