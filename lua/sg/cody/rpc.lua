@@ -104,6 +104,10 @@ if not client then
   return nil
 end
 
+--- Send a notification message to the client.
+---
+---@param method string: The notification method name.
+---@param params table: The parameters to send with the notification.
 M.notify = function(method, params)
   track {
     type = "notify",
@@ -135,6 +139,8 @@ M.request = async.wrap(function(method, params, callback)
   end)
 end, 3)
 
+--- Initialize the client by sending initialization info to the server.
+--- This must be called before any other requests.
 M.initialize = function()
   ---@type CodyClientInfo
   local info = {
@@ -155,6 +161,7 @@ M.initialize = function()
   return M.request("initialize", info)
 end
 
+--- Shuts down the client by sending a shutdown request and waiting for completion.
 M.shutdown = function()
   local done = false
   client.request("shutdown", {}, function()

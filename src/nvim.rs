@@ -1,6 +1,5 @@
-use crate::{get_embeddings_context, get_repository_id};
-
 use {
+    crate::{get_cody_completions, get_embeddings_context, get_repository_id},
     anyhow::Result,
     serde::{Deserialize, Serialize},
     sg_types::{Embedding, RecipeInfo},
@@ -33,6 +32,8 @@ pub enum RequestData {
 
     Complete {
         message: String,
+        prefix: Option<String>,
+        temperature: Option<f64>,
     },
 
     Repository {
@@ -59,17 +60,20 @@ impl Request {
 
                 Ok(Response::new(id, ResponseData::Echo { message }))
             }
-            RequestData::Complete { message } => {
-                eprintln!("[sg-cody] complete: {id}");
-                // let completion = match get_cody_completions(message, None).await {
-                //     Ok(completion) => completion,
-                //     Err(err) => {
-                //         return Err(anyhow::anyhow!("failed to get completions: {err:?}"));
-                //     }
-                // };
-                //
-                // Ok(Response::Complete { id, completion })
-                todo!("have not done sync requests at the moment")
+            RequestData::Complete {
+                message,
+                prefix,
+                temperature,
+            } => {
+                eprintln!("[sg-cody] complete: {id} - {prefix:?}");
+                let completion = match get_cody_completions(message, prefix, temperature).await {
+                    Ok(completion) => completion,
+                    Err(err) => {
+                        return Err(anyhow::anyhow!("failed to get completions: {err:?}"));
+                    }
+                };
+
+                Ok(Response::new(id, ResponseData::Complete { completion }))
             }
             RequestData::Repository { name } => {
                 eprintln!("[sg-cody] repo: {id} {name}");
