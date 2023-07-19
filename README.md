@@ -18,7 +18,12 @@ instance of Sourcegraph
 ## Installation
 
 ### Requirements
-Requires nvim 0.9 or nvim nightly to run.
+
+Requires:
+
+- nvim 0.9 or nvim nightly
+
+- Cargo to build (pre-built binary/dylibs options to come)
 
 ### Install
 #### Using `lazy.nvim`
