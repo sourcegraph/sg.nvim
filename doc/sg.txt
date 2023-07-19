@@ -40,7 +40,7 @@ Default commands for interacting with Cody
 
                                                                     *:CodyAsk*
 :CodyAsk ~
-    Ask Cody a question about the current selected text.
+    Ask a question about the current selection.
 
     Use from visual mode to pass the current selection
 
@@ -70,6 +70,17 @@ commands.explain({bufnr}, {start_line}, {end_line})        *sg.cody.explain()*
         {bufnr}      (number)
         {start_line} (number)
         {end_line}   (number)
+
+
+commands.ask({bufnr}, {start_line}, {end_line}, {message})     *sg.cody.ask()*
+    Ask Cody about the selected code
+
+
+    Parameters: ~
+        {bufnr}      (number)
+        {start_line} (number)
+        {end_line}   (number)
+        {message}    (string)
 
 
 commands.chat({name})                                         *sg.cody.chat()*
