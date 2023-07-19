@@ -145,6 +145,10 @@ function CodyLayout:mount()
     self.prompt:on_close()
   end)
 
+  keymaps.map(self.prompt.bufnr, "n", "<ESC>", "[cody] quit chat", function()
+    self.prompt:on_close()
+  end)
+
   local with_history = function(key, mapped)
     if not mapped then
       mapped = key
