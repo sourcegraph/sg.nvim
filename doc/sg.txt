@@ -48,6 +48,10 @@ Default commands for interacting with Cody
 :CodyChat {module} ~
     State a new cody chat, with an optional {title}
 
+                                                                  *:CodyFloat*
+:CodyFloat ~
+    Ask Cody about the selected code. Cody responds in a floating window.
+
                                                                  *:CodyToggle*
 :CodyToggle ~
     Toggles the current Cody Chat window.
@@ -92,6 +96,17 @@ commands.chat({name})                                         *sg.cody.chat()*
 
     Return: ~
         CodyLayout
+
+
+commands.float({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.float()*
+    Get cody to respond in a floating window
+
+
+    Parameters: ~
+        {bufnr}      (number)
+        {start_line} (number)
+        {end_line}   (number)
+        {message}    (string)
 
 
 commands.history()                                         *sg.cody.history()*
