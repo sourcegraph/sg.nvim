@@ -61,7 +61,8 @@ end
 --- Get a new completion, based on the state
 ---@param bufnr number
 ---@param win number
-function State:complete(bufnr, win)
+---@param display_user_query? boolean
+function State:complete(bufnr, win, display_user_query)
   set_last_state(self)
 
   local snippet = ""
@@ -72,7 +73,9 @@ function State:complete(bufnr, win)
   end
 
   self:append(Message.init(Speaker.system, { "Loading ... " }, { ephemeral = true }))
-  self:render(bufnr, win)
+  if display_user_query then
+    self:render(bufnr, win)
+  end
   vim.cmd [[mode]]
 
   -- Execute chat question. Will be completed async
@@ -92,7 +95,7 @@ function State:render(bufnr, win)
   local messages = {}
   for _, message in ipairs(self.messages) do
     local rendered = message:render()
-    if not vim.tbl_isempty(rendered) then
+    if not vim.tbl_isempty(rendered) and not message.ephemeral then
       vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, rendered)
       vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "" })
     end

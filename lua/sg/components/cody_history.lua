@@ -6,6 +6,7 @@ local shared = require "sg.components.shared"
 ---@field width number|string
 ---@field row number|string
 ---@field col number|string
+---@field title string?
 
 ---@class CodyHistory
 ---@field opts CodyHistoryOptions
@@ -28,8 +29,8 @@ function CodyHistory.init(opts)
     col = shared.calculate_col(opts.col),
     style = "minimal",
     border = "rounded",
-    title = " Cody History ",
-    title_pos = "center",
+    title = " " .. opts.title .. " ",
+    title_pos = "left",
   }
 
   return setmetatable({

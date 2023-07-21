@@ -38,14 +38,14 @@ local notification_handlers = {
     local Message = require "sg.cody.message"
     local Speaker = require "sg.cody.speaker"
 
-    local CodyLayout = require "sg.components.cody_layout"
-    local active = CodyLayout.active
+    local CodyFloatLayout = require "sg.components.cody_float_layout"
+    local active = CodyFloatLayout.active
 
     if active then
       active.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n")))
       active:render()
     else
-      local layout = CodyLayout.init {}
+      local layout = CodyFloatLayout.init {}
       layout:mount()
 
       layout.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n")))

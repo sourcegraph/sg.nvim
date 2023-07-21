@@ -7,6 +7,7 @@ local util = require "sg.utils"
 local context = require "sg.cody.context"
 
 local CodyLayout = require "sg.components.cody_layout"
+local CodyFloatLayout = require "sg.components.cody_float_layout"
 local Message = require "sg.cody.message"
 local Speaker = require "sg.cody.speaker"
 local State = require "sg.cody.state"
@@ -68,6 +69,30 @@ commands.chat = function(name)
   layout:mount()
 
   return layout
+end
+
+--- Get cody to respond in a floating window
+---@param bufnr number
+---@param start_line number
+---@param end_line number
+---@param message string
+commands.float = function(bufnr, start_line, end_line, message)
+  local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
+  local layout = CodyFloatLayout.init { title = message }
+
+  local contents = vim.tbl_flatten {
+    message,
+    "",
+    util.format_code(bufnr, selection),
+  }
+
+  layout:run(function()
+    -- context.add_context(bufnr, table.concat(selection, "\n"), layout.state)
+
+    layout.state:append(Message.init(Speaker.user, contents, { ephemeral = true }))
+    layout:mount()
+    layout:complete()
+  end)
 end
 
 --- Open a selection to get an existing Cody conversation
