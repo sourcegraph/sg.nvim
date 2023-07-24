@@ -1,4 +1,5 @@
 local void = require("plenary.async").void
+local wrap = require("plenary.async").wrap
 
 local utils = require "sg.utils"
 
@@ -17,7 +18,7 @@ local M = {}
 
 --- Create a new jsonified query
 ---@param opts CodyUserJsonifyOpts: Options to create a jsonify object
----@param cb function(val: any): Function to call once request is completed
+---@param cb function(err: any, val: any): Function to call once request is completed
 M.execute = function(opts, cb)
   assert(opts.prompt_toplevel, "must have toplevel prompt")
   assert(opts.response_prefix, "must have a prefix")
@@ -34,30 +35,32 @@ M.execute = function(opts, cb)
   prompt = prompt .. opts.interface .. "\n"
 
   void(function()
-    print "Running completion..."
     local err, completed = require("sg.rpc").complete(prompt, { prefix = opts.response_prefix, temperature = 0.1 })
     if err ~= nil then
-      print("ERROR: ", err)
-      return
+      return cb({ failure = "sg.rpc.complete", err = err }, nil)
     end
 
     local ok, parsed = pcall(vim.json.decode, completed)
     if not ok then
       ok, parsed = pcall(vim.json.decode, opts.response_prefix .. completed)
       if not ok then
-        print "need to ask again... :'("
-        print(completed)
-        return
+        -- TODO: Should do a few retries automatically, to see if that can fix the problem
+        return cb({ failure = "parsing response", err = parsed }, nil)
       end
     end
 
     if not parsed then
-      print "did not send docstring"
-      return
+      -- TODO: Not sure what makes the most sense for this.
+      return cb({ feailture = "parsed response", err = "There was no response to jsonify request" }, nil)
     end
 
-    cb(parsed)
+    cb(nil, parsed)
   end)()
 end
+
+--- Asynchronous version of execute.
+---@return any?: The error, if any
+---@return any?: The data, if successful
+M.async_execute = wrap(M.execute, 2)
 
 return M

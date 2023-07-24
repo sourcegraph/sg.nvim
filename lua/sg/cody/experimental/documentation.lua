@@ -51,7 +51,11 @@ M.function_documentation = function(bufnr, start_line, end_line, formatter)
     selection = selection,
     interface = interface,
     response_prefix = [[{"function_description":"]],
-  }, function(parsed)
+  }, function(err, parsed)
+    if err ~= nil then
+      error("Oh no, we got an error" .. vim.inspect(err))
+    end
+
     local lines = formatter(bufnr, parsed)
     vim.api.nvim_buf_set_lines(bufnr, start_line, start_line, false, lines)
   end)
