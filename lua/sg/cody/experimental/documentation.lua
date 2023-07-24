@@ -1,4 +1,4 @@
-local jsonify = require "sg.cody.user.jsonify"
+local jsonify = require "sg.cody.experimental.jsonify"
 
 local M = {}
 
