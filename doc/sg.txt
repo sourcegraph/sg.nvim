@@ -18,12 +18,12 @@ All options can be set via
 sg.config                                                          *sg.config*
 
 
-    Configuration Options: ~
-        {node_executable}     (string)    path to node executable
-        {cody_agent}          (string)    path to the cody-agent js bundle
-        {did_change_debounce} (number)    Number of ms to debounce changes
-        {on_attach}           (function)  function to run when attaching to
-                                          sourcegraph buffers
+  Configuration Options: ~
+    {node_executable}     (string)    path to node executable
+    {cody_agent}          (string)    path to the cody-agent js bundle
+    {did_change_debounce} (number)    Number of ms to debounce changes
+    {on_attach}           (function)  function to run when attaching to
+                                      sourcegraph buffers
 
 
 
