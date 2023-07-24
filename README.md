@@ -18,7 +18,14 @@ instance of Sourcegraph
 ## Installation
 
 ### Requirements
-Requires nvim 0.9 or nvim nightly to run.
+
+Requires:
+
+- nvim 0.9 or nvim nightly
+
+- Cargo to build (pre-built binary/dylibs options to come)
+
+- Node.js >= 18.17.0 (LTS) at runtime for [`cody-agent.js` - sourcegraph](./dist/cody-agent.js)
 
 ### Install
 #### Using `lazy.nvim`
