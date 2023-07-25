@@ -8,7 +8,8 @@ local Speaker = require "sg.cody.speaker"
 local repository_ids = {}
 
 local context = {}
-local get_origin = function(bufnr)
+
+context.get_origin = function(bufnr)
   local dir = vim.api.nvim_buf_get_name(bufnr)
   dir = vim.fn.fnamemodify(dir, ":p:h")
 
@@ -31,7 +32,7 @@ context.get_repo_id = function(bufnr)
   end
 
   if not repository_ids[bufnr] then
-    local origin = get_origin(bufnr)
+    local origin = context.get_origin(bufnr)
     local repository = rpc.repository(origin)
     repository_ids[bufnr] = repository
   end
@@ -39,13 +40,21 @@ context.get_repo_id = function(bufnr)
   return repository_ids[bufnr]
 end
 
----comment
+--- Get the embeddings for a {repo} with {query}
 ---@param repo string
 ---@param query string
----@param only string?
+---@param opts { only: string, code?: number, text?: number}
+---@return string?
 ---@return SourcegraphEmbedding[]
-context.embeddings = function(repo, query, only)
-  local proto_embeddings = rpc.embeddings(repo, query, {})
+context.embeddings = function(repo, query, opts)
+  opts = opts or {}
+
+  local err, proto_embeddings = rpc.embeddings(repo, query, { code = opts.code, text = opts.text })
+  if err ~= nil or proto_embeddings == nil then
+    return err, {}
+  end
+
+  local only = opts.only
 
   local embeddings = {}
   if not only or only == "Text" then
@@ -68,7 +77,7 @@ context.embeddings = function(repo, query, only)
     end
   end
 
-  return embeddings
+  return nil, embeddings
 end
 
 --- Add context to an existing state
@@ -77,7 +86,7 @@ end
 ---@param state CodyState
 context.add_context = function(bufnr, text, state)
   local repo = context.get_repo_id(bufnr)
-  local embeddings = context.embeddings(repo, text, "Code")
+  local _, embeddings = context.embeddings(repo, text, { only = "Code" })
 
   if vim.tbl_isempty(embeddings) then
     return

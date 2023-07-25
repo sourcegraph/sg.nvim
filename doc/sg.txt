@@ -141,12 +141,14 @@ Default commands for interacting with Sourcegraph
 ================================================================================
 RPC                                                                     *sg.rpc*
 
-rpc.complete({snippet})                                    *sg.rpc.complete()*
-    Complete a single string snippet NOTE: Must be called from async context
+rpc.complete({snippet}, {opts})                            *sg.rpc.complete()*
+    Complete a single string snippet
+
 
 
     Parameters: ~
-        {snippet} (string)
+        {snippet} (string)               Code to send as the prompt
+        {opts}    ({ prefix: string? })
 
     Return: ~
         string?: The error

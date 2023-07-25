@@ -13,12 +13,15 @@ function rpc.echo(message, delay)
 end
 
 --- Complete a single string snippet
---- NOTE: Must be called from async context
----@param snippet string
+---
+---@param snippet string: Code to send as the prompt
+---@param opts { prefix: string? }
 ---@return string?: The error
 ---@return string?: The completion
-function rpc.complete(snippet)
-  local err, data = req("Complete", { message = snippet })
+function rpc.complete(snippet, opts)
+  opts = opts or {}
+
+  local err, data = req("Complete", { message = snippet, prefix = opts.prefix })
 
   if not err then
     return nil, data.completion

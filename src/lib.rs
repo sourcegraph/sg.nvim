@@ -180,7 +180,11 @@ pub async fn get_repository_id(name: String) -> Result<String> {
     wrap_request!(sg_gql::repository_id, Variables { name })
 }
 
-pub async fn get_cody_completions(text: String, temperature: Option<f64>) -> Result<String> {
+pub async fn get_cody_completions(
+    text: String,
+    prefix: Option<String>,
+    temperature: Option<f64>,
+) -> Result<String> {
     // TODO: Figure out how to deal with messages
 
     let messages = vec![
@@ -197,7 +201,7 @@ pub async fn get_cody_completions(text: String, temperature: Option<f64>) -> Res
             },
             CodyMessage {
                 speaker: CodySpeaker::Assistant,
-                text: "".to_string(),
+                text: prefix.unwrap_or("".to_string()),
             },
         ];
 
