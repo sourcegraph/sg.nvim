@@ -29,6 +29,11 @@ M.server_info = {}
 ---     TODO: We should think more about how to use this and structure it.
 ---@return boolean
 local is_ready = function(opts)
+  -- TODO(auth-test): Not a huge fan of this :)
+  if config.testing then
+    return true
+  end
+
   opts = opts or {}
   if not require("sg")._is_authed() then
     return false
@@ -262,14 +267,9 @@ void(function()
       vim.notify "[sg-cody] Cody is not enabled on your sourcegraph server"
       return
     end
-
-    M.server_info = data
-  else
-    M.server_info = {
-      authenticated = true,
-      codyEnabled = true,
-    }
   end
+
+  M.server_info = data
 
   -- And then respond that we've initialized
   local _ = M.notify("initialized", {})
