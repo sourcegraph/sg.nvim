@@ -3,6 +3,21 @@ INTRODUCTION                                                           *sg.nvim*
 
 sg.nvim is a plugin for interfacing with Sourcegraph and Cody
 
+To configure logging in:
+
+- Log in on your Sourcegraph instance.
+- Click your user menu in the top right, then select Settings > Access tokens.
+- Create your access token, and then run `:SourcegraphLogin` in your neovim
+  editor after installation.
+- Type in the link to your Sourcegraph instance (for example:
+  `https://sourcegraph.com`)
+- And then paste in your access token.
+
+An alternative to this is to use the environment variables specified for
+[src-cli](https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance).
+
+You can check that you're logged in by then running `:checkhealth sg`
+
 
 ================================================================================
 SETUP                                                                 *sg.setup*
@@ -18,12 +33,12 @@ All options can be set via
 sg.config                                                          *sg.config*
 
 
-  Configuration Options: ~
-    {node_executable}     (string)    path to node executable
-    {cody_agent}          (string)    path to the cody-agent js bundle
-    {did_change_debounce} (number)    Number of ms to debounce changes
-    {on_attach}           (function)  function to run when attaching to
-                                      sourcegraph buffers
+    Configuration Options: ~
+        {node_executable}     (string)    path to node executable
+        {cody_agent}          (string)    path to the cody-agent js bundle
+        {did_change_debounce} (number)    Number of ms to debounce changes
+        {on_attach}           (function)  function to run when attaching to
+                                          sourcegraph buffers
 
 
 
