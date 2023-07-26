@@ -162,6 +162,21 @@
         "type": "github"
       }
     },
+    "nixpkgs-latest-vimplugins": {
+      "locked": {
+        "lastModified": 1690269565,
+        "narHash": "sha256-E0oOVTyfQVX1ZLFTINZWf2apspzkp476Sv0V5biNtIU=",
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "rev": "9516089caec5389f2f7e03acf50e4ef2912bb3e9",
+        "type": "github"
+      },
+      "original": {
+        "owner": "nixos",
+        "repo": "nixpkgs",
+        "type": "github"
+      }
+    },
     "nixpkgs-lib": {
       "locked": {
         "dir": "lib",
@@ -271,6 +286,7 @@
         "crane": "crane",
         "flake-parts": "flake-parts",
         "nixpkgs": "nixpkgs_2",
+        "nixpkgs-latest-vimplugins": "nixpkgs-latest-vimplugins",
         "pre-commit-nix": "pre-commit-nix",
         "rust-overlay": "rust-overlay_2"
       }

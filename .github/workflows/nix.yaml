@@ -3,7 +3,7 @@ name: nix-build
 on:
   pull_request:
   push:
-    branches: ["master"]
+    branches: [ "master" ]
 
 jobs:
   nix-build:
@@ -22,3 +22,40 @@ jobs:
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - run: nix build
+
+  nix-show:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+      fail-fast: false
+
+    name: nix-build (${{ matrix.os }})
+    steps:
+      - uses: actions/checkout@v3
+      - uses: cachix/install-nix-action@v22
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - run: nix flake show
+      - run: nix run .#neovim-with-sg -- --version
+      - run: nix run -- --version
+
+  nix-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+      fail-fast: false
+
+    name: nix-build (${{ matrix.os }})
+    steps:
+      - uses: actions/checkout@v3
+      - uses: cachix/install-nix-action@v22
+        with:
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - run: nix run -- --version
+      - run: nix run -- -l scripts/test.lua
