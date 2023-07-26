@@ -252,7 +252,7 @@ void(function()
   end
 
   -- TODO: This feels sad and painful
-  if not vim.env.SG_NVIM_TESTING then
+  if not config.testing then
     if not data.authenticated then
       vim.notify "[sg-cody] Not authenticated. See `:help sg` for more information about login"
       return
@@ -262,9 +262,14 @@ void(function()
       vim.notify "[sg-cody] Cody is not enabled on your sourcegraph server"
       return
     end
-  end
 
-  M.server_info = data
+    M.server_info = data
+  else
+    M.server_info = {
+      authenticated = true,
+      codyEnabled = true,
+    }
+  end
 
   -- And then respond that we've initialized
   local _ = M.notify("initialized", {})
