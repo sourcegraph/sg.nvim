@@ -29,27 +29,23 @@ local track = function(msg)
   end
 end
 
+M.response_buffers = {}
+
 local notification_handlers = {
   ["chat/updateMessageInProgress"] = function(noti)
     if not noti or not noti.text then
+      -- TODO: Remove the response_buffer once the message completes.
+      -- This might require some protocol changes to signal when a response completed.
       return
     end
 
-    local Message = require "sg.cody.message"
-    local Speaker = require "sg.cody.speaker"
-
-    local CodyFloatLayout = require "sg.components.cody_float_layout"
-    local active = CodyFloatLayout.active
-
-    if active then
-      active.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n")))
-      active:render()
-    else
-      local layout = CodyFloatLayout.init {}
-      layout:mount()
-
-      layout.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n")))
-      layout:render()
+    local bufnr = M.response_buffers[noti.data]
+    if bufnr ~= nil then
+      if not vim.api.nvim_buf_is_valid(bufnr) then
+        return
+      end
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(vim.trim(noti.text), "\n"))
+      return
     end
   end,
 }
@@ -187,10 +183,11 @@ end
 --- Sadly just puts whatever we get as the response into the currently
 --- open window... I will fix this later (needs protocol changes)
 ---@param message string
+---@param messageId string?
 ---@return table | nil
 ---@return table | nil
-M.execute.chat_question = function(message)
-  return M.request("recipes/execute", { id = "chat-question", humanChatInput = message })
+M.execute.chat_question = function(message, messageId)
+  return M.request("recipes/execute", { id = "chat-question", humanChatInput = message, data = messageId })
 end
 
 -- M.execute.fixup = function(message) end

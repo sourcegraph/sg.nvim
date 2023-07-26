@@ -58,11 +58,20 @@ function State:update_message(message)
   end
 end
 
+local random = math.random
+local function uuid()
+    local template ='xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'
+    return string.gsub(template, '[xy]', function (c)
+        local v = (c == 'x') and random(0, 0xf) or random(8, 0xb)
+        return string.format('%x', v)
+    end)
+end
+
 --- Get a new completion, based on the state
 ---@param bufnr number
 ---@param win number
 ---@param display_user_query? boolean
-function State:complete(bufnr, win, display_user_query)
+function State:complete(bufnr, win, display_user_query, layout)
   set_last_state(self)
 
   local snippet = ""
@@ -78,8 +87,12 @@ function State:complete(bufnr, win, display_user_query)
   end
   vim.cmd [[mode]]
 
+  local messageId = uuid()
+
+  require("sg.cody.rpc").response_buffers[messageId] = bufnr
+
   -- Execute chat question. Will be completed async
-  require("sg.cody.rpc").execute.chat_question(snippet)
+  require("sg.cody.rpc").execute.chat_question(snippet, messageId)
 end
 
 --- Render the state to a buffer and window

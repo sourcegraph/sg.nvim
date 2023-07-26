@@ -29,9 +29,13 @@ function CodyHistory.init(opts)
     col = shared.calculate_col(opts.col),
     style = "minimal",
     border = "rounded",
-    title = " " .. opts.title .. " ",
+    title = " Cody History ",
     title_pos = "left",
   }
+
+  if opts.title then
+    popup_options.title = " " .. opts.title .. " "
+  end
 
   return setmetatable({
     opts = opts,

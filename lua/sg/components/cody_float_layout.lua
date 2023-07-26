@@ -13,6 +13,9 @@ local void = require("plenary.async").void
 ---@field width number?
 ---@field state CodyState?
 ---@field title string?
+---@field bufnr number?
+---@field start_line number?
+---@field end_line number?
 
 ---@class CodyFloatLayout
 ---@field opts CodyFloatLayoutOptions
@@ -69,7 +72,7 @@ end
 function CodyFloatLayout:complete()
   -- self:render()
 
-  self.state:complete(self.history.bufnr, self.history.win, false)
+  self.state:complete(self.history.bufnr, self.history.win, false, self)
 end
 
 function CodyFloatLayout:mount()
@@ -85,7 +88,18 @@ function CodyFloatLayout:mount()
   self.history:mount()
 
   keymaps.map(self.history.bufnr, "n", "<ESC>", "[cody] quit chat", function()
-    self.history:unmount()
+    self.history:hide()
+  end)
+
+  keymaps.map(self.history.bufnr, "n", "<CR>", "[cody] confirm edit", function()
+    vim.api.nvim_buf_set_lines(
+      self.opts.bufnr,
+      self.opts.start_line,
+      self.opts.end_line,
+      false,
+      vim.api.nvim_buf_get_lines(self.history.bufnr, 0, -1, false)
+    )
+    self.history:hide()
   end)
 
   -- TODO: add ? as shortcut to display shortcuts haha
@@ -103,6 +117,11 @@ end
 
 function CodyFloatLayout:hide()
   self.history:hide()
+end
+
+function CodyFloatLayout:show()
+  self.history:mount()
+  vim.api.nvim_set_current_win(self.history.win)
 end
 
 function CodyFloatLayout:unmount()
