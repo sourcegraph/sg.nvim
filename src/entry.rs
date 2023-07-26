@@ -17,9 +17,20 @@ pub enum Entry {
 impl Entry {
     pub async fn new(uri: &str) -> Result<Self> {
         let uri = normalize_url(uri);
-        let (remote_with_commit, path) = uri.split_once("/-/").ok_or(anyhow::anyhow!(
-            "URL must have at least one '-' for it to be valid"
-        ))?;
+
+        let (remote_with_commit, path) = match uri.split_once("/-/") {
+            Some(split) => split,
+            None => {
+                let uri = uri.to_string();
+                let (remote, oid) = uri.split_once('@').unwrap_or((&uri, "HEAD"));
+
+                // Handle the repo case here.
+                return Ok(Self::Repo(Repo {
+                    remote: remote.to_string().into(),
+                    oid: oid.to_string().into(),
+                }));
+            }
+        };
 
         if path.is_empty() {
             todo!("Handled repos, not files")
@@ -91,7 +102,7 @@ impl Entry {
         match self {
             Entry::File(file) => file.bufname(),
             Entry::Directory(dir) => dir.bufname(),
-            Entry::Repo(_) => todo!(),
+            Entry::Repo(repo) => repo.bufname(),
         }
     }
 
@@ -152,7 +163,7 @@ impl<'lua> ToLua<'lua> for Entry {
             match self {
                 Entry::File(file) => file.to_lua(lua)?,
                 Entry::Directory(dir) => dir.to_lua(lua)?,
-                Entry::Repo(_) => todo!(),
+                Entry::Repo(repo) => repo.to_lua(lua)?,
             },
         )?;
 
@@ -174,8 +185,11 @@ impl<'lua> ToLua<'lua> for Position {
     }
 }
 
-fn make_bufname(remote: &Remote, oid: &OID, path: &str) -> String {
-    format!("sg://{}@{}/-/{}", remote.shortened(), oid.shortened(), path)
+fn make_bufname(remote: &Remote, oid: &OID, path: Option<&str>) -> String {
+    match path {
+        Some(path) => format!("sg://{}@{}/-/{}", remote.shortened(), oid.shortened(), path),
+        None => format!("sg://{}@{}", remote.shortened(), oid.shortened()),
+    }
 }
 
 #[derive(Debug, LuaDefaults)]
@@ -188,7 +202,7 @@ pub struct File {
 
 impl File {
     pub fn bufname(&self) -> String {
-        make_bufname(&self.remote, &self.oid, &self.path)
+        make_bufname(&self.remote, &self.oid, Some(&self.path))
     }
 }
 
@@ -207,7 +221,7 @@ pub struct Directory {
 
 impl Directory {
     pub fn bufname(&self) -> String {
-        make_bufname(&self.remote, &self.oid, &self.path)
+        make_bufname(&self.remote, &self.oid, Some(&self.path))
     }
 }
 
@@ -217,7 +231,19 @@ impl UserData for Directory {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, LuaDefaults)]
 pub struct Repo {
     pub remote: Remote,
+    pub oid: OID,
+}
+impl Repo {
+    fn bufname(&self) -> String {
+        make_bufname(&self.remote, &self.oid, None)
+    }
+}
+
+impl UserData for Repo {
+    fn add_fields<'lua, F: mlua::UserDataFields<'lua, Self>>(fields: &mut F) {
+        Repo::generate_default_fields(fields);
+    }
 }

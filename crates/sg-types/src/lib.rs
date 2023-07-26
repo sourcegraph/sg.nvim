@@ -92,7 +92,11 @@ pub struct OID(pub String);
 
 impl OID {
     pub fn shortened(&self) -> String {
-        self.0[..5].to_string()
+        if self.0.len() < 5 {
+            self.0.to_string()
+        } else {
+            self.0[..5].to_string()
+        }
     }
 }
 

@@ -148,7 +148,13 @@ fn get_link(lua: &Lua, (bufname, line, col): (String, usize, usize)) -> LuaResul
 
             format!("{endpoint}/{remote}/-/tree/{path}")
         }
-        Entry::Repo(_) => todo!("repo: not yet implemented"),
+        Entry::Repo(repo) => {
+            let endpoint = get_endpoint();
+            let remote = repo.remote.0;
+            let oid = repo.oid.0;
+
+            format!("{endpoint}/{remote}@{oid}")
+        }
     }
     .to_lua(lua)
 }
