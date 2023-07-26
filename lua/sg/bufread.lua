@@ -43,17 +43,11 @@ M.edit = function(path)
   local bufnr = vim.api.nvim_get_current_buf()
 
   if entry.type == "directory" then
-    return M._open_remote_folder(
-      bufnr,
-      entry.bufname,
-      entry.data --[[@as SgDirectory]]
-    )
+    return M._open_remote_folder(bufnr, entry.bufname, entry.data --[[@as SgDirectory]])
   elseif entry.type == "file" then
-    return M._open_remote_file(
-      bufnr,
-      entry.bufname,
-      entry.data --[[@as SgFile]]
-    )
+    return M._open_remote_file(bufnr, entry.bufname, entry.data --[[@as SgFile]])
+  elseif entry.type == "repo" then
+    return M._open_remote_repo(bufnr, entry.bufname, entry.data --[[as SgRepo]])
   else
     error("unknown path type: " .. entry.type)
   end
@@ -210,6 +204,14 @@ M._open_remote_file = function(bufnr, bufname, data)
     -- error "TODO: handle position"
     -- pcall(vim.api.nvim_win_set_cursor, 0, { remote_file.line, remote_file.col or 0 })
   end
+end
+
+--- Open a remote repo
+---@param bufnr any
+---@param bufname any
+---@param data SgRepo
+M._open_remote_repo = function(bufnr, bufname, data)
+  M._open_remote_folder(bufnr, bufname, { remote = data.remote, oid = data.oid, path = "/" })
 end
 
 return M

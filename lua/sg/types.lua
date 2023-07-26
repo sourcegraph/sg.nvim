@@ -18,6 +18,10 @@
 ---@field path string
 ---@field position nil|SgPosition
 
+---@class SgRepo
+---@field remote string
+---@field oid string
+
 ---@class SourcegraphEmbedding
 ---@field type "Text"|"Code"
 ---@field repo string
