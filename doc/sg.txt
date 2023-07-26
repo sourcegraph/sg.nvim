@@ -52,6 +52,10 @@ Default commands for interacting with Cody
 :CodyFloat ~
     Ask Cody about the selected code. Cody responds in a floating window.
 
+                                                            *:CodyToggleFloat*
+:CodyToggleFloat ~
+    Hides/shows the Cody float window.
+
                                                                  *:CodyToggle*
 :CodyToggle ~
     Toggles the current Cody Chat window.
