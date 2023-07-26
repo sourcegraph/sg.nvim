@@ -251,14 +251,17 @@ void(function()
     return
   end
 
-  if not data.authenticated then
-    vim.notify "[sg-cody] Not authenticated. See `:help sg` for more information about login"
-    return
-  end
+  -- TODO: This feels sad and painful
+  if not vim.env.SG_NVIM_TESTING then
+    if not data.authenticated then
+      vim.notify "[sg-cody] Not authenticated. See `:help sg` for more information about login"
+      return
+    end
 
-  if not data.codyEnabled then
-    vim.notify "[sg-cody] Cody is not enabled on your sourcegraph server"
-    return
+    if not data.codyEnabled then
+      vim.notify "[sg-cody] Cody is not enabled on your sourcegraph server"
+      return
+    end
   end
 
   M.server_info = data
