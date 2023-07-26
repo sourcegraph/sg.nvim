@@ -91,7 +91,7 @@ require("sg").setup {
 ```vim
 " Example mapping for doing searches from within neovim (may change) using telescope.
 " (requires telescope.nvim to be installed)
-nnoremap <space>ss <cmd>lua require('sg.telescope').fuzzy_search_results()<CR>
+nnoremap <space>ss <cmd>lua require('sg.extensions.telescope').fuzzy_search_results()<CR>
 ```
 
 ## Demos:
