@@ -28,9 +28,14 @@ M.server_info = {}
 --- Whether the current cody connection is ready for requests
 ---     TODO: We should think more about how to use this and structure it.
 ---@return boolean
-local is_ready = function()
+local is_ready = function(opts)
+  opts = opts or {}
   if not require("sg")._is_authed() then
     return false
+  end
+
+  if opts.method == "initialize" then
+    return true
   end
 
   return M.server_info.authenticated and M.server_info.codyEnabled
@@ -140,7 +145,7 @@ M.request = async.wrap(function(method, params, callback)
     params = params,
   }
 
-  if not is_ready() then
+  if not is_ready { method = method } then
     callback(
       "Unable to get token and/or endpoint for sourcegraph."
         .. " Use `:SourcegraphLogin` or `:help sg` for more information",
