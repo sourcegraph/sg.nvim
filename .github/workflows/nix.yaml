@@ -32,7 +32,7 @@ jobs:
           - macos-latest
       fail-fast: false
 
-    name: nix-build (${{ matrix.os }})
+    name: nix-show (${{ matrix.os }})
     steps:
       - uses: actions/checkout@v3
       - uses: cachix/install-nix-action@v22
@@ -51,7 +51,7 @@ jobs:
           - macos-latest
       fail-fast: false
 
-    name: nix-build (${{ matrix.os }})
+    name: nix-test (${{ matrix.os }})
     steps:
       - uses: actions/checkout@v3
       - uses: cachix/install-nix-action@v22
