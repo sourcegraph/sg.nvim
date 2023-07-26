@@ -86,4 +86,8 @@ end
 
 M.accept_tos = accept_tos
 
+M._is_authed = function()
+  return require("sg.env").endpoint() ~= "" and require("sg.env").token() ~= ""
+end
+
 return M

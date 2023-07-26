@@ -186,6 +186,12 @@ end
 for key, value in pairs(commands) do
   commands[key] = function(...)
     sg.accept_tos()
+
+    if not sg._is_authed() then
+      vim.notify "You are not logged in to Sourcegraph. Use `:SourcegraphLogin` or `:help sg` to log in"
+      return
+    end
+
     return value(...)
   end
 end
