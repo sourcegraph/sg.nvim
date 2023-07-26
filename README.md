@@ -1,5 +1,11 @@
 # sg.nvim
 
+## Table of Contents
+
+- [Setup](#setup)
+- [Installation](#installation)
+- [
+
 sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com into Neovim.
 
 **Status**: Beta (see #Features for currently supported features)
@@ -7,13 +13,17 @@ sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com 
 
 ## Setup
 
-### Connection
+To configure logging in:
 
-You can connect to an existing Sourcegraph instance using the same environment variables
-that are used for `src-cli`. See [this](https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance) for more information.
+- Log in on your Sourcegraph instance.
+- Click your user menu in the top right, then select Settings > Access tokens.
+- Create your access token, and then run `:SourcegraphLogin` in your neovim editor after installation.
+- Type in the link to your Sourcegraph instance (for example: `https://sourcegraph.com`)
+- And then paste in your access token.
 
-If you have these environment variables set when opening Neovim, you'll connect to your
-instance of Sourcegraph
+An alternative to this is to use the environment variables specified for [src-cli](https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance).
+
+You can check that you're logged in by then running `:checkhealth sg`
 
 ## Installation
 
@@ -28,7 +38,11 @@ Requires:
 - Node.js >= 18.17.0 (LTS) at runtime for [`cody-agent.js` - sourcegraph](./dist/cody-agent.js)
 
 ### Install
-#### Using `lazy.nvim`
+
+<details>
+
+<summary>`lazy.nvim`</summary>
+
 ```lua
 -- Use your favorite package manager to install, for example in lazy.nvim
 return {
@@ -41,6 +55,8 @@ return {
   },
 }
 ```
+
+</details>
 
 #### Using `Packer.nvim`
 
@@ -64,8 +80,6 @@ After installation, you can run `:checkhealth sg` to see if the plugin is set up
 You also need to have the appropriate environment variables to log in to your sourcegraph instance, as described in https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance
 
 ### Setup:
-
-You can use the `:SourcegraphLogin` command to login.
 
 ```lua
 -- Setup the LSP server to attach when you edit an sg:// buffer
