@@ -1,15 +1,14 @@
 # sg.nvim
 
+**Status**: Beta
+
 ## Table of Contents
 
 - [Setup](#setup)
 - [Installation](#installation)
-- [
+- [Configuration](#configuration)
 
 sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com into Neovim.
-
-**Status**: Beta (see #Features for currently supported features)
-
 
 ## Setup
 
@@ -32,16 +31,13 @@ You can check that you're logged in by then running `:checkhealth sg`
 Requires:
 
 - nvim 0.9 or nvim nightly
-
 - Cargo to build (pre-built binary/dylibs options to come)
-
 - Node.js >= 18.17.0 (LTS) at runtime for [`cody-agent.js` - sourcegraph](./dist/cody-agent.js)
 
 ### Install
 
 <details>
-
-<summary>`lazy.nvim`</summary>
+<summary><code>lazy.nvim</code></summary>
 
 ```lua
 -- Use your favorite package manager to install, for example in lazy.nvim
@@ -55,34 +51,34 @@ return {
   },
 }
 ```
-
 </details>
 
-#### Using `Packer.nvim`
+<details>
+<summary><code>packer.nvim</code></summary>
 
 ```lua
 -- Packer.nvim, also make sure to install nvim-lua/plenary.nvim
 use { 'sourcegraph/sg.nvim', run = 'nvim -l build/init.lua' }
 ```
+</details>
 
-#### Using `vim-plug`
+<details>
+<summary><code>vim-plug</code></summary>
+
 ```vimrc
 " Using vim-plug
 Plug 'sourcegraph/sg.nvim', { 'do': 'nvim -l build/init.lua' }
 ```
+</details>
 
-### Check & Configure
-
-After installation, you can run `:checkhealth sg` to see if the plugin is set up correctly.
+After installation, run `:checkhealth sg`.
 
 (Nix instructions at the end of the readme)
 
-You also need to have the appropriate environment variables to log in to your sourcegraph instance, as described in https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance
-
-### Setup:
+## Configuration:
 
 ```lua
--- Setup the LSP server to attach when you edit an sg:// buffer
+-- Sourcegraph configuration. All keys are optional
 require("sg").setup {
   -- Pass your own custom attach function
   --    If you do not pass your own attach function, then the following maps are provide:
