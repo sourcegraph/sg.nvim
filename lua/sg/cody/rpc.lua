@@ -22,6 +22,30 @@ local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
 
 local M = {}
 
+---@type CodyServerInfo
+M.server_info = {}
+
+--- Whether the current cody connection is ready for requests
+---     TODO: We should think more about how to use this and structure it.
+---@return boolean
+local is_ready = function(opts)
+  -- TODO(auth-test): Not a huge fan of this :)
+  if config.testing then
+    return true
+  end
+
+  opts = opts or {}
+  if not require("sg")._is_authed() then
+    return false
+  end
+
+  if opts.method == "initialize" then
+    return true
+  end
+
+  return M.server_info.authenticated and M.server_info.codyEnabled
+end
+
 M.messages = {}
 local track = function(msg)
   if config.testing then
@@ -126,6 +150,15 @@ M.request = async.wrap(function(method, params, callback)
     params = params,
   }
 
+  if not is_ready { method = method } then
+    callback(
+      "Unable to get token and/or endpoint for sourcegraph."
+        .. " Use `:SourcegraphLogin` or `:help sg` for more information",
+      nil
+    )
+    return
+  end
+
   log.trace("request", method, params)
   return client.request(method, params, function(err, result)
     track {
@@ -141,6 +174,8 @@ end, 3)
 
 --- Initialize the client by sending initialization info to the server.
 --- This must be called before any other requests.
+---@return string?
+---@return CodyServerInfo?
 M.initialize = function()
   ---@type CodyClientInfo
   local info = {
@@ -175,7 +210,7 @@ M.shutdown = function()
 end
 
 M.exit = function()
-  M.notify "exit"
+  M.notify("exit", {})
 
   -- Force closing the connection.
   -- I think this is good to make sure we don't leave anything running
@@ -210,7 +245,31 @@ end
 -- Always attempt to the start the server when loading.
 void(function()
   -- Run initialize as first message to send
-  local _ = M.initialize()
+  local err, data = M.initialize()
+  if err ~= nil then
+    vim.notify("[sg-cody]" .. vim.inspect(err))
+    return
+  end
+
+  if not data then
+    vim.notify "[sg-cody] expected initialize data, but got none"
+    return
+  end
+
+  -- TODO: This feels sad and painful
+  if not config.testing then
+    if not data.authenticated then
+      vim.notify "[sg-cody] Not authenticated. See `:help sg` for more information about login"
+      return
+    end
+
+    if not data.codyEnabled then
+      vim.notify "[sg-cody] Cody is not enabled on your sourcegraph server"
+      return
+    end
+  end
+
+  M.server_info = data
 
   -- And then respond that we've initialized
   local _ = M.notify("initialized", {})

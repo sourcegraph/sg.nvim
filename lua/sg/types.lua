@@ -47,6 +47,15 @@
 ---@field completions 'none'?
 ---@field chat 'none' | 'streaming' | nil
 
+---@class CodyServerInfo
+---@field name string
+---@field authenticated boolean
+---@field codyEnabled boolean
+---@field codyVersion string?
+---@field capabilities CodyServerCapabilities?
+
+---@class CodyServerCapabilities
+
 ---@class CodyTextDocument
 ---@field filePath string
 ---@field content string?
