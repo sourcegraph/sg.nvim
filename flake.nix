@@ -45,6 +45,7 @@
         devShells.default = pkgs.mkShell {
           name = "sg.nvim";
           buildInputs = with pkgs; [
+            darwin.apple_sdk.frameworks.Security
             openssl
             pkg-config
             toolchain
