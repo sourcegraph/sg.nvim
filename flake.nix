@@ -44,11 +44,13 @@
       in {
         devShells.default = pkgs.mkShell {
           name = "sg.nvim";
-          buildInputs = with pkgs; [
-            openssl
-            pkg-config
-            toolchain
-          ];
+          buildInputs = with pkgs;
+            [
+              openssl
+              pkg-config
+              toolchain
+            ]
+            ++ lib.optionals stdenv.isDarwin [darwin.apple_sdk.frameworks.Security];
           shellHook = ''
             ${config.pre-commit.installationScript}
           '';
