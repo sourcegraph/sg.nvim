@@ -100,6 +100,11 @@ commands.do_task = function(bufnr, start_line, end_line, message)
     local lines = {}
     for _, line in ipairs(vim.split(completed, "\n")) do
       -- This is to trim the rambling at the end that LLMs tend to do.
+      -- TODO: This should be handled in the agent/LSP/whatever doing
+      -- the GQL request, so that the response can be cut short
+      -- without having to wait for the stream to complete. No sense
+      -- waiting for text to complete that you're going to throw
+      -- away.
       if line == "```" then
         break
       end
