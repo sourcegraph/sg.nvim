@@ -83,7 +83,7 @@ commands.do_task = function(bufnr, start_line, end_line, message)
   local formatted = require("sg.utils").format_code(bufnr, selection)
 
   local prompt = message
-  prompt = prompt .. "\n"
+  prompt = prompt .. "\nReply only with code, nothing else\n"
   prompt = prompt .. table.concat(formatted, "\n")
 
   local prefix = string.format("```%s", vim.bo[bufnr].filetype)
