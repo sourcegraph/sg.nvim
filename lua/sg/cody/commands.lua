@@ -92,6 +92,11 @@ commands.do_task = function(bufnr, start_line, end_line, message)
     print "Performing task..."
     local err, completed = require("sg.rpc").complete(prompt, { prefix = prefix, temperature = 0.1 })
 
+    if err ~= nil then
+      error("failed to execute instruction " .. message)
+      return
+    end
+
     local lines = {}
     for _, line in ipairs(vim.split(completed, "\n")) do
       -- This is to trim the rambling at the end that LLMs tend to do.
