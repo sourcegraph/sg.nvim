@@ -1,9 +1,9 @@
-name: nix-build
+name: nix
 
 on:
   pull_request:
   push:
-    branches: ["master"]
+    branches: [ "master" ]
 
 jobs:
   nix-build:
@@ -18,7 +18,63 @@ jobs:
     name: nix-build (${{ matrix.os }})
     steps:
       - uses: actions/checkout@v3
-      - uses: cachix/install-nix-action@v22
+      - &install
+        uses: nixbuild/nix-quick-install-action@v25
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+          nix_conf: |
+            substituters = https://cache.nixos.org/ https://nix-community.cachix.org
+            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+            keep-outputs = true
+
+      - &cache
+        name: Restore and cache Nix store
+        uses: nix-community/cache-nix-action@v1
+        with:
+          linux-gc-enabled: true
+          # 8 gb
+          linux-max-store-size: 8000000000
+          macos-gc-enabled: true
+          # 8 gb
+          macos-max-store-size: 8000000000
+
+          # save a new cache every time
+          key: cache-${{ matrix.os }}-${{ hashFiles('.github/workflows/ci.yaml') }}
+          restore-keys: |
+            cache-${{ matrix.os }}-${{ hashFiles('.github/workflows/ci.yaml') }}-
+            cache-${{ matrix.os }}-
+
       - run: nix build
+
+  nix-show:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+      fail-fast: false
+
+    name: nix-show (${{ matrix.os }})
+    steps:
+      - uses: actions/checkout@v3
+      - *install
+      - *cache
+      - run: nix flake show
+
+  nix-test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+      fail-fast: false
+
+    name: nix-test (${{ matrix.os }})
+    steps:
+      - uses: actions/checkout@v3
+      - *install
+      - *cache
+      - run: nix run . -- --version
+      - run: nix run . -- -l scripts/test.lua
+
