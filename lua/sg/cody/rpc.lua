@@ -19,6 +19,7 @@ local log = require "sg.log"
 local config = require "sg.config"
 local env = require "sg.env"
 local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
+local utils = require "sg.utils"
 
 local M = {}
 
@@ -53,27 +54,19 @@ local track = function(msg)
   end
 end
 
+M.message_callbacks = {}
+
 local notification_handlers = {
   ["chat/updateMessageInProgress"] = function(noti)
     if not noti or not noti.text then
+      if noti.data and M.message_callbacks[noti.data] ~= nil then
+        M.message_callbacks[noti.data] = nil
+      end
       return
     end
 
-    local Message = require "sg.cody.message"
-    local Speaker = require "sg.cody.speaker"
-
-    local CodyLayout = require "sg.components.cody_layout"
-    local active = CodyLayout.active
-
-    if active then
-      active.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n")))
-      active:render()
-    else
-      local layout = CodyLayout.init {}
-      layout:mount()
-
-      layout.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n")))
-      layout:render()
+    if noti.data and M.message_callbacks[noti.data] ~= nil then
+      M.message_callbacks[noti.data](noti)
     end
   end,
 }
@@ -229,10 +222,15 @@ end
 --- Sadly just puts whatever we get as the response into the currently
 --- open window... I will fix this later (needs protocol changes)
 ---@param message string
+---@param callback function(noti)
 ---@return table | nil
 ---@return table | nil
-M.execute.chat_question = function(message)
-  return M.request("recipes/execute", { id = "chat-question", humanChatInput = message })
+M.execute.chat_question = function(message, callback)
+  local message_id = utils.uuid()
+
+  M.message_callbacks[message_id] = callback
+
+  return M.request("recipes/execute", { id = "chat-question", humanChatInput = message, data = message_id })
 end
 
 -- M.execute.fixup = function(message) end

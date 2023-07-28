@@ -104,11 +104,26 @@ function CodyLayout:render()
   self.state:render(self.history.bufnr, self.history.win)
 end
 
+local callback = function(noti)
+  local active = CodyLayout.active
+
+  if active then
+    active.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n")))
+    active:render()
+  else
+    local layout = CodyLayout.init {}
+    layout:mount()
+
+    layout.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n")))
+    layout:render()
+  end
+end
+
 function CodyLayout:complete()
   self:render()
   vim.api.nvim_buf_set_lines(self.prompt.bufnr, 0, -1, false, {})
 
-  self.state:complete(self.history.bufnr, self.history.win)
+  self.state:complete(self.history.bufnr, self.history.win, callback)
 end
 
 function CodyLayout:mount()
