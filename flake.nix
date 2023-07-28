@@ -92,7 +92,6 @@
             plugins = [
               {plugin = plug.plenary-nvim;}
               {plugin = sg-nvim;}
-              {plugin = plug.nvim-treesitter.withPlugins (ts: [ts.lua ts.typescript]);}
             ];
             # TODO: alternative way is to add to LUA_CPATH, correctness unknown.
             customRC = ''
@@ -100,9 +99,8 @@
               package.cpath = package.cpath .. ";${sg-nvim}/lib/*.so;${sg-nvim}/lib/*.dylib"
               EOF
             '';
-            # `-u` sucks, it skips a lot of things that prevents `-l` to go
-            # on happy route. We will instead use `$VIMINIT` for sandboxed neovim
-            # even in the impure shell
+            # `-u` prevents `-l` to go on happy route. We will instead use
+            # `$VIMINIT` for sandboxed neovim even in the impure shell
             wrapRc = false;
           };
           vimrc-drv = pkgs.writeTextFile {
@@ -117,14 +115,7 @@
                 + " "
                 + "--set VIMINIT \':source ${vimrc-drv}\'"
                 + " "
-                + ''--suffix PATH : "${pkgs.lib.makeBinPath [self'.packages.sg-nvim]}"''
-                # + ''--add-flags '--cmd "lua vim.v.progpath=\'$0\'"' ''
-                # + (pkgs.lib.escapeShellArgs ["--add-flags" "--cmd \"lua vim.v.progpath='$0'\""])
-                # + " "
-                # + (pkgs.lib.escapeShellArgs ["--add-flags" "--cmd \"lua print('$0')\""])
-                # + " "
-                # + (pkgs.lib.escapeShellArgs ["--add-flags" "--cmd \"lua print(vim.v.progpath)\""])
-                ;
+                + ''--suffix PATH : "${pkgs.lib.makeBinPath [self'.packages.sg-nvim]}"'';
             };
         in
           pkgs.wrapNeovimUnstable pkgs.neovim.unwrapped cfg-set-viminit;

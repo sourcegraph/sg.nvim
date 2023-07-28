@@ -40,7 +40,6 @@ SG_SG_CLIENT = vendored_rpc.start(bin_sg_nvim, {}, {
     end
   end,
 }, {
-  
   env = {
     PATH = vim.env.PATH,
     SRC_ACCESS_TOKEN = env.token(),

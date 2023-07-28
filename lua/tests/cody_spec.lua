@@ -1,12 +1,3 @@
-print('[cody-spec]: nvim_cmd (progpath) =' .. vim.v.progpath)
-print('[cody-spec]: nvim_cmds (argv) =' .. vim.inspect(vim.v.argv))
-print('[cody-spec]: env.NVIM_SYSTEM_RPLUGIN_MANIFEST=' .. vim.env.NVIM_SYSTEM_RPLUGIN_MANIFEST)
-print('[cody-spec]: cody-agent: ' .. require('sg.config').cody_agent)
-
--- local _ = require('sg.request').request
-local _ = require('sg.vendored.vim-lsp-rpc')
-local bin_sg_nvim = require("sg.config").get_nvim_agent()
-
 -- For some reason this doesn't always get loaded?...
 vim.cmd [[runtime! plugin/cody-agent.lua]]
 -- local augroup_cody = vim.api.nvim_create_augroup("augroup-cody", { clear = false })
