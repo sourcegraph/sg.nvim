@@ -18,7 +18,7 @@ end
 M.get_client_id = function()
   -- TODO: Restart the client if it is no longer active?
   if not M._client then
-    local cmd = require("sg._find_artifact").find_rust_bin "sg-lsp"
+    local cmd = require("sg.private.find_artifact").find_rust_bin "sg-lsp"
 
     M._client = vim.lsp.start_client {
       cmd = { cmd },

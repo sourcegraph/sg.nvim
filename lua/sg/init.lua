@@ -17,7 +17,7 @@
 --- You can check that you're logged in by then running `:checkhealth sg`
 ---@brief ]]
 
-local data = require "sg.data"
+local data = require "sg.private.data"
 
 local M = {}
 

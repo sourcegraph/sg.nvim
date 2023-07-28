@@ -3,7 +3,9 @@ local uv = vim.loop or vim.uv
 local utils = require "sg.utils"
 local M = {}
 
-local sg_root = vim.fn.fnamemodify(require("plenary.debug_utils").sourced_filepath(), ":p:h:h:h")
+-- Find the root of the repository
+local artifact_file = require("plenary.debug_utils").sourced_filepath()
+local sg_root = vim.fn.fnamemodify(artifact_file, ":p:h:h:h:h")
 
 local sort_by_time = function(candidates)
   table.sort(candidates, function(a, b)

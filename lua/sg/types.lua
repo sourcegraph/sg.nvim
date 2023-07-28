@@ -77,6 +77,10 @@ local M = {}
 ---@field start CodyPosition
 ---@field end CodyPosition
 
+---@class SourcegraphAuthConfig
+---@field endpoint string: The sourcegraph endpoint
+---@field token string: The sourcegraph auth token
+
 ---@enum SourcegraphAuthStrategy
 M.auth_strategy = { app = "sourcegraph-app", nvim = "nvim", env = "environment-variables" }
 

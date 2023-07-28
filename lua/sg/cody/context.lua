@@ -1,5 +1,5 @@
 local rpc = require "sg.rpc"
-local system = require "sg.system"
+local async_system = require("sg.utils").async_system
 
 local Message = require "sg.cody.message"
 local Speaker = require "sg.cody.speaker"
@@ -14,7 +14,7 @@ context.get_origin = function(bufnr)
   dir = vim.fn.fnamemodify(dir, ":p:h")
 
   -- git remote get-url origin
-  local obj = system.async({ "git", "remote", "get-url", "origin" }, {
+  local obj = async_system({ "git", "remote", "get-url", "origin" }, {
     cwd = dir,
     text = true,
   })

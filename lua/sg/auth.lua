@@ -1,6 +1,7 @@
 local config = require "sg.config"
-local data = require "sg.data"
+local data = require "sg.private.data"
 
+local json_or_nil = require("sg.utils").json_or_nil
 local strategy = require("sg.types").auth_strategy
 
 local M = {}
@@ -9,7 +10,7 @@ local valid = function(s)
   return s and type(s) == "string" and s ~= ""
 end
 
-local strategies = {
+M.strategies = {
   [strategy.app] = function()
     local locations = {
       "~/Library/Application Support/com.sourcegraph.cody/app.json",
@@ -25,15 +26,9 @@ local strategies = {
     -- table.insert(vim"{FOLDERID_LocalAppData}/com.sourcegraph.cody/app.json",
 
     for _, file in ipairs(locations) do
-      local handle = io.open(file)
-      if handle then
-        local contents = handle:read "*a"
-        handle:close()
-
-        local ok, parsed = vim.json.decode(contents)
-        if ok and parsed and valid(parsed.token) and valid(parsed.endpoint) then
-          return { token = parsed.token, endpoint = parsed.endpoint }
-        end
+      local parsed = json_or_nil(file)
+      if parsed and valid(parsed.token) and valid(parsed.endpoint) then
+        return { token = parsed.token, endpoint = parsed.endpoint }
       end
     end
 
@@ -56,6 +51,23 @@ local strategies = {
     return nil
   end,
 }
+
+--- Get some auth configuration
+---@param ordering SourcegraphAuthStrategy[]
+---@return SourcegraphAuthConfig
+M.get = function(ordering)
+  for _, order in ipairs(ordering) do
+    local f = M.strategies[order]
+    if f then
+      local result = f()
+      if result then
+        return result
+      end
+    end
+  end
+
+  return nil
+end
 
 M.set_token = function(token)
   token = token or vim.fn.inputsecret "SRC_ACCESS_TOKEN > "

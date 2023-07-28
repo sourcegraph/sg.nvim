@@ -1,3 +1,5 @@
+local async = require "plenary.async"
+
 local utils = {}
 
 utils.once = function(f)
@@ -50,6 +52,10 @@ end
 -- Probably will break on me unexpectedly. Nice
 utils.system = vim.system or (require "sg.vendored.vim-system")
 
+utils.async_system = async.wrap(function(cmd, opts, on_exit)
+  return utils.system(cmd, opts, vim.schedule_wrap(on_exit))
+end, 3)
+
 -- From https://gist.github.com/jrus/3197011
 utils.uuid = function()
   local template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
@@ -57,6 +63,24 @@ utils.uuid = function()
     local v = (c == "x") and math.random(0, 0xf) or math.random(8, 0xb)
     return string.format("%x", v)
   end)
+end
+
+--- Read a file and parse it as json, or return nil
+---@param file string: The name of the file
+---@return any
+utils.json_or_nil = function(file)
+  local handle = io.open(file)
+  if handle then
+    local contents = handle:read "*a"
+    handle:close()
+
+    local ok, parsed = pcall(vim.json.decode, contents)
+    if ok and parsed then
+      return parsed
+    end
+  end
+
+  return nil
 end
 
 return utils

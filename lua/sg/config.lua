@@ -38,7 +38,7 @@ config.testing = (vim.env.SG_NVIM_TESTING or "") == "true"
 config.did_change_debounce = 500
 
 config.get_nvim_agent = function()
-  return require("sg._find_artifact").find_rust_bin "sg-nvim-agent"
+  return require("sg.private.find_artifact").find_rust_bin "sg-nvim-agent"
 end
 
 config.auth_strategy = { types.auth_strategy.nvim, types.auth_strategy.env, types.auth_strategy.app }
