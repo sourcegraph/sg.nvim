@@ -50,6 +50,7 @@ end
 -- Probably will break on me unexpectedly. Nice
 utils.system = vim.system or (require "sg.vendored.vim-system")
 
+-- From https://gist.github.com/jrus/3197011
 utils.uuid = function()
   local template = "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx"
   return string.gsub(template, "[xy]", function(c)
