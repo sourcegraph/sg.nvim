@@ -3,10 +3,9 @@ local void = require("plenary.async").void
 ---@tag "cody.commands"
 ---@config { module = "sg.cody" }
 ---
+local auth = require "sg.auth"
 local sg = require "sg"
 local util = require "sg.utils"
-
-local context = require "sg.cody.context"
 
 local CodyLayout = require "sg.components.cody_layout"
 local Message = require "sg.cody.message"
@@ -92,7 +91,7 @@ commands.do_task = function(bufnr, start_line, end_line, message)
     print "Performing task..."
     local err, completed = require("sg.rpc").complete(prompt, { prefix = prefix, temperature = 0.1 })
 
-    if err ~= nil then
+    if err ~= nil or not completed then
       error("failed to execute instruction " .. message)
       return
     end
@@ -198,6 +197,10 @@ If there are no parameters, just return an empty list.
   void(function()
     print "Running completion..."
     local err, completed = require("sg.rpc").complete(prompt, { prefix = prefix, temperature = 0.1 })
+    if err ~= nil then
+      print "Failed to get completion"
+      return
+    end
 
     local ok, parsed = pcall(vim.json.decode, completed)
     if not ok then
@@ -230,7 +233,7 @@ for key, value in pairs(commands) do
   commands[key] = function(...)
     sg.accept_tos()
 
-    if not sg._is_authed() then
+    if not auth.valid() then
       vim.notify "You are not logged in to Sourcegraph. Use `:SourcegraphLogin` or `:help sg` to log in"
       return
     end

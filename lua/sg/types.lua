@@ -1,3 +1,5 @@
+local M = {}
+
 ---@class SgPosition
 ---@field line number?
 ---@field col number?
@@ -74,3 +76,8 @@
 ---@class CodyRange
 ---@field start CodyPosition
 ---@field end CodyPosition
+
+---@enum SourcegraphAuthStrategy
+M.auth_strategy = { app = "sourcegraph-app", nvim = "nvim", env = "environment-variables" }
+
+return M

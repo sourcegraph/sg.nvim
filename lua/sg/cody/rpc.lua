@@ -17,7 +17,7 @@ local void = async.void
 
 local log = require "sg.log"
 local config = require "sg.config"
-local env = require "sg.env"
+local auth = require "sg.auth"
 local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
 local utils = require "sg.utils"
 
@@ -36,7 +36,7 @@ local is_ready = function(opts)
   end
 
   opts = opts or {}
-  if not require("sg")._is_authed() then
+  if not auth.valid() then
     return false
   end
 
@@ -176,8 +176,8 @@ M.initialize = function()
     version = "0.1",
     workspaceRootPath = vim.loop.cwd() or "",
     connectionConfiguration = {
-      accessToken = env.token(),
-      serverEndpoint = env.endpoint(),
+      accessToken = auth.token(),
+      serverEndpoint = auth.endpoint(),
       -- TODO: Custom Headers for neovim
       -- customHeaders = { "
     },

@@ -12,11 +12,15 @@
 
 ---@tag sg.setup
 
+local types = require "sg.types"
+
 ---@class sg.config
 ---@field node_executable string: path to node executable
 ---@field cody_agent string: path to the cody-agent js bundle
 ---@field did_change_debounce number: Number of ms to debounce changes
 ---@field on_attach function: function to run when attaching to sourcegraph buffers
+---@field auth_strategy SourcegraphAuthStrategy[]: Ordering for auth strategies.
+---  Default { "nvim", "environment-variables", "sourcegraph-app" }
 
 ---@type sg.config
 local config = {}
@@ -36,5 +40,7 @@ config.did_change_debounce = 500
 config.get_nvim_agent = function()
   return require("sg._find_artifact").find_rust_bin "sg-nvim-agent"
 end
+
+config.auth_strategy = { types.auth_strategy.nvim, types.auth_strategy.env, types.auth_strategy.app }
 
 return config

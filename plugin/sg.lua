@@ -76,10 +76,10 @@ end, {
 --- want to set them via environment variables.
 ---@command ]]
 vim.api.nvim_create_user_command("SourcegraphLogin", function()
-  local env = require "sg.env"
+  local auth = require "sg.auth"
 
-  env.set_endpoint()
-  env.set_token()
+  auth.set_endpoint()
+  auth.set_token()
 end, {
   desc = "Login and store credentials for later use (an alternative to the environment variables",
 })

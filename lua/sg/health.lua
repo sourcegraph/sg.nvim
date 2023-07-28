@@ -33,23 +33,23 @@ local report_nvim_agent = function()
 end
 
 local report_env = function()
-  local env = require "sg.env"
+  local auth = require "sg.auth"
 
   local ok = true
 
-  if not env.token() or env.token() == "" then
+  if not auth.token() or auth.token() == "" then
     ok = false
     vim.health.error "$SRC_ACCESS_TOKEN is not set in the environment."
   end
 
-  if not env.endpoint() or env.endpoint() == "" then
+  if not auth.endpoint() or auth.endpoint() == "" then
     ok = false
     vim.health.error "$SRC_ENDPOINT is not set in the environment."
   end
 
   if ok then
     vim.health.ok "Environment variables set"
-    vim.health.ok(string.format("  endpoint set to: %s", env.endpoint()))
+    vim.health.ok(string.format("  endpoint set to: %s", auth.endpoint()))
   end
 
   local info_ok, info = pcall(require("sg.lib").get_info)

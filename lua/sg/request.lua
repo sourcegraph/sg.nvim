@@ -12,7 +12,7 @@ if SG_SG_CLIENT then
   SG_SG_CLIENT = nil
 end
 
-local env = require "sg.env"
+local auth = require "sg.auth"
 local log = require "sg.log"
 
 local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
@@ -42,8 +42,8 @@ SG_SG_CLIENT = vendored_rpc.start(bin_sg_nvim, {}, {
 }, {
   env = {
     PATH = vim.env.PATH,
-    SRC_ACCESS_TOKEN = env.token(),
-    SRC_ENDPOINT = env.endpoint(),
+    SRC_ACCESS_TOKEN = auth.token(),
+    SRC_ENDPOINT = auth.endpoint(),
   },
 })
 
