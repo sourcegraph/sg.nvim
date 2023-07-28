@@ -6,16 +6,18 @@ local paths_to_run = require('plenary.test_harness')._find_files_to_run(path)
 
 print((function()
     local plenary_dir = vim.fn.fnamemodify(debug.getinfo(1).source:match "@?(.*[/\\])", ":p:h:h:h")
-    local rv = vim.inspect {
-        plenary_dir = plenary_dir,
-        paths_to_run = paths_to_run,
-        rtp =
-            "set rtp+=.," .. vim.fn.escape(plenary_dir, " ") .. " | runtime plugin/plenary.vim",
-        dash_c = string.format(
-            'lua require("plenary.busted").run("%s")',
-            sg_spec_path:absolute():gsub("\\", "\\\\")
-        ),
+    local env = require "sg.env"
+    local log = require "sg.log"
+    local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
 
+    local rpc = require 'sg.rpc'
+
+
+    local rv = vim.inspect {
+        env = env,
+        log = log,
+        vendored_rpc = vendored_rpc,
+        rpc = rpc,
     }
     return rv
 end)())
