@@ -98,34 +98,35 @@ telescope.fuzzy_search_results = function(opts)
     }
   end
 
-  require("telescope.pickers").new({
-    sorter = conf.file_sorter(opts),
+  require("telescope.pickers")
+    .new({
+      sorter = conf.file_sorter(opts),
 
-    finder = finders.new_table {
-      results = search_results,
-      entry_maker = function(entry)
-        print(string.format("sg://%s/-/%s", entry.repo, entry.file))
-        return {
-          value = entry,
-          ordinal = string.format("%s %s", entry.file, entry.preview),
-          display = display,
-          filename = string.format("sg://%s/-/%s", entry.repo, entry.file),
-          row = entry.line + 1,
-        }
+      finder = finders.new_table {
+        results = search_results,
+        entry_maker = function(entry)
+          return {
+            value = entry,
+            ordinal = string.format("%s %s", entry.file, entry.preview),
+            display = display,
+            filename = string.format("sg://%s/-/%s", entry.repo, entry.file),
+            row = entry.line + 1,
+          }
+        end,
+      },
+      attach_mappings = function()
+        --       actions.select_default:replace(function(prompt_bufnr)
+        --         local selection = action_state.get_selected_entry()
+        --         local entry = selection.value
+        --         local uri =
+        -- return action_set.edit(prompt_bufnr, "edit")
+        --         vim.cmd.edit(uri)
+        --       end)
+
+        return true
       end,
-    },
-    attach_mappings = function()
-      --       actions.select_default:replace(function(prompt_bufnr)
-      --         local selection = action_state.get_selected_entry()
-      --         local entry = selection.value
-      --         local uri =
-      -- return action_set.edit(prompt_bufnr, "edit")
-      --         vim.cmd.edit(uri)
-      --       end)
-
-      return true
-    end,
-  }, {}):find()
+    }, {})
+    :find()
 end
 
 return telescope

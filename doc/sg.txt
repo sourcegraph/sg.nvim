@@ -3,6 +3,21 @@ INTRODUCTION                                                           *sg.nvim*
 
 sg.nvim is a plugin for interfacing with Sourcegraph and Cody
 
+To configure logging in:
+
+- Log in on your Sourcegraph instance.
+- Click your user menu in the top right, then select Settings > Access tokens.
+- Create your access token, and then run `:SourcegraphLogin` in your neovim
+  editor after installation.
+- Type in the link to your Sourcegraph instance (for example:
+  `https://sourcegraph.com`)
+- And then paste in your access token.
+
+An alternative to this is to use the environment variables specified for
+[src-cli](https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance).
+
+You can check that you're logged in by then running `:checkhealth sg`
+
 
 ================================================================================
 SETUP                                                                 *sg.setup*
@@ -48,6 +63,10 @@ Default commands for interacting with Cody
 :CodyChat {module} ~
     State a new cody chat, with an optional {title}
 
+                                                                     *:CodyDo*
+:CodyDo {module} ~
+    Instruct Cody to perform a task on selected text.
+
                                                                  *:CodyToggle*
 :CodyToggle ~
     Toggles the current Cody Chat window.
@@ -92,6 +111,17 @@ commands.chat({name})                                         *sg.cody.chat()*
 
     Return: ~
         CodyLayout
+
+
+commands.do_task({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.do_task()*
+    Ask Cody to preform a task on the selected code.
+
+
+    Parameters: ~
+        {bufnr}      (number)
+        {start_line} (number)
+        {end_line}   (number)
+        {message}    (string)
 
 
 commands.history()                                         *sg.cody.history()*
@@ -141,12 +171,14 @@ Default commands for interacting with Sourcegraph
 ================================================================================
 RPC                                                                     *sg.rpc*
 
-rpc.complete({snippet})                                    *sg.rpc.complete()*
-    Complete a single string snippet NOTE: Must be called from async context
+rpc.complete({snippet}, {opts})                            *sg.rpc.complete()*
+    Complete a single string snippet
+
 
 
     Parameters: ~
-        {snippet} (string)
+        {snippet} (string)               Code to send as the prompt
+        {opts}    ({ prefix: string? })
 
     Return: ~
         string?: The error

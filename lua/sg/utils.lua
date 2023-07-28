@@ -33,7 +33,7 @@ end
 ---@param code string|string[]
 ---@return table
 utils.format_code = function(bufnr, code)
-  return { string.format("```%s", vim.bo[bufnr].filetype), code, "```" }
+  return vim.tbl_flatten { string.format("```%s", vim.bo[bufnr].filetype), code, "```" }
 end
 
 utils.execute_keystrokes = function(keys)

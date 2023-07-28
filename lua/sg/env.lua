@@ -50,7 +50,7 @@ M.token = function(interactive)
   end
 
   if interactive then
-    cody_data = set_token()
+    cody_data = M.set_token()
   end
 
   return cody_data.token or ""

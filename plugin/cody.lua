@@ -30,6 +30,15 @@ vim.api.nvim_create_user_command("CodyAsk", function(command)
   cody_commands.ask(bufnr, command.line1 - 1, command.line2, command.args)
 end, { range = 2, nargs = 1 })
 
+-- TODO: This isn't ready yet, but we should explore how to expose this
+-- ---@command CodyRecipes [[
+-- --- Use cody recipes on a selection
+-- ---@command ]]
+-- vim.api.nvim_create_user_command("CodyRecipes", function(command)
+--   local bufnr = vim.api.nvim_get_current_buf()
+--   cody_commands.recipes(bufnr, command.line1 - 1, command.line2)
+-- end, { range = 2 })
+
 ---@command :CodyChat {module} [[
 --- State a new cody chat, with an optional {title}
 ---@command ]]
@@ -41,6 +50,14 @@ vim.api.nvim_create_user_command("CodyChat", function(command)
 
   cody_commands.chat(name)
 end, { nargs = "*" })
+
+---@command :CodyDo {module} [[
+--- Instruct Cody to perform a task on selected text.
+---@command ]]
+vim.api.nvim_create_user_command("CodyDo", function(command)
+  local bufnr = vim.api.nvim_get_current_buf()
+  cody_commands.do_task(bufnr, command.line1 - 1, command.line2, command.args)
+end, { range = 2, nargs = 1 })
 
 ---@command CodyToggle [[
 --- Toggles the current Cody Chat window.

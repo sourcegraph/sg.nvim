@@ -3,6 +3,18 @@
 
 ---@brief [[
 --- sg.nvim is a plugin for interfacing with Sourcegraph and Cody
+---
+--- To configure logging in:
+---
+--- - Log in on your Sourcegraph instance.
+--- - Click your user menu in the top right, then select Settings > Access tokens.
+--- - Create your access token, and then run `:SourcegraphLogin` in your neovim editor after installation.
+--- - Type in the link to your Sourcegraph instance (for example: `https://sourcegraph.com`)
+--- - And then paste in your access token.
+---
+--- An alternative to this is to use the environment variables specified for [src-cli](https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance).
+---
+--- You can check that you're logged in by then running `:checkhealth sg`
 ---@brief ]]
 
 local data_file = require("sg.utils").joinpath(vim.fn.stdpath "data", "cody.json")
@@ -73,5 +85,9 @@ M.setup = function(opts)
 end
 
 M.accept_tos = accept_tos
+
+M._is_authed = function()
+  return require("sg.env").endpoint() ~= "" and require("sg.env").token() ~= ""
+end
 
 return M

@@ -18,6 +18,10 @@
 ---@field path string
 ---@field position nil|SgPosition
 
+---@class SgRepo
+---@field remote string
+---@field oid string
+
 ---@class SourcegraphEmbedding
 ---@field type "Text"|"Code"
 ---@field repo string
@@ -46,6 +50,15 @@
 ---@class CodyClientCapabilities
 ---@field completions 'none'?
 ---@field chat 'none' | 'streaming' | nil
+
+---@class CodyServerInfo
+---@field name string
+---@field authenticated boolean
+---@field codyEnabled boolean
+---@field codyVersion string?
+---@field capabilities CodyServerCapabilities?
+
+---@class CodyServerCapabilities
 
 ---@class CodyTextDocument
 ---@field filePath string
