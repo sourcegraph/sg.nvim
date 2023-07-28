@@ -1,3 +1,4 @@
+print('[cody-spec]: nvim_cmd=' .. vim.v.progpath)
 -- For some reason this doesn't always get loaded?...
 vim.cmd [[runtime! plugin/cody-agent.lua]]
 -- local augroup_cody = vim.api.nvim_create_augroup("augroup-cody", { clear = false })
