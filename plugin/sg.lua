@@ -33,6 +33,10 @@ vim.api.nvim_create_user_command("SourcegraphInfo", function()
 
   vim.cmd.vnew()
   vim.api.nvim_buf_set_lines(0, 0, -1, false, contents)
+  vim.api.nvim_buf_set_option(0, "buflisted", false)
+  vim.api.nvim_buf_set_option(0, "bufhidden", "wipe")
+  vim.api.nvim_buf_set_option(0, "modifiable", false)
+  vim.api.nvim_buf_set_option(0, "modified", false)
 
   vim.schedule(function()
     print "... got sourcegraph info"
