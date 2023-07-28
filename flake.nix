@@ -92,6 +92,7 @@
             plugins = [
               {plugin = plug.plenary-nvim;}
               {plugin = sg-nvim;}
+              {plugin = plug.nvim-treesitter.withPlugins (ts: [ts.lua ts.typescript]);}
             ];
             # TODO: alternative way is to add to LUA_CPATH, correctness unknown.
             customRC = ''
@@ -114,7 +115,16 @@
               wrapperArgs =
                 (pkgs.lib.escapeShellArgs cfg.wrapperArgs)
                 + " "
-                + "--set VIMINIT \':source ${vimrc-drv}\'";
+                + "--set VIMINIT \':source ${vimrc-drv}\'"
+                + " "
+                + ''--suffix PATH : "${pkgs.lib.makeBinPath [self'.packages.sg-nvim]}"''
+                # + ''--add-flags '--cmd "lua vim.v.progpath=\'$0\'"' ''
+                # + (pkgs.lib.escapeShellArgs ["--add-flags" "--cmd \"lua vim.v.progpath='$0'\""])
+                # + " "
+                # + (pkgs.lib.escapeShellArgs ["--add-flags" "--cmd \"lua print('$0')\""])
+                # + " "
+                # + (pkgs.lib.escapeShellArgs ["--add-flags" "--cmd \"lua print(vim.v.progpath)\""])
+                ;
             };
         in
           pkgs.wrapNeovimUnstable pkgs.neovim.unwrapped cfg-set-viminit;
