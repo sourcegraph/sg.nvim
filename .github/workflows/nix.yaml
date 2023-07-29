@@ -6,7 +6,7 @@ on:
     branches: [ "master" ]
 
 jobs:
-  nix-build:
+  setup:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -15,19 +15,17 @@ jobs:
           - macos-latest
       fail-fast: false
 
-    name: nix-build (${{ matrix.os }})
+    name: setup (${{ matrix.os }})
     steps:
       - uses: actions/checkout@v3
-      - &install
-        uses: nixbuild/nix-quick-install-action@v25
+      - uses: nixbuild/nix-quick-install-action@v25
         with:
           nix_conf: |
             substituters = https://cache.nixos.org/ https://nix-community.cachix.org
             trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
             keep-outputs = true
 
-      - &cache
-        name: Restore and cache Nix store
+      - name: Restore and cache Nix store
         uses: nix-community/cache-nix-action@v1
         with:
           linux-gc-enabled: true
@@ -43,9 +41,22 @@ jobs:
             cache-${{ matrix.os }}-${{ hashFiles('.github/workflows/ci.yaml') }}-
             cache-${{ matrix.os }}-
 
+  nix-build:
+    needs: setup
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os:
+          - ubuntu-latest
+          - macos-latest
+      fail-fast: false
+
+    name: nix-build (${{ matrix.os }})
+    steps:
       - run: nix build
 
   nix-show:
+    needs: setup
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -56,12 +67,10 @@ jobs:
 
     name: nix-show (${{ matrix.os }})
     steps:
-      - uses: actions/checkout@v3
-      - *install
-      - *cache
       - run: nix flake show
 
   nix-test:
+    needs: setup
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -72,9 +81,6 @@ jobs:
 
     name: nix-test (${{ matrix.os }})
     steps:
-      - uses: actions/checkout@v3
-      - *install
-      - *cache
       - run: nix run . -- --version
       - run: nix run . -- -l scripts/test.lua
 
