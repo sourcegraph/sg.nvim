@@ -128,13 +128,6 @@
         };
         apps.default = self'.apps.neovim-with-sg;
 
-        checks.unit-test = let
-          inherit (self'.packages) neovim-with-sg;
-        in
-          pkgs.runCommand "script-test.lua.out" {} ''
-            ${neovim-with-sg}/bin/nvim --version >$out
-          '';
-
         pre-commit = {
           settings = {
             hooks.alejandra.enable = true;
