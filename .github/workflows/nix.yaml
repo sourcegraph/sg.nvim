@@ -41,46 +41,14 @@ jobs:
             cache-${{ matrix.os }}-${{ hashFiles('.github/workflows/ci.yaml') }}-
             cache-${{ matrix.os }}-
 
-  nix-build:
-    needs: setup
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-      fail-fast: false
+      - name: nix-build (${{ matrix.os }})
+        run: nix build
 
-    name: nix-build (${{ matrix.os }})
-    steps:
-      - run: nix build
+      - name: nix-show
+        run: nix flake show
 
-  nix-show:
-    needs: setup
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-      fail-fast: false
-
-    name: nix-show (${{ matrix.os }})
-    steps:
-      - run: nix flake show
-
-  nix-test:
-    needs: setup
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os:
-          - ubuntu-latest
-          - macos-latest
-      fail-fast: false
-
-    name: nix-test (${{ matrix.os }})
-    steps:
-      - run: nix run . -- --version
-      - run: nix run . -- -l scripts/test.lua
+      - name: nix-test
+        run: |
+          nix run . -- --version
+          nix run . -- -l scripts/test.lua
 
