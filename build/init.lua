@@ -33,7 +33,7 @@ print "====================="
 -- Wait for up to ten minutes...? Idk, maybe that's too long
 -- or short haha. I don't know what build times are for other people
 local wait_for_status = function(status)
-  vim.fn.jobwait { status.jid }
+  vim.fn.jobwait({ status.jid }, 10 * 60 * 1000)
 end
 
 local status_workspace = system { "cargo", "build", "--workspace" }
