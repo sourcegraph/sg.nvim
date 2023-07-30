@@ -19,12 +19,10 @@ local system = function(cmd, opts)
     if code ~= 0 then
       error("failed to execute: " .. table.concat(cmd, " "))
     end
-
-    status.done = true
     print ""
   end
 
-  vim.fn.jobstart(cmd, opts)
+  status.jid = vim.fn.jobstart(cmd, opts)
   return status
 end
 
@@ -35,9 +33,7 @@ print "====================="
 -- Wait for up to ten minutes...? Idk, maybe that's too long
 -- or short haha. I don't know what build times are for other people
 local wait_for_status = function(status)
-  vim.wait(10 * 60 * 1000, function()
-    return status.done
-  end, 10)
+  vim.fn.jobwait { status.jid }
 end
 
 local status_workspace = system { "cargo", "build", "--workspace" }
