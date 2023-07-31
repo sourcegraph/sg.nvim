@@ -51,6 +51,14 @@ vim.api.nvim_create_user_command("CodyChat", function(command)
   cody_commands.chat(name)
 end, { nargs = "*" })
 
+---@command :CodyFloat {module} [[
+--- State a new cody chat in a floating window
+---@command ]]
+vim.api.nvim_create_user_command("CodyFloat", function(command)
+  local bufnr = vim.api.nvim_get_current_buf()
+  cody_commands.float(bufnr, command.line1 - 1, command.line2, command.args)
+end, { range = 2, nargs = 1 })
+
 ---@command :CodyDo {module} [[
 --- Instruct Cody to perform a task on selected text.
 ---@command ]]
