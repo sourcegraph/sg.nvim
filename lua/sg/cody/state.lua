@@ -106,7 +106,9 @@ function State:render(bufnr, win)
   self.messages = messages
 
   local linecount = vim.api.nvim_buf_line_count(bufnr)
-  vim.api.nvim_win_set_cursor(win, { linecount, 0 })
+  if vim.api.nvim_win_is_valid(win) then
+    vim.api.nvim_win_set_cursor(win, { linecount, 0 })
+  end
 end
 
 return State

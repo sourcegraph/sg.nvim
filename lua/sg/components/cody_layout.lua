@@ -161,7 +161,8 @@ function CodyLayout:mount()
   end)
 
   keymaps.map(self.prompt.bufnr, "n", "<ESC>", "[cody] quit chat", function()
-    self.prompt:on_close()
+    self.prompt:hide()
+    self.history:hide()
   end)
 
   local with_history = function(key, mapped)
@@ -191,6 +192,12 @@ function CodyLayout:mount()
   self:render()
 
   CodyLayout.active = self
+end
+
+function CodyLayout:show()
+  self.history:mount()
+  self.prompt:mount()
+  vim.api.nvim_set_current_win(self.prompt.win)
 end
 
 function CodyLayout:hide()
