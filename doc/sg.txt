@@ -66,7 +66,7 @@ M.strategies()                                          *sg.auth.strategies()*
     Auth Strategy: `"nvim"`
     Create a custom configuration for neovim.
 
-    Auth Strategy: `"sourcegraph-app"`
+    Auth Strategy: `"cody-app"`
     Use the Cody App configuration to connect to your sourcegraph instance. See
     https://sourcegraph.com/get-cody for more information
 
