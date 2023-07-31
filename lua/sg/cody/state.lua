@@ -61,7 +61,8 @@ end
 --- Get a new completion, based on the state
 ---@param bufnr number
 ---@param win number
-function State:complete(bufnr, win)
+---@param callback function(noti)
+function State:complete(bufnr, win, callback)
   set_last_state(self)
 
   local snippet = ""
@@ -76,7 +77,7 @@ function State:complete(bufnr, win)
   vim.cmd [[mode]]
 
   -- Execute chat question. Will be completed async
-  require("sg.cody.rpc").execute.chat_question(snippet)
+  require("sg.cody.rpc").execute.chat_question(snippet, callback)
 end
 
 --- Render the state to a buffer and window
