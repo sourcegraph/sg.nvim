@@ -60,13 +60,13 @@ local notification_handlers = {
   ["chat/updateMessageInProgress"] = function(noti)
     if not noti or not noti.text then
       if noti.data and M.message_callbacks[noti.data] ~= nil then
-        M.message_callbacks[noti.data] = nil
+        M.message_callbacks[noti.data.id] = nil
       end
       return
     end
 
-    if noti.data and M.message_callbacks[noti.data] ~= nil then
-      M.message_callbacks[noti.data](noti)
+    if noti.data and M.message_callbacks[noti.data.id] ~= nil then
+      M.message_callbacks[noti.data.id](noti)
     end
   end,
 }
@@ -230,7 +230,7 @@ M.execute.chat_question = function(message, callback)
 
   M.message_callbacks[message_id] = callback
 
-  return M.request("recipes/execute", { id = "chat-question", humanChatInput = message, data = message_id })
+  return M.request("recipes/execute", { id = "chat-question", humanChatInput = message, data = { id = message_id } })
 end
 
 -- M.execute.fixup = function(message) end
