@@ -78,8 +78,9 @@ end, {
 vim.api.nvim_create_user_command("SourcegraphLogin", function()
   local auth = require "sg.auth"
 
-  auth.set_endpoint()
-  auth.set_token()
+  auth.set_nvim_auth()
+
+  vim.notify "[sg-cody] Changes will come into effect after a restart"
 end, {
   desc = "Login and store credentials for later use (an alternative to the environment variables",
 })

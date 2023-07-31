@@ -1,11 +1,12 @@
-local config = require "sg.config"
-local debounce = require "sg.vendored.debounce"
-local document = require "sg.document"
 local rpc = require "sg.cody.rpc"
-local protocol = require "sg.cody.protocol"
 if not rpc then
   return
 end
+
+local config = require "sg.config"
+local debounce = require "sg.vendored.debounce"
+local document = require "sg.document"
+local protocol = require "sg.cody.protocol"
 
 local notify = rpc.notify
 local debounce_handles = {}

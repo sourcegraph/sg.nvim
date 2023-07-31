@@ -84,4 +84,8 @@ local M = {}
 ---@enum SourcegraphAuthStrategy
 M.auth_strategy = { app = "sourcegraph-app", nvim = "nvim", env = "environment-variables" }
 
+---@class SourcegraphAuthObject
+---@field doc string: Description
+---@field get function(): SourcegraphAuthConfig?
+
 return M

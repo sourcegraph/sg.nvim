@@ -11,6 +11,24 @@ local report_nvim = function()
 end
 
 local report_lib = function()
+  if 1 ~= vim.fn.executable "cargo" then
+    vim.health.error "Unable to find valid cargo executable."
+  else
+    local result = require("sg.utils").system({ "cargo", "--version" }, { text = true }):wait()
+    if result.code ~= 0 then
+      vim.health.error "cargo failed to run `cargo --version`"
+
+      for _, msg in ipairs(vim.split(result.stdout, "\n")) do
+        vim.health.info(msg)
+      end
+      for _, msg in ipairs(vim.split(result.stderr, "\n")) do
+        vim.health.info(msg)
+      end
+    else
+      vim.health.ok "Found `cargo` is executable"
+    end
+  end
+
   local lib = require "sg.lib"
   if lib then
     vim.health.ok(string.format("Found `libsg_nvim`: %s", lib._library_path))
@@ -37,19 +55,21 @@ local report_env = function()
 
   local ok = true
 
-  if not auth.token() or auth.token() == "" then
-    ok = false
-    vim.health.error "$SRC_ACCESS_TOKEN is not set in the environment."
-  end
+  local creds, strategy = auth.get()
 
-  if not auth.endpoint() or auth.endpoint() == "" then
+  vim.health.info(string.format("Auth strategy order: %s", vim.inspect(require("sg.config").auth_strategy)))
+
+  if not creds then
+    vim.health.error "No valid auth strategy detected. See `:help sg` for more info."
     ok = false
-    vim.health.error "$SRC_ENDPOINT is not set in the environment."
   end
 
   if ok then
-    vim.health.ok "Environment variables set"
-    vim.health.ok(string.format("  endpoint set to: %s", auth.endpoint()))
+    assert(creds, "must have valid credentials")
+
+    vim.health.ok "Authentication setup correctly"
+    vim.health.ok(string.format("  endpoint set to: %s", creds.endpoint))
+    vim.health.ok(string.format("  strategy used: %s", strategy))
   end
 
   local info_ok, info = pcall(require("sg.lib").get_info)

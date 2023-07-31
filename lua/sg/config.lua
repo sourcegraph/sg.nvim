@@ -20,7 +20,7 @@ local types = require "sg.types"
 ---@field did_change_debounce number: Number of ms to debounce changes
 ---@field on_attach function: function to run when attaching to sourcegraph buffers
 ---@field auth_strategy SourcegraphAuthStrategy[]: Ordering for auth strategies.
----  Default { "nvim", "environment-variables", "sourcegraph-app" }
+---  Default { "environment-variables", "nvim", "sourcegraph-app" }
 
 ---@type sg.config
 local config = {}
@@ -41,6 +41,6 @@ config.get_nvim_agent = function()
   return require("sg.private.find_artifact").find_rust_bin "sg-nvim-agent"
 end
 
-config.auth_strategy = { types.auth_strategy.nvim, types.auth_strategy.env, types.auth_strategy.app }
+config.auth_strategy = { types.auth_strategy.env, types.auth_strategy.nvim, types.auth_strategy.app }
 
 return config

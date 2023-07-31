@@ -11,6 +11,7 @@ local docgen = require "docgen"
 local input_files = {
   "./lua/sg/init.lua",
   "./lua/sg/config.lua",
+  "./lua/sg/auth.lua",
   "./plugin/cody.lua",
   "./lua/sg/cody/commands.lua",
   "./plugin/sg.lua",
