@@ -1,7 +1,6 @@
 local _ = require "sg.components.shared"
 local keymaps = require "sg.keymaps"
 
-local CodyPrompt = require "sg.components.cody_prompt"
 local CodyHistory = require "sg.components.cody_history"
 
 local Message = require "sg.cody.message"
@@ -29,7 +28,7 @@ local util = require "sg.utils"
 local CodyFloatLayout = {}
 CodyFloatLayout.__index = CodyFloatLayout
 
---- Create a new CodyLayout
+--- Create a new CodyFloatLayout
 ---@param opts CodyFloatLayoutOptions
 ---@return CodyFloatLayout
 CodyFloatLayout.init = function(opts)

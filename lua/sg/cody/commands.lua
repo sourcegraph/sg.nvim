@@ -69,7 +69,7 @@ end
 ---@param message string
 commands.float = function(bufnr, start_line, end_line, message)
   local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
-  local layout = CodyFloatLayout.init {}
+  local layout = CodyFloatLayout.init { name = message }
 
   local contents = vim.tbl_flatten {
     message,
@@ -84,6 +84,10 @@ commands.float = function(bufnr, start_line, end_line, message)
     layout:mount()
     layout:complete()
   end)
+end
+
+commands.float_toggle = function()
+  CodyFloatLayout.active:show()
 end
 
 --- Start a new CodyChat
@@ -176,13 +180,7 @@ commands.add_context = function(bufnr, start_line, end_line, state)
 end
 
 commands.toggle = function()
-  if CodyLayout.active then
-    CodyLayout.active:unmount()
-  else
-    local state = State.last()
-    local layout = CodyLayout.init { state = state }
-    layout:mount()
-  end
+  CodyLayout.active:show()
 end
 
 commands.recipes = function(bufnr, start_line, end_line)
