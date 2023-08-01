@@ -40,7 +40,7 @@ jobs:
           # save a new cache every time
           key: cache-${{ matrix.os }}-${{ hashFiles('.github/workflows/nix.yaml') }}
           restore-keys: |
-            cache-${{ matrix.os }}-${{ hashFiles('.github/workflows/nix.yaml') }}-
+            cache-${{ matrix.os }}-${{ hashFiles('.github/workflows/nix.yaml') }}
             cache-${{ matrix.os }}-
 
       - run: nix flake show
