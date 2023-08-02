@@ -17,41 +17,17 @@
 --- You can check that you're logged in by then running `:checkhealth sg`
 ---@brief ]]
 
-local data_file = require("sg.utils").joinpath(vim.fn.stdpath "data", "cody.json")
+local data = require "sg.private.data"
 
 local M = {}
-
-local get_cody_data = function()
-  local handle = io.open(data_file, "r")
-
-  ---@type CodyConfig
-  local cody_data = {
-    tos_accepted = false,
-  }
-
-  if handle ~= nil then
-    local contents = handle:read "*a"
-    local ok, decoded = pcall(vim.json.decode, contents)
-    if ok and decoded then
-      cody_data = decoded
-    end
-  end
-
-  return cody_data
-end
-
-local write_cody_data = function(cody_data)
-  vim.notify("[cody] Writing data to:" .. data_file)
-  vim.fn.writefile({ vim.json.encode(cody_data) }, data_file)
-end
 
 local accept_tos = function(opts)
   opts = opts or {}
 
-  local cody_data = get_cody_data()
+  local cody_data = data.get_cody_data()
   if opts.accept_tos and not cody_data.tos_accepted then
     cody_data.tos_accepted = true
-    write_cody_data(cody_data)
+    data.write_cody_data(cody_data)
   end
 
   if not cody_data.tos_accepted then
@@ -63,7 +39,7 @@ local accept_tos = function(opts)
     }
 
     cody_data.tos_accepted = choice == 1
-    write_cody_data(cody_data)
+    data.write_cody_data(cody_data)
   end
 
   return cody_data.tos_accepted
@@ -85,9 +61,5 @@ M.setup = function(opts)
 end
 
 M.accept_tos = accept_tos
-
-M._is_authed = function()
-  return require("sg.env").endpoint() ~= "" and require("sg.env").token() ~= ""
-end
 
 return M

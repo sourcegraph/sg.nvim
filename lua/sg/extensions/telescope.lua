@@ -77,6 +77,11 @@ end
 telescope.fuzzy_search_results = function(opts)
   opts = opts or {}
   local input = opts.input or vim.fn.input "Search > "
+  if not input or input == "" then
+    print "No search specified"
+    return
+  end
+
   local search_results = require("sg.lib").get_search(input)
 
   local displayer = entry_display.create {
@@ -105,6 +110,8 @@ telescope.fuzzy_search_results = function(opts)
       finder = finders.new_table {
         results = search_results,
         entry_maker = function(entry)
+          -- TODO: We seem to be dropping the `://` from the URI when we do this
+          -- in telescope, I'll need to figure out why that is
           return {
             value = entry,
             ordinal = string.format("%s %s", entry.file, entry.preview),

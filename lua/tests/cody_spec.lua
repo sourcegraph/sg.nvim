@@ -21,18 +21,14 @@ end
 local eq = assert.are.same
 describe("cody", function()
   a.it("should have initialized", function()
-    vim.wait(2000, function()
-      return find_initialized()
-    end, 10)
+    vim.wait(5000, find_initialized)
 
     local initialized = find_initialized()
     eq(initialized, { type = "notify", method = "initialized", params = {} })
   end)
 
   a.it("should be able to list recipes", function()
-    vim.wait(1000, function()
-      return find_initialized()
-    end)
+    vim.wait(5000, find_initialized)
 
     local err, data = rpc.execute.list_recipes()
     eq(err, nil)

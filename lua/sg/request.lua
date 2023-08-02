@@ -12,7 +12,6 @@ if SG_SG_CLIENT then
   SG_SG_CLIENT = nil
 end
 
-local env = require "sg.env"
 local log = require "sg.log"
 
 local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
@@ -21,6 +20,13 @@ local M = {}
 
 local notification_handlers = {}
 local server_handlers = {}
+
+local auth = require "sg.auth"
+local creds = auth.get()
+if not creds then
+  require("sg.notify").NO_AUTH()
+  return nil
+end
 
 local bin_sg_nvim = require("sg.config").get_nvim_agent()
 SG_SG_CLIENT = vendored_rpc.start(bin_sg_nvim, {}, {
@@ -42,8 +48,8 @@ SG_SG_CLIENT = vendored_rpc.start(bin_sg_nvim, {}, {
 }, {
   env = {
     PATH = vim.env.PATH,
-    SRC_ACCESS_TOKEN = env.token(),
-    SRC_ENDPOINT = env.endpoint(),
+    SRC_ACCESS_TOKEN = creds.token,
+    SRC_ENDPOINT = creds.endpoint,
   },
 })
 

@@ -17,7 +17,7 @@ local void = async.void
 
 local log = require "sg.log"
 local config = require "sg.config"
-local env = require "sg.env"
+local auth = require "sg.auth"
 local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
 local utils = require "sg.utils"
 
@@ -36,7 +36,7 @@ local is_ready = function(opts)
   end
 
   opts = opts or {}
-  if not require("sg")._is_authed() then
+  if not auth.valid() then
     return false
   end
 
@@ -47,7 +47,9 @@ local is_ready = function(opts)
   return M.server_info.authenticated and M.server_info.codyEnabled
 end
 
-M.messages = {}
+_SG_CODY_RPC_MESSAGES = _SG_CODY_RPC_MESSAGES or {}
+M.messages = _SG_CODY_RPC_MESSAGES
+
 local track = function(msg)
   if config.testing then
     table.insert(M.messages, msg)
@@ -170,14 +172,20 @@ end, 3)
 ---@return string?
 ---@return CodyServerInfo?
 M.initialize = function()
+  local creds = auth.get()
+  if not creds then
+    require("sg.notify").NO_AUTH()
+    creds = {}
+  end
+
   ---@type CodyClientInfo
   local info = {
     name = "neovim",
     version = "0.1",
     workspaceRootPath = vim.loop.cwd() or "",
     connectionConfiguration = {
-      accessToken = env.token(),
-      serverEndpoint = env.endpoint(),
+      accessToken = creds.token,
+      serverEndpoint = creds.endpoint,
       -- TODO: Custom Headers for neovim
       -- customHeaders = { "
     },
@@ -257,12 +265,12 @@ void(function()
   -- TODO: This feels sad and painful
   if not config.testing then
     if not data.authenticated then
-      vim.notify "[sg-cody] Not authenticated. See `:help sg` for more information about login"
+      require("sg.notify").INVALID_AUTH()
       return
     end
 
     if not data.codyEnabled then
-      vim.notify "[sg-cody] Cody is not enabled on your sourcegraph server"
+      require("sg.notify").CODY_DISABLED()
       return
     end
   end

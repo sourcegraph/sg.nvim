@@ -34,11 +34,66 @@ sg.config                                                          *sg.config*
 
 
   Configuration Options: ~
-    {node_executable}     (string)    path to node executable
-    {cody_agent}          (string)    path to the cody-agent js bundle
-    {did_change_debounce} (number)    Number of ms to debounce changes
-    {on_attach}           (function)  function to run when attaching to
-                                      sourcegraph buffers
+    {node_executable}     (string)                     path to node executable
+    {cody_agent}          (string)                     path to the cody-agent
+                                                       js bundle
+    {did_change_debounce} (number)                     Number of ms to
+                                                       debounce changes
+    {on_attach}           (function)                   function to run when
+                                                       attaching to
+                                                       sourcegraph buffers
+    {auth_strategy}       (SourcegraphAuthStrategy[])  Ordering for auth
+                                                       strategies.
+
+
+
+================================================================================
+AUTH                                                                   *sg.auth*
+
+How to manage authentication for Sourcegraph within Neovim (both for Cody and
+for Sourcegraph)
+
+
+M.strategies()                                          *sg.auth.strategies()*
+    The default strategies for sg.nvim. Use |config.auth_strategy| to configure
+    the order of evaluation. Whichever one returns a valid configuration first
+    will be used when starting and connecting to Sourcegraph and Cody.
+
+    Auth Strategy: `"environment-variables"`
+    Use the environment variables `SRC_ENDPOINT` and `SRC_ACCESS_TOKEN` to
+    determine which instance to connect to
+
+    Auth Strategy: `"nvim"`
+    Create a custom configuration for neovim.
+
+    Auth Strategy: `"cody-app"`
+    Use the Cody App configuration to connect to your sourcegraph instance. See
+    https://sourcegraph.com/get-cody for more information
+
+
+
+
+M.get({ordering})                                              *sg.auth.get()*
+    Get the highest priority active auth configuration. By default loads the
+    ordering from the user config.
+
+
+
+    Parameters: ~
+        {ordering} (SourcegraphAuthStrategy[]?)
+
+    Return: ~
+        SourcegraphAuthConfig?
+        SourcegraphAuthStrategy?
+
+
+M.set_nvim_auth({opts})                              *sg.auth.set_nvim_auth()*
+    Set the nvim auth. Will optionally prompt user for auth if nothing is
+    passed.
+
+
+    Parameters: ~
+        {opts} (SourcegraphAuthConfig?)
 
 
 
