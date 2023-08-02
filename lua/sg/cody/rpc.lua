@@ -47,7 +47,9 @@ local is_ready = function(opts)
   return M.server_info.authenticated and M.server_info.codyEnabled
 end
 
-M.messages = {}
+_SG_CODY_RPC_MESSAGES = _SG_CODY_RPC_MESSAGES or {}
+M.messages = _SG_CODY_RPC_MESSAGES
+
 local track = function(msg)
   if config.testing then
     table.insert(M.messages, msg)
