@@ -18,7 +18,7 @@ local system = function(cmd, opts)
   opts.on_exit = function(_, code)
     if code ~= 0 then
       status.errored = true
-      error("failed to execute: " .. table.concat(cmd, " "))
+      return
     end
 
     status.done = true
@@ -45,14 +45,14 @@ local status_workspace = system { "cargo", "build", "--workspace" }
 wait_for_status(status_workspace)
 
 if status_workspace.errored then
-  return
+  error("failed to execute build the workspace")
 end
 
 local status_bins = system { "cargo", "build", "--bins" }
 wait_for_status(status_bins)
 
 if status_bins.errored then
-  return
+  error("failed to build the binaries")
 end
 
 print "success\n"
