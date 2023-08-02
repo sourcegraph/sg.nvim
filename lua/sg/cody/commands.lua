@@ -69,7 +69,7 @@ end
 ---@param message string
 commands.float = function(bufnr, start_line, end_line, message)
   local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
-  local layout = CodyFloatLayout.init { name = message }
+  local layout = CodyFloatLayout.init { name = message, bufnr = bufnr, start_line = start_line, end_line = end_line }
 
   local contents = vim.tbl_flatten {
     message,
