@@ -1,7 +1,8 @@
 local filetype = require "plenary.filetype"
+local void = require("plenary.async").void
 
 local log = require "sg.log"
-local lib = require "sg.lib"
+local rpc = require "sg.rpc"
 
 local transform_path = require("sg.directory").transform_path
 
@@ -20,37 +21,31 @@ end
 local M = {}
 
 M.edit = function(path)
-  ---@type boolean, SgEntry
-  local ok, entry = pcall(lib.get_entry, path)
-  if not ok then
-    local contents = {}
-    if type(entry) == "string" then
-      contents = vim.split(entry, "\n")
-    else
-      vim.list_extend(contents, vim.split(tostring(entry), "\n"))
+  local bufnr = vim.api.nvim_get_current_buf()
+  vim.bo[bufnr].buftype = "nofile"
+
+  void(function()
+    local err, entry = rpc.get_entry(path)
+    if err ~= nil then
+      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(vim.inspect(err), "\n"))
+      return
     end
 
-    table.insert(contents, 1, "failed to load file")
-    vim.api.nvim_buf_set_lines(0, 0, -1, false, contents)
-    return
-  end
+    if not entry then
+      log.info "Failed to retrieve path info"
+      return
+    end
 
-  if not entry then
-    log.info "Failed to retrieve path info"
-    return
-  end
-
-  local bufnr = vim.api.nvim_get_current_buf()
-
-  if entry.type == "directory" then
-    return M._open_remote_folder(bufnr, entry.bufname, entry.data --[[@as SgDirectory]])
-  elseif entry.type == "file" then
-    return M._open_remote_file(bufnr, entry.bufname, entry.data --[[@as SgFile]])
-  elseif entry.type == "repo" then
-    return M._open_remote_repo(bufnr, entry.bufname, entry.data --[[as SgRepo]])
-  else
-    error("unknown path type: " .. entry.type)
-  end
+    if entry.type == "directory" then
+      return M._open_remote_folder(bufnr, entry.bufname, entry.data --[[@as SgDirectory]])
+    elseif entry.type == "file" then
+      return M._open_remote_file(bufnr, entry.bufname, entry.data --[[@as SgFile]])
+    elseif entry.type == "repo" then
+      return M._open_remote_repo(bufnr, entry.bufname, entry.data --[[@as SgRepo]])
+    else
+      error("unknown path type: " .. entry.type)
+    end
+  end)()
 end
 
 local manage_new_buffer = function(bufnr, bufname, create)
@@ -73,11 +68,8 @@ end
 ---@param data SgDirectory
 M._open_remote_folder = function(bufnr, bufname, data)
   manage_new_buffer(bufnr, bufname, function()
-    vim.bo[bufnr].buftype = "nofile"
-
-    ---@type boolean, SgEntry[]
-    local ok, entries = pcall(lib.get_remote_directory_contents, data.remote, data.oid, data.path)
-    if not ok then
+    local err, entries = rpc.get_directory_contents(data.remote, data.oid, data.path)
+    if err ~= nil or not entries then
       error(entries)
     end
 
@@ -126,20 +118,27 @@ M._open_remote_folder = function(bufnr, bufname, data)
       local current_line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1]
       local indent = #(string.match(current_line, "^(%s+)") or "") / 2
 
-      local children = lib.get_remote_directory_contents(selected.data.remote, selected.data.oid, selected.data.path)
-      with_modifiable(bufnr, function()
-        for idx, entry in ipairs(children) do
-          -- TODO: Highlights
-          local line, highlights = transform_path(entry.data.path, entry.type == "directory")
-          line = string.rep("  ", indent + 1) .. line
-
-          local idx_row = row + idx - 1
-          vim.api.nvim_buf_set_lines(bufnr, idx_row, idx_row, false, { line })
-          vim.api.nvim_buf_add_highlight(bufnr, ns, highlights, idx_row, 1 + indent * 2, 3 + indent * 2)
-
-          table.insert(entries, row + idx, entry)
+      void(function()
+        local err, children = rpc.get_directory_contents(selected.data.remote, selected.data.oid, selected.data.path)
+        if err ~= nil or not children then
+          print "Failed to load directory"
+          return
         end
-      end)
+
+        with_modifiable(bufnr, function()
+          for idx, entry in ipairs(children) do
+            -- TODO: Highlights
+            local line, highlights = transform_path(entry.data.path, entry.type == "directory")
+            line = string.rep("  ", indent + 1) .. line
+
+            local idx_row = row + idx - 1
+            vim.api.nvim_buf_set_lines(bufnr, idx_row, idx_row, false, { line })
+            vim.api.nvim_buf_add_highlight(bufnr, ns, highlights, idx_row, 1 + indent * 2, 3 + indent * 2)
+
+            table.insert(entries, row + idx, entry)
+          end
+        end)
+      end)()
     end)
 
     -- Sets <S-tab> to collapse a directory
@@ -151,13 +150,21 @@ M._open_remote_folder = function(bufnr, bufname, data)
 
       -- TODO: Could possibly do this only using indents, but it's fine
       local row = get_row()
-      local children = lib.get_remote_directory_contents(selected.data.remote, selected.data.oid, selected.data.path)
-      with_modifiable(bufnr, function()
-        for _ in ipairs(children) do
-          vim.api.nvim_buf_set_lines(bufnr, row, row + 1, false, {})
-          table.remove(entries, row + 1)
+
+      void(function()
+        local err, children = rpc.get_directory_contents(selected.data.remote, selected.data.oid, selected.data.path)
+        if err ~= nil or not children then
+          print "unable to load directory contents"
+          return
         end
-      end)
+
+        with_modifiable(bufnr, function()
+          for _ in ipairs(children) do
+            vim.api.nvim_buf_set_lines(bufnr, row, row + 1, false, {})
+            table.remove(entries, row + 1)
+          end
+        end)
+      end)()
     end)
   end)
 end
@@ -168,8 +175,8 @@ end
 ---@param data SgFile
 M._open_remote_file = function(bufnr, bufname, data)
   manage_new_buffer(bufnr, bufname, function()
-    local ok, contents = pcall(lib.get_remote_file_contents, data.remote, data.oid, data.path)
-    if not ok then
+    local err, contents = rpc.get_file_contents(data.remote, data.oid, data.path)
+    if err ~= nil or not contents then
       local errmsg
       if type(contents) == "string" then
         errmsg = vim.split(contents, "\n")
@@ -199,8 +206,8 @@ M._open_remote_file = function(bufnr, bufname, data)
   -- This should be free to call multiple times on the same buffer
   --    So I'm not worried about that for now (but we should check later)
   require("sg.lsp").attach(bufnr)
+
   if data.position then
-    print("Data Position:", data.position)
     -- error "TODO: handle position"
     -- pcall(vim.api.nvim_win_set_cursor, 0, { remote_file.line, remote_file.col or 0 })
   end

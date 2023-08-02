@@ -72,4 +72,52 @@ function rpc.embeddings(repo, query, opts)
   end
 end
 
+--- Get an SgEntry based on a path
+---@param path string
+---@return string?: err, if any
+---@return SgEntry?: entry, if any
+function rpc.get_entry(path)
+  local err, data = req("sourcegraph/get_entry", { path = path })
+  if err ~= nil then
+    return err, nil
+  end
+
+  return nil, data
+end
+
+--- Get file contents for a sourcegraph file
+---@param remote string
+---@param oid string
+---@param path string
+---@return string?: err, if any
+---@return string[]?: contents, if successful
+function rpc.get_file_contents(remote, oid, path)
+  return req("sourcegraph/get_file_contents", { remote = remote, oid = oid, path = path })
+end
+
+--- Get directory contents for a sourcegraph directory
+---@param remote string
+---@param oid string
+---@param path string
+---@return string?: err, if any
+---@return SgEntry[]?: contents, if successful
+function rpc.get_directory_contents(remote, oid, path)
+  return req("sourcegraph/get_directory_contents", { remote = remote, oid = oid, path = path })
+end
+
+--- Get search results
+---@param query string
+---@return string?: err, if any
+---@return SgSearchResult[]?: contents, if successful
+function rpc.get_search(query)
+  return req("sourcegraph/search", { query = query })
+end
+
+--- Get info about current sourcegraph info
+---@return string?: err, if any
+---@return table?: contents, if successful
+function rpc.get_info()
+  return req("sourcegraph/info", { query = "LUL" })
+end
+
 return rpc

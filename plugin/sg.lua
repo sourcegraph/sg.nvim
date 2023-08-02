@@ -4,6 +4,8 @@
 --- Default commands for interacting with Sourcegraph
 ---@brief ]]
 
+local void = require("plenary.async").void
+
 local bufread = require "sg.bufread"
 
 -- TODO: I don't know how to turn off this https://* stuff and not make netrw users mad
@@ -25,22 +27,30 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
 vim.api.nvim_create_user_command("SourcegraphInfo", function()
   print "Attempting to get sourcegraph info..."
 
-  -- TODO: Would be nice to get the version of the plugin
-  local info = require("sg.lib").get_info()
-  local contents = vim.split(vim.inspect(info), "\n")
+  void(function()
+    -- TODO: Would be nice to get the version of the plugin
+    print "making request"
+    local err, info = require("sg.rpc").get_info()
+    print(err, info)
+    if err or not info then
+      error "Could not get sourcegraph info"
+    end
 
-  table.insert(contents, 1, "Sourcegraph info:")
+    local contents = vim.split(vim.inspect(info), "\n")
 
-  vim.cmd.vnew()
-  vim.api.nvim_buf_set_lines(0, 0, -1, false, contents)
-  vim.api.nvim_buf_set_option(0, "buflisted", false)
-  vim.api.nvim_buf_set_option(0, "bufhidden", "wipe")
-  vim.api.nvim_buf_set_option(0, "modifiable", false)
-  vim.api.nvim_buf_set_option(0, "modified", false)
+    table.insert(contents, 1, "Sourcegraph info:")
 
-  vim.schedule(function()
-    print "... got sourcegraph info"
-  end)
+    vim.cmd.vnew()
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, contents)
+    vim.api.nvim_buf_set_option(0, "buflisted", false)
+    vim.api.nvim_buf_set_option(0, "bufhidden", "wipe")
+    vim.api.nvim_buf_set_option(0, "modifiable", false)
+    vim.api.nvim_buf_set_option(0, "modified", false)
+
+    vim.schedule(function()
+      print "... got sourcegraph info"
+    end)
+  end)()
 end, {})
 
 ---@command SourcegraphLink [[

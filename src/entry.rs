@@ -3,11 +3,13 @@ use {
     anyhow::Result,
     mlua::{ToLua, UserData},
     regex::Regex,
+    serde::{Deserialize, Serialize},
     sg_types::*,
     userdata_defaults::LuaDefaults,
 };
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(untagged)]
 pub enum Entry {
     File(File),
     Directory(Directory),
@@ -49,6 +51,14 @@ impl Entry {
 
         let info = get_path_info(remote.to_string(), commit.to_string(), path.to_string()).await?;
         Self::from_info(info)
+    }
+
+    pub fn typename(&self) -> &'static str {
+        match self {
+            Entry::File(_) => "file",
+            Entry::Directory(_) => "directory",
+            Entry::Repo(_) => "repo",
+        }
     }
 
     pub fn from_info(info: PathInfo) -> Result<Self> {
@@ -98,7 +108,7 @@ impl Entry {
         }
     }
 
-    fn bufname(&self) -> String {
+    pub fn bufname(&self) -> String {
         match self {
             Entry::File(file) => file.bufname(),
             Entry::Directory(dir) => dir.bufname(),
@@ -171,7 +181,7 @@ impl<'lua> ToLua<'lua> for Entry {
     }
 }
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Position {
     pub line: Option<usize>,
     pub col: Option<usize>,
@@ -192,7 +202,7 @@ fn make_bufname(remote: &Remote, oid: &OID, path: Option<&str>) -> String {
     }
 }
 
-#[derive(Debug, LuaDefaults)]
+#[derive(Debug, Clone, LuaDefaults, Serialize, Deserialize)]
 pub struct File {
     pub remote: Remote,
     pub oid: OID,
@@ -212,7 +222,7 @@ impl UserData for File {
     }
 }
 
-#[derive(Debug, LuaDefaults)]
+#[derive(Debug, Serialize, Deserialize, Clone, LuaDefaults)]
 pub struct Directory {
     pub remote: Remote,
     pub oid: OID,
@@ -231,7 +241,7 @@ impl UserData for Directory {
     }
 }
 
-#[derive(Debug, LuaDefaults)]
+#[derive(Debug, Clone, LuaDefaults, Serialize, Deserialize)]
 pub struct Repo {
     pub remote: Remote,
     pub oid: OID,

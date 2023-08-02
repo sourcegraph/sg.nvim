@@ -1,3 +1,5 @@
+local void = require("plenary.async").void
+
 local defaulter = require("telescope.utils").make_default_callable
 local from_entry = require "telescope.from_entry"
 local previewers = require "telescope.previewers"
@@ -5,9 +7,8 @@ local putils = require "telescope.previewers.utils"
 local conf = require("telescope.config").values
 local finders = require "telescope.finders"
 local entry_display = require "telescope.pickers.entry_display"
--- local actions = require "telescope.actions"
--- local action_state = require "telescope.actions.state"
--- local action_set = require "telescope.actions.set"
+
+local rpc = require "sg.rpc"
 
 local telescope = {}
 
@@ -74,7 +75,7 @@ telescope.sg_references = function(opts)
   }
 end
 
-telescope.fuzzy_search_results = function(opts)
+telescope.fuzzy_search_results = void(function(opts)
   opts = opts or {}
   local input = opts.input or vim.fn.input "Search > "
   if not input or input == "" then
@@ -82,7 +83,11 @@ telescope.fuzzy_search_results = function(opts)
     return
   end
 
-  local search_results = require("sg.lib").get_search(input)
+  local err, search_results = rpc.get_search(input)
+  if err or not search_results then
+    print("Got an error:", err, search_results)
+    return
+  end
 
   local displayer = entry_display.create {
     separator = "|",
@@ -134,6 +139,6 @@ telescope.fuzzy_search_results = function(opts)
       end,
     }, {})
     :find()
-end
+end)
 
 return telescope

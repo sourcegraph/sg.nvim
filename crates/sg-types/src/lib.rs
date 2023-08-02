@@ -38,23 +38,21 @@ pub struct CodyMessage {
     pub text: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PathInfo {
     pub remote: String,
     pub oid: String,
-    // TODO: Maybe should split out path and name...
-    //          Or just always include path, don't just include name
-    //          Just do the string manipulation to show the end of the path
     pub path: String,
     pub is_directory: bool,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SourcegraphVersion {
     pub product: String,
     pub build: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Remote(pub String);
 
 impl Remote {
@@ -87,7 +85,7 @@ impl FromStr for Remote {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct OID(pub String);
 
 impl OID {
@@ -120,7 +118,7 @@ impl FromStr for OID {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchResult {
     pub repo: String,
     pub file: String,
