@@ -32,7 +32,7 @@ anyhow = "1"
 mlua = { version = "0.8", features = ["luajit", "vendored", "module", "serialize", "async"] }
 tokio = { version = "1", features = ["full"] }
 
-serde = "1.0.125"
+serde = "1.0.180"
 serde_json = "1.0"
 
 graphql_client = { version = "0.13.0", features = ["reqwest", "reqwest-blocking"] }
