@@ -1,11 +1,6 @@
 use {
-    anyhow::{Context, Result},
-    graphql_client::GraphQLQuery,
-    lsp_types::Location,
-    once_cell::sync::Lazy,
-    regex::Regex,
-    reqwest::Client,
-    sg_types::*,
+    anyhow::Result, graphql_client::GraphQLQuery, lsp_types::Location, once_cell::sync::Lazy,
+    regex::Regex, reqwest::Client, sg_types::*,
 };
 
 pub mod entry;
@@ -16,7 +11,7 @@ pub fn normalize_url(url: &str) -> String {
 
     re.replace_all(
         &url.to_string()
-            .replace(&get_endpoint(), "")
+            .replace(get_endpoint(), "")
             .replace("//gh/", "//github.com/")
             .replace("sg://", ""),
         "",
@@ -33,25 +28,20 @@ mod graphql {
     });
 
     static CLIENT: Lazy<Client> = Lazy::new(|| {
-        if let Ok(sourcegraph_access_token) = get_access_token() {
-            Client::builder()
-                .default_headers(
-                    std::iter::once((
-                        reqwest::header::AUTHORIZATION,
-                        reqwest::header::HeaderValue::from_str(&format!(
-                            "token {sourcegraph_access_token}",
-                        ))
-                        .expect("to be able to create the header value"),
+        let sourcegraph_access_token = get_access_token();
+        Client::builder()
+            .default_headers(
+                std::iter::once((
+                    reqwest::header::AUTHORIZATION,
+                    reqwest::header::HeaderValue::from_str(&format!(
+                        "token {sourcegraph_access_token}",
                     ))
-                    .collect(),
-                )
-                .build()
-                .expect("to be able to create the client")
-        } else {
-            Client::builder()
-                .build()
-                .expect("to be able to create the client")
-        }
+                    .expect("to be able to create the header value"),
+                ))
+                .collect(),
+            )
+            .build()
+            .expect("to be able to create the client")
     });
 
     pub async fn request_wrap<Q: GraphQLQuery, F, T, R>(
@@ -74,15 +64,22 @@ macro_rules! wrap_request {
     }};
 }
 
-pub fn get_access_token() -> Result<String> {
-    std::env::var("SRC_ACCESS_TOKEN").context("No access token found")
+pub fn get_access_token() -> &'static str {
+    static TOKEN: Lazy<String> =
+        Lazy::new(|| std::env::var("SRC_ACCESS_TOKEN").expect("No access token found"));
+
+    &TOKEN
 }
 
-pub fn get_endpoint() -> String {
-    std::env::var("SRC_ENDPOINT")
-        .unwrap_or_else(|_| "https://sourcegraph.com/".to_string())
-        .trim_end_matches('/')
-        .to_string()
+pub fn get_endpoint() -> &'static str {
+    static ENDPOINT: Lazy<String> = Lazy::new(|| {
+        std::env::var("SRC_ENDPOINT")
+            .unwrap_or_else(|_| "https://sourcegraph.com/".to_string())
+            .trim_end_matches('/')
+            .to_string()
+    });
+
+    &ENDPOINT
 }
 
 pub async fn get_path_info(remote: String, revision: String, path: String) -> Result<PathInfo> {

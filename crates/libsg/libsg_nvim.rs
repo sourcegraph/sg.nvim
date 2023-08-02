@@ -123,7 +123,7 @@ fn get_info(lua: &Lua, _: ()) -> LuaResult<LuaValue> {
 
     tbl.set("sg_nvim_version", env!("CARGO_PKG_VERSION"))?;
     tbl.set("endpoint", get_endpoint())?;
-    tbl.set("access_token_set", get_access_token().is_ok())?;
+    tbl.set("access_token_set", !get_access_token().is_empty())?;
 
     tbl.to_lua(lua)
 }
@@ -161,6 +161,9 @@ fn get_link(lua: &Lua, (bufname, line, col): (String, usize, usize)) -> LuaResul
 
 #[mlua::lua_module]
 fn libsg_nvim(lua: &Lua) -> LuaResult<LuaTable> {
+    let _ = get_access_token();
+    let _ = get_endpoint();
+
     let exports = lua.create_table()?;
 
     exports.set(
