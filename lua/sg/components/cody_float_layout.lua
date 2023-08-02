@@ -34,10 +34,6 @@ CodyFloatLayout.__index = CodyFloatLayout
 CodyFloatLayout.init = function(opts)
   opts.history = opts.history or {}
 
-  -- TODO: Show how you can use this, and maybe add config to the commands to handle this as well.
-  -- opts.history.split = "botright vnew"
-  -- opts.prompt.split = "new | call nvim_win_set_height(0, 5)"
-
   local width = opts.width or 0.25
   opts.history.width = width
 
@@ -87,18 +83,12 @@ function CodyFloatLayout:complete()
 end
 
 function CodyFloatLayout:mount()
-  -- TODO: We probably need to do something to make sure that
-  -- we actually  need to reload these windows. I think this will
-  -- get a little scuffed with your layouts if you keep unmounting, then
-  -- remounting the windows
   if CodyFloatLayout.active then
     CodyFloatLayout.active:unmount()
   end
 
   self.history = CodyHistory.init(self.opts.history)
   self.history:mount()
-
-  -- TODO: add ? as shortcut to display shortcuts haha
 
   keymaps.map(self.history.bufnr, "n", "<CR>", "[cody] confirm edit", function()
     vim.api.nvim_buf_set_lines(
@@ -110,11 +100,6 @@ function CodyFloatLayout:mount()
     )
     self.history:hide()
   end)
-
-  -- TODO: We'll add this back after thinking about it a bit more
-  -- keymaps.map(self.prompt.bufnr, "i", "<M-CR>", function()
-  --   self.prompt:on_submit { request_embeddings = true }
-  -- end)
 
   keymaps.map(self.history.bufnr, "n", "<ESC>", "[cody] quit float layout", function()
     self.history:hide()
