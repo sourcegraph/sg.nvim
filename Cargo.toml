@@ -16,7 +16,7 @@ reqwest.workspace = true
 lsp-types.workspace = true
 
 regex = "1.4.6"
-futures = "0.3.17"
+futures = "0.3.28"
 lsp-server = "0.7.0"
 log4rs = "1.2"
 log = "0.4"
