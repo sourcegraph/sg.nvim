@@ -4,6 +4,8 @@
 --- Default commands for interacting with Sourcegraph
 ---@brief ]]
 
+local void = require("plenary.async").void
+
 local bufread = require "sg.bufread"
 
 -- TODO: I don't know how to turn off this https://* stuff and not make netrw users mad
@@ -16,31 +18,39 @@ pcall(vim.api.nvim_clear_autocmds, {
 vim.api.nvim_create_autocmd("BufReadCmd", {
   group = vim.api.nvim_create_augroup("sourcegraph-bufread", { clear = true }),
   pattern = { "sg://*", "https://sourcegraph.com/*" },
-  callback = function()
-    bufread.edit(vim.fn.expand "<amatch>")
+  callback = function(event)
+    bufread.edit(event.buf or vim.api.nvim_get_current_buf(), vim.fn.expand "<amatch>" --[[--@as string]])
   end,
   desc = "Sourcegraph link and protocol handler",
 })
 
 vim.api.nvim_create_user_command("SourcegraphInfo", function()
-  print "Attempting to get sourcegraph info..."
+  print "[sg] Attempting to get sourcegraph info..."
 
-  -- TODO: Would be nice to get the version of the plugin
-  local info = require("sg.lib").get_info()
-  local contents = vim.split(vim.inspect(info), "\n")
+  void(function()
+    -- TODO: Would be nice to get the version of the plugin
+    print "[sg] making request"
+    local err, info = require("sg.rpc").get_info()
+    print(err, info)
+    if err or not info then
+      error "Could not get sourcegraph info"
+    end
 
-  table.insert(contents, 1, "Sourcegraph info:")
+    local contents = vim.split(vim.inspect(info), "\n")
 
-  vim.cmd.vnew()
-  vim.api.nvim_buf_set_lines(0, 0, -1, false, contents)
-  vim.api.nvim_buf_set_option(0, "buflisted", false)
-  vim.api.nvim_buf_set_option(0, "bufhidden", "wipe")
-  vim.api.nvim_buf_set_option(0, "modifiable", false)
-  vim.api.nvim_buf_set_option(0, "modified", false)
+    table.insert(contents, 1, "Sourcegraph info:")
 
-  vim.schedule(function()
-    print "... got sourcegraph info"
-  end)
+    vim.cmd.vnew()
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, contents)
+    vim.api.nvim_buf_set_option(0, "buflisted", false)
+    vim.api.nvim_buf_set_option(0, "bufhidden", "wipe")
+    vim.api.nvim_buf_set_option(0, "modifiable", false)
+    vim.api.nvim_buf_set_option(0, "modified", false)
+
+    vim.schedule(function()
+      print "[sg] got sourcegraph info. For more information, see `:checkhealth sg`"
+    end)
+  end)()
 end, {})
 
 ---@command SourcegraphLink [[
@@ -49,14 +59,18 @@ end, {})
 ---@command ]]
 vim.api.nvim_create_user_command("SourcegraphLink", function()
   local cursor = vim.api.nvim_win_get_cursor(0)
-  local ok, link = pcall(require("sg.lib").get_link, vim.api.nvim_buf_get_name(0), cursor[1], cursor[2] + 1)
-  if not ok then
-    print("Failed to get link:", link)
-    return
-  end
+  void(function()
+    print "requesting link..."
 
-  print("Setting '+' register to:", link)
-  vim.fn.setreg("+", link)
+    local err, link = require("sg.rpc").get_link(vim.api.nvim_buf_get_name(0), cursor[1], cursor[2] + 1)
+    if err or not link then
+      print("Failed to get link:", link)
+      return
+    end
+
+    print("Setting '+' register to:", link)
+    vim.fn.setreg("+", link)
+  end)()
 end, {
   desc = "Get a sourcegraph link to the current location",
 })

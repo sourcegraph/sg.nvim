@@ -1,6 +1,5 @@
 use {
     anyhow::Result,
-    mlua::ToLua,
     serde::{Deserialize, Serialize},
     std::str::FromStr,
 };
@@ -38,23 +37,21 @@ pub struct CodyMessage {
     pub text: String,
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct PathInfo {
     pub remote: String,
     pub oid: String,
-    // TODO: Maybe should split out path and name...
-    //          Or just always include path, don't just include name
-    //          Just do the string manipulation to show the end of the path
     pub path: String,
     pub is_directory: bool,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct SourcegraphVersion {
     pub product: String,
     pub build: String,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct Remote(pub String);
 
 impl Remote {
@@ -73,12 +70,6 @@ impl From<String> for Remote {
     }
 }
 
-impl<'lua> ToLua<'lua> for Remote {
-    fn to_lua(self, lua: &'lua mlua::Lua) -> mlua::Result<mlua::Value<'lua>> {
-        self.0.to_lua(lua)
-    }
-}
-
 impl FromStr for Remote {
     type Err = anyhow::Error;
 
@@ -87,7 +78,7 @@ impl FromStr for Remote {
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Serialize)]
 pub struct OID(pub String);
 
 impl OID {
@@ -106,12 +97,6 @@ impl From<String> for OID {
     }
 }
 
-impl<'lua> ToLua<'lua> for OID {
-    fn to_lua(self, lua: &'lua mlua::Lua) -> mlua::Result<mlua::Value<'lua>> {
-        self.0.to_lua(lua)
-    }
-}
-
 impl FromStr for OID {
     type Err = anyhow::Error;
 
@@ -120,7 +105,7 @@ impl FromStr for OID {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchResult {
     pub repo: String,
     pub file: String,

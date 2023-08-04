@@ -22,7 +22,7 @@ async fn main() -> Result<()> {
                 eprintln!("Somehow got a not request: {message:?}");
             }
             Ok(None) => eprintln!("neovim exited unexpectedly?"),
-            Err(err) => eprintln!("[sg-lib] failed to read message {err:?}"),
+            Err(err) => eprintln!("[sg-nvim-agent] failed to read message {err:?}"),
         }
     }
 }

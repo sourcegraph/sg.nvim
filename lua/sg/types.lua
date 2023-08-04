@@ -5,9 +5,9 @@ local M = {}
 ---@field col number?
 
 ---@class SgEntry
----@field type "file" | "directory"
+---@field type "file" | "directory" | "repo"
 ---@field bufname string
----@field data SgFile | SgDirectory
+---@field data SgFile | SgDirectory | SgRepo
 
 ---@class SgDirectory
 ---@field remote string
@@ -87,5 +87,11 @@ M.auth_strategy = { app = "cody-app", nvim = "nvim", env = "environment-variable
 ---@class SourcegraphAuthObject
 ---@field doc string: Description
 ---@field get function(): SourcegraphAuthConfig?
+
+---@class SgSearchResult
+---@field repo string
+---@field file string
+---@field preview string
+---@field line number
 
 return M

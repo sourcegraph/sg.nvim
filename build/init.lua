@@ -41,18 +41,11 @@ local wait_for_status = function(status)
   end, 200)
 end
 
-local status_workspace = system { "cargo", "build", "--workspace" }
-wait_for_status(status_workspace)
-
-if status_workspace.errored then
-  error("failed to execute build the workspace")
-end
-
 local status_bins = system { "cargo", "build", "--bins" }
 wait_for_status(status_bins)
 
 if status_bins.errored then
-  error("failed to build the binaries")
+  error "failed to build the binaries"
 end
 
 print "success\n"

@@ -1,3 +1,5 @@
+local void = require("plenary.async").void
+local block_on = require("plenary.async").util.block_on
 local M = {}
 
 local report_nvim = function()
@@ -11,6 +13,8 @@ local report_nvim = function()
 end
 
 local report_lib = function()
+  -- TODO: This should probably just check that the binary exists?
+
   if 1 ~= vim.fn.executable "cargo" then
     vim.health.error "Unable to find valid cargo executable."
   else
@@ -27,15 +31,6 @@ local report_lib = function()
     else
       vim.health.ok "Found `cargo` is executable"
     end
-  end
-
-  local lib = require "sg.lib"
-  if lib then
-    vim.health.ok(string.format("Found `libsg_nvim`: %s", lib._library_path))
-    return true
-  else
-    vim.health.error "Unable to find `libsg_nvim`"
-    return false
   end
 end
 
@@ -72,10 +67,17 @@ local report_env = function()
     vim.health.ok(string.format("  strategy used: %s", strategy))
   end
 
-  local info_ok, info = pcall(require("sg.lib").get_info)
-  if not info_ok then
-    vim.health.error("Unable to connect to sourcegraph: " .. info)
-    ok = false
+  local err, info
+  void(function()
+    err, info = require("sg.rpc").get_info()
+  end)()
+
+  vim.wait(10000, function()
+    return err or info
+  end)
+
+  if err then
+    vim.health.error("  Sourcegraph Connection info failed: " .. vim.inspect(err))
   else
     vim.health.ok("  Sourcegraph Connection info: " .. vim.inspect(info))
   end
