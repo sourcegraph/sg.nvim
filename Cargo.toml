@@ -1,7 +1,11 @@
+[workspace.package]
+version = "0.2.0"
+edition = "2021"
+
 [package]
 name = "sg"
-version = "0.1.1"
-edition = "2021"
+version.workspace = true
+edition.workspace = true
 repository = "https://github.com/sourcegraph/sg.nvim"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
@@ -61,6 +65,7 @@ lto = "thin"
 name = "sg"
 
 [workspace]
+resolver = "2"
 members = [
     "crates/jsonrpc",
     "crates/sg-gql/",
