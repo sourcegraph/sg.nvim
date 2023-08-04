@@ -328,5 +328,14 @@ rpc.get_info()                                             *sg.rpc.get_info()*
         table?: contents, if successful
 
 
+rpc.get_link()                                             *sg.rpc.get_link()*
+    Get info about current sourcegraph info
+
+
+    Return: ~
+        string?: err, if any
+        table?: contents, if successful
+
+
 
  vim:tw=78:ts=8:ft=help:norl:
