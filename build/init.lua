@@ -43,6 +43,12 @@ if config.download_binaries or config.download_binaries == nil then
 
   local link = "https://github.com/sourcegraph/sg.nvim/releases/latest/download/" .. fullname
 
+  -- TODO: Proper error handling here.
+  --    Right now, nvim won't exit with a non-zero exit code
+  --    if you run this with nvim -l build/init.lua
+  --    because we don't force the error in the main thread.
+  --
+  --    so we need to vim.wait for them.
   void(function()
     local tarfile = "dist/" .. fullname
 
@@ -70,12 +76,12 @@ if config.download_binaries or config.download_binaries == nil then
 
     local lsp_rename = rename "sg-lsp"
     if lsp_rename ~= nil then
-      vim.print("Failed to rename sg-lsp", lsp_rename)
+      error("Failed to rename sg-lsp: " .. vim.inspect(lsp_rename))
     end
 
     local agent_rename = rename "sg-nvim-agent"
     if agent_rename ~= nil then
-      vim.print("Failed to rename sg-nvim-agent", agent_rename)
+      error("Failed to rename sg-nvim-agent" .. vim.inspect(agent_rename))
     end
 
     print "Done renaming"
