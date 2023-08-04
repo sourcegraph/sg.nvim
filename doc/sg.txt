@@ -34,6 +34,9 @@ sg.config                                                          *sg.config*
 
 
   Configuration Options: ~
+    {download_binaries}   (boolean)                    Default true, download
+                                                       latest release from
+                                                       Github
     {node_executable}     (string)                     path to node executable
     {cody_agent}          (string)                     path to the cody-agent
                                                        js bundle
