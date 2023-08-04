@@ -120,4 +120,11 @@ function rpc.get_info()
   return req("sourcegraph/info", { query = "LUL" })
 end
 
+--- Get info about current sourcegraph info
+---@return string?: err, if any
+---@return table?: contents, if successful
+function rpc.get_link(path, line, col)
+  return req("sourcegraph/link", { path = path, line = line, col = col })
+end
+
 return rpc

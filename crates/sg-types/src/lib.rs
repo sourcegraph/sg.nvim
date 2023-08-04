@@ -1,6 +1,5 @@
 use {
     anyhow::Result,
-    mlua::ToLua,
     serde::{Deserialize, Serialize},
     std::str::FromStr,
 };
@@ -71,12 +70,6 @@ impl From<String> for Remote {
     }
 }
 
-impl<'lua> ToLua<'lua> for Remote {
-    fn to_lua(self, lua: &'lua mlua::Lua) -> mlua::Result<mlua::Value<'lua>> {
-        self.0.to_lua(lua)
-    }
-}
-
 impl FromStr for Remote {
     type Err = anyhow::Error;
 
@@ -101,12 +94,6 @@ impl OID {
 impl From<String> for OID {
     fn from(value: String) -> Self {
         Self(value)
-    }
-}
-
-impl<'lua> ToLua<'lua> for OID {
-    fn to_lua(self, lua: &'lua mlua::Lua) -> mlua::Result<mlua::Value<'lua>> {
-        self.0.to_lua(lua)
     }
 }
 

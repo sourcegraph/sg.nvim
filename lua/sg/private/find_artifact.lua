@@ -42,6 +42,9 @@ M.find_rust_bin = function(cmd)
   return result.path
 end
 
+--- I will keep this for now, but don't think that we actually need it.
+--- (Mostly I might just copy it to somewhere else later)
+---@deprecated
 M.find_rust_lib = function(name)
   local ok, lib = pcall(require, name)
   if ok then

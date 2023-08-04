@@ -18,18 +18,18 @@ pcall(vim.api.nvim_clear_autocmds, {
 vim.api.nvim_create_autocmd("BufReadCmd", {
   group = vim.api.nvim_create_augroup("sourcegraph-bufread", { clear = true }),
   pattern = { "sg://*", "https://sourcegraph.com/*" },
-  callback = function()
-    bufread.edit(vim.fn.expand "<amatch>")
+  callback = function(event)
+    bufread.edit(event.buffer or vim.api.nvim_get_current_buf(), vim.fn.expand "<amatch>" [[--@as string]])
   end,
   desc = "Sourcegraph link and protocol handler",
 })
 
 vim.api.nvim_create_user_command("SourcegraphInfo", function()
-  print "Attempting to get sourcegraph info..."
+  print "[sg] Attempting to get sourcegraph info..."
 
   void(function()
     -- TODO: Would be nice to get the version of the plugin
-    print "making request"
+    print "[sg] making request"
     local err, info = require("sg.rpc").get_info()
     print(err, info)
     if err or not info then
@@ -48,7 +48,7 @@ vim.api.nvim_create_user_command("SourcegraphInfo", function()
     vim.api.nvim_buf_set_option(0, "modified", false)
 
     vim.schedule(function()
-      print "... got sourcegraph info"
+      print "[sg] got sourcegraph info. For more information, see `:checkhealth sg`"
     end)
   end)()
 end, {})
@@ -59,14 +59,18 @@ end, {})
 ---@command ]]
 vim.api.nvim_create_user_command("SourcegraphLink", function()
   local cursor = vim.api.nvim_win_get_cursor(0)
-  local ok, link = pcall(require("sg.lib").get_link, vim.api.nvim_buf_get_name(0), cursor[1], cursor[2] + 1)
-  if not ok then
-    print("Failed to get link:", link)
-    return
-  end
+  void(function()
+    print "requesting link..."
 
-  print("Setting '+' register to:", link)
-  vim.fn.setreg("+", link)
+    local err, link = require("sg.rpc").get_link(vim.api.nvim_buf_get_name(0), cursor[1], cursor[2] + 1)
+    if err or not link then
+      print("Failed to get link:", link)
+      return
+    end
+
+    print("Setting '+' register to:", link)
+    vim.fn.setreg("+", link)
+  end)()
 end, {
   desc = "Get a sourcegraph link to the current location",
 })

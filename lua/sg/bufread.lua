@@ -20,8 +20,11 @@ end
 
 local M = {}
 
-M.edit = function(path)
-  local bufnr = vim.api.nvim_get_current_buf()
+--- Edit a file
+---@param bufnr number: The buffer to load the contents in
+---@param path string: The URI to open
+---@param callback function?: Optional callback to specify that the loading is complete
+M.edit = function(bufnr, path, callback)
   vim.bo[bufnr].buftype = "nofile"
 
   void(function()
@@ -37,13 +40,17 @@ M.edit = function(path)
     end
 
     if entry.type == "directory" then
-      return M._open_remote_folder(bufnr, entry.bufname, entry.data --[[@as SgDirectory]])
+      M._open_remote_folder(bufnr, entry.bufname, entry.data --[[@as SgDirectory]])
     elseif entry.type == "file" then
-      return M._open_remote_file(bufnr, entry.bufname, entry.data --[[@as SgFile]])
+      M._open_remote_file(bufnr, entry.bufname, entry.data --[[@as SgFile]])
     elseif entry.type == "repo" then
-      return M._open_remote_repo(bufnr, entry.bufname, entry.data --[[@as SgRepo]])
+      M._open_remote_repo(bufnr, entry.bufname, entry.data --[[@as SgRepo]])
     else
       error("unknown path type: " .. entry.type)
+    end
+
+    if callback then
+      callback()
     end
   end)()
 end

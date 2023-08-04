@@ -1,5 +1,7 @@
 use {
-    crate::{entry::Entry, get_cody_completions, get_embeddings_context, get_repository_id},
+    crate::{
+        entry::Entry, get_cody_completions, get_embeddings_context, get_endpoint, get_repository_id,
+    },
     anyhow::Result,
     serde::{Deserialize, Serialize},
     serde_json::{json, Value},
@@ -92,6 +94,13 @@ pub enum RequestData {
     #[serde(rename = "sourcegraph/info")]
     SourcegraphInfo {
         query: String,
+    },
+
+    #[serde(rename = "sourcegraph/link")]
+    SourcegraphLink {
+        path: String,
+        line: usize,
+        col: usize,
     },
 }
 
@@ -197,6 +206,37 @@ impl Request {
 
                 Ok(Response::new(id, ResponseData::SourcegraphInfo(value)))
             }
+            RequestData::SourcegraphLink { path, line, col } => {
+                // TODO: It would be cool to try and get the current location
+                // in your file but with an sg permalink even if you're not currently
+                // in a sourcegraph buffer.
+
+                let link = match Entry::new(&path).await? {
+                    Entry::File(file) => {
+                        let endpoint = get_endpoint();
+                        let remote = file.remote.0;
+                        let path = file.path;
+
+                        format!("{endpoint}/{remote}/-/blob/{path}?L{line}:{col}")
+                    }
+                    Entry::Directory(dir) => {
+                        let endpoint = get_endpoint();
+                        let remote = dir.remote.0;
+                        let path = dir.path;
+
+                        format!("{endpoint}/{remote}/-/tree/{path}")
+                    }
+                    Entry::Repo(repo) => {
+                        let endpoint = get_endpoint();
+                        let remote = repo.remote.0;
+                        let oid = repo.oid.0;
+
+                        format!("{endpoint}/{remote}@{oid}")
+                    }
+                };
+
+                Ok(Response::new(id, ResponseData::SourcegraphLink(link)))
+            }
         }
     }
 }
@@ -226,6 +266,7 @@ pub enum ResponseData {
     SourcegraphDirectoryContents(Vec<ProtoEntry>),
     SourcegraphSearch(Vec<SearchResult>),
     SourcegraphInfo(Value),
+    SourcegraphLink(String),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

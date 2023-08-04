@@ -7,5 +7,4 @@ edition = "2021"
 
 [dependencies]
 anyhow.workspace = true
-mlua.workspace = true
 serde.workspace = true

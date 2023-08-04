@@ -1,11 +1,9 @@
 use {
     crate::{get_path_info, normalize_url, PathInfo},
     anyhow::Result,
-    mlua::{ToLua, UserData},
     regex::Regex,
     serde::{Deserialize, Serialize},
     sg_types::*,
-    userdata_defaults::LuaDefaults,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -153,46 +151,10 @@ impl std::convert::TryFrom<Entry> for lsp_types::Location {
     }
 }
 
-impl<'lua> ToLua<'lua> for Entry {
-    fn to_lua(self, lua: &'lua mlua::Lua) -> mlua::Result<mlua::Value<'lua>> {
-        let tbl = lua.create_table()?;
-
-        tbl.set(
-            "type",
-            match self {
-                Entry::File(_) => "file",
-                Entry::Directory(_) => "directory",
-                Entry::Repo(_) => "repo",
-            },
-        )?;
-
-        tbl.set("bufname", self.bufname())?;
-
-        tbl.set(
-            "data",
-            match self {
-                Entry::File(file) => file.to_lua(lua)?,
-                Entry::Directory(dir) => dir.to_lua(lua)?,
-                Entry::Repo(repo) => repo.to_lua(lua)?,
-            },
-        )?;
-
-        Ok(mlua::Value::Table(tbl))
-    }
-}
-
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Position {
     pub line: Option<usize>,
     pub col: Option<usize>,
-}
-impl<'lua> ToLua<'lua> for Position {
-    fn to_lua(self, _lua: &'lua mlua::Lua) -> mlua::Result<mlua::Value<'lua>> {
-        Ok(match (self.line, self.col) {
-            (None, None) => mlua::Nil,
-            (_line, _col) => todo!("make a table..."),
-        })
-    }
 }
 
 fn make_bufname(remote: &Remote, oid: &OID, path: Option<&str>) -> String {
@@ -202,7 +164,7 @@ fn make_bufname(remote: &Remote, oid: &OID, path: Option<&str>) -> String {
     }
 }
 
-#[derive(Debug, Clone, LuaDefaults, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct File {
     pub remote: Remote,
     pub oid: OID,
@@ -216,13 +178,7 @@ impl File {
     }
 }
 
-impl UserData for File {
-    fn add_fields<'lua, F: mlua::UserDataFields<'lua, Self>>(fields: &mut F) {
-        File::generate_default_fields(fields);
-    }
-}
-
-#[derive(Debug, Serialize, Deserialize, Clone, LuaDefaults)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Directory {
     pub remote: Remote,
     pub oid: OID,
@@ -235,25 +191,14 @@ impl Directory {
     }
 }
 
-impl UserData for Directory {
-    fn add_fields<'lua, F: mlua::UserDataFields<'lua, Self>>(fields: &mut F) {
-        Directory::generate_default_fields(fields);
-    }
-}
-
-#[derive(Debug, Clone, LuaDefaults, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Repo {
     pub remote: Remote,
     pub oid: OID,
 }
+
 impl Repo {
     fn bufname(&self) -> String {
         make_bufname(&self.remote, &self.oid, None)
-    }
-}
-
-impl UserData for Repo {
-    fn add_fields<'lua, F: mlua::UserDataFields<'lua, Self>>(fields: &mut F) {
-        Repo::generate_default_fields(fields);
     }
 }

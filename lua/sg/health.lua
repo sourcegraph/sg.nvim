@@ -13,6 +13,8 @@ local report_nvim = function()
 end
 
 local report_lib = function()
+  -- TODO: This should probably just check that the binary exists?
+
   if 1 ~= vim.fn.executable "cargo" then
     vim.health.error "Unable to find valid cargo executable."
   else
@@ -29,15 +31,6 @@ local report_lib = function()
     else
       vim.health.ok "Found `cargo` is executable"
     end
-  end
-
-  local lib = require "sg.lib"
-  if lib then
-    vim.health.ok(string.format("Found `libsg_nvim`: %s", lib._library_path))
-    return true
-  else
-    vim.health.error "Unable to find `libsg_nvim`"
-    return false
   end
 end
 
