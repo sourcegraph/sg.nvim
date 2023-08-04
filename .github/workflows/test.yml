@@ -51,17 +51,15 @@ jobs:
           mkdir -p ~/.local/share/nvim/site/pack/vendor/start
           git clone --depth 1 https://github.com/nvim-lua/plenary.nvim ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
           ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
+          echo "${PWD}/_neovim/bin:${PATH}" >> $GITHUB_PATH
+          echo VIM="${PWD}/_neovim/share/nvim/runtime" >> $GITHUB_ENV
 
       - name: Run build scripts
         run: |
-          export PATH="${PWD}/_neovim/bin:${PATH}"
-          export VIM="${PWD}/_neovim/share/nvim/runtime"
           nvim -l build/init.lua
 
 
       - name: Run tests
         run: |
-          export PATH="${PWD}/_neovim/bin:${PATH}"
-          export VIM="${PWD}/_neovim/share/nvim/runtime"
           nvim --version
           nvim -l scripts/test.lua
