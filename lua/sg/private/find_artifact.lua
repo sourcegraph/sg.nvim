@@ -19,6 +19,7 @@ M.find_rust_bin = function(cmd)
   end
 
   local directories = {
+    "/dist/",
     "/target/debug/",
     "/target/release/",
     "/bin/",

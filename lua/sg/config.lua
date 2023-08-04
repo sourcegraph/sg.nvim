@@ -15,6 +15,7 @@
 local types = require "sg.types"
 
 ---@class sg.config
+---@field download_binaries boolean: Default true, download latest release from Github
 ---@field node_executable string: path to node executable
 ---@field cody_agent string: path to the cody-agent js bundle
 ---@field did_change_debounce number: Number of ms to debounce changes
@@ -25,6 +26,7 @@ local types = require "sg.types"
 ---@type sg.config
 local config = {}
 
+config.download_binaries = true
 config.node_executable = "node"
 config.cody_agent = vim.api.nvim_get_runtime_file("dist/cody-agent.js", false)[1]
 
