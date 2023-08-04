@@ -26,6 +26,7 @@ local M = {}
 ---@param callback function?: Optional callback to specify that the loading is complete
 M.edit = function(bufnr, path, callback)
   vim.bo[bufnr].buftype = "nofile"
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "Loading..." })
 
   void(function()
     local err, entry = rpc.get_entry(path)
