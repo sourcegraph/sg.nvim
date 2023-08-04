@@ -67,11 +67,11 @@ jobs:
           ANNOUNCEMENT_TITLE=$(jq --raw-output ".announcement_title" dist-manifest.json)
           IS_PRERELEASE=$(jq --raw-output ".announcement_is_prerelease" dist-manifest.json)
           jq --raw-output ".announcement_github_body" dist-manifest.json > new_dist_announcement.md
-          gh release create ${{ github.ref_name }} --draft --prerelease="$IS_PRERELEASE" --title="$ANNOUNCEMENT_TITLE" --notes-file=new_dist_announcement.md
+          gh release create latest --draft --prerelease="$IS_PRERELEASE" --title="$ANNOUNCEMENT_TITLE" --notes-file=new_dist_announcement.md
           echo "created announcement!"
 
           # Upload the manifest to the Github Release™
-          gh release upload ${{ github.ref_name }} dist-manifest.json
+          gh release upload latest dist-manifest.json
           echo "uploaded manifest!"
 
           # Disable all the upload-artifacts tasks if we have no actual releases
@@ -114,7 +114,7 @@ jobs:
         # do agree on 'cat' and '$()' so we use that to marshal values between commands.
         run: |
           # Actually do builds and make zips and whatnot
-          cargo dist build --tag=${{ github.ref_name }} --output-format=json ${{ matrix.dist-args }} > dist-manifest.json
+          cargo dist build --tag=latest --output-format=json ${{ matrix.dist-args }} > dist-manifest.json
           echo "dist ran successfully"
           cat dist-manifest.json
 
@@ -122,7 +122,7 @@ jobs:
           jq --raw-output ".artifacts[]?.path | select( . != null )" dist-manifest.json > uploads.txt
           echo "uploading..."
           cat uploads.txt
-          gh release upload ${{ github.ref_name }} $(cat uploads.txt)
+          gh release upload latest $(cat uploads.txt)
           echo "uploaded!"
 
   # Mark the Github Release™ as a non-draft now that everything has succeeded!
@@ -137,4 +137,4 @@ jobs:
       - uses: actions/checkout@v3
       - name: mark release as non-draft
         run: |
-          gh release edit ${{ github.ref_name }} --draft=false
+          gh release edit latest --draft=false
