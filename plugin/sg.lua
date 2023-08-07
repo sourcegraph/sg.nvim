@@ -124,3 +124,14 @@ vim.api.nvim_create_user_command("SourcegraphBuild", function()
 end, {
   desc = "Rebuild the Sourcegraph crates and required dependencies (in case build failed during installation)",
 })
+
+---@command SourcegraphDownloadBinaries [[
+--- (Re-)Download the sourcegraph binaries. This should happen during installation
+--- but you can force redownloading the binaries this way to ensure that sg.nvim
+--- is properly installed.
+---@command ]]
+vim.api.nvim_create_user_command("SourcegraphDownloadBinaries", function()
+  require("sg.build").download()
+end, {
+  desc = "(Re-)download the sourcegraph binaries",
+})
