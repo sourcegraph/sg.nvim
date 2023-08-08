@@ -58,8 +58,6 @@ local move_to_dist = function(bin)
 end
 
 M.download = function()
-  local status = nil
-
   -- TODO: Proper error handling here.
   --    Right now, nvim won't exit with a non-zero exit code
   --    if you run this with nvim -l build/init.lua
