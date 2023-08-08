@@ -100,6 +100,42 @@ commands.chat = function(name)
   return layout
 end
 
+--- Ask Cody to perform a task on the selected code and respond in a floating window.
+---@param bufnr number
+---@param start_line number
+---@param end_line number
+---@param message string
+commands.float_code = function(bufnr, start_line, end_line, message)
+  local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
+  local layout = CodyFloatLayout.init {
+    name = message,
+    bufnr = bufnr,
+    start_line = start_line,
+    end_line = end_line,
+    code_response = true,
+    history = {
+      title = " " .. message .. " ",
+      title_pos = "left",
+    },
+  }
+
+  local contents = vim.tbl_flatten {
+    message,
+    "",
+    util.format_code(bufnr, selection),
+    "",
+    "Respond only with code.",
+  }
+
+  layout:run(function()
+    -- context.add_context(bufnr, table.concat(selection, "\n"), layout.state)
+
+    layout.state:append(Message.init(Speaker.user, contents, { hidden = true }))
+    layout:mount()
+    layout:complete()
+  end)
+end
+
 --- Ask Cody to preform a task on the selected code.
 ---@param bufnr number
 ---@param start_line number

@@ -19,6 +19,7 @@ local util = require "sg.utils"
 ---@field bufnr number?
 ---@field start_line number?
 ---@field end_line number?
+---@field code_response boolean?
 
 ---@class CodyFloatLayout
 ---@field opts CodyFloatLayoutOptions
@@ -47,6 +48,9 @@ CodyFloatLayout.init = function(opts)
   end
   opts.history.row = cursor[1]
   opts.history.col = cursor[2] + line_number_width
+  if opts.code_response then
+    opts.history.filetype = vim.bo[opts.bufnr].filetype
+  end
 
   ---@type CodyFloatLayout
   local self = {
@@ -78,8 +82,41 @@ local callback = function(noti)
   end
 end
 
+local code_callback = function(noti)
+  local active = CodyFloatLayout.active
+  local lines = {}
+  for _, line in ipairs(vim.split(noti.text, "\n")) do
+    -- This is to trim the rambling at the end that LLMs tend to do.
+    -- TODO: This should be handled in the agent/LSP/whatever doing
+    -- the GQL request, so that the response can be cut short
+    -- without having to wait for the stream to complete. No sense
+    -- waiting for text to complete that you're going to throw
+    -- away.
+    if line == "```" then
+      require("sg.cody.rpc").message_callbacks[noti.data.id] = nil
+      break
+    end
+    table.insert(lines, line)
+  end
+
+  if active then
+    active.state:update_message(Message.init(Speaker.cody, lines))
+    active:render()
+  else
+    local layout = CodyFloatLayout.init {}
+    layout:mount()
+
+    layout.state:update_message(Message.init(Speaker.cody, lines))
+    layout:render()
+  end
+end
+
 function CodyFloatLayout:complete()
-  self.state:complete(self.history.bufnr, self.history.win, callback)
+  if self.opts.code_response then
+    self.state:complete(self.history.bufnr, self.history.win, true, code_callback)
+  else
+    self.state:complete(self.history.bufnr, self.history.win, false, callback)
+  end
 end
 
 function CodyFloatLayout:mount()

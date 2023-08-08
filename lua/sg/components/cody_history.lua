@@ -6,6 +6,9 @@ local shared = require "sg.components.shared"
 ---@field width number|string
 ---@field row number|string
 ---@field col number|string
+---@field filetype string?
+---@field title string?
+---@field title_pos string?
 
 ---@class CodyHistory
 ---@field opts CodyHistoryOptions
@@ -13,6 +16,7 @@ local shared = require "sg.components.shared"
 ---@field bufnr number
 ---@field win number
 ---@field mounted boolean
+---@field filetype string?
 local CodyHistory = {}
 CodyHistory.__index = CodyHistory
 
@@ -28,8 +32,8 @@ function CodyHistory.init(opts)
     col = shared.calculate_col(opts.col),
     style = "minimal",
     border = "rounded",
-    title = " Cody History ",
-    title_pos = "center",
+    title = opts.title or " Cody History ",
+    title_pos = opts.title_pos or "center",
   }
 
   return setmetatable({
@@ -38,6 +42,7 @@ function CodyHistory.init(opts)
     bufnr = -1,
     win = -1,
     mounted = false,
+    filetype = opts.filetype or "markdown",
   }, CodyHistory)
 end
 
@@ -51,7 +56,7 @@ function CodyHistory:mount()
     self.bufnr, self.win = shared.create(self.bufnr, self.win, self.popup_options)
   end
 
-  vim.bo[self.bufnr].filetype = "markdown"
+  vim.bo[self.bufnr].filetype = self.filetype
 end
 
 function CodyHistory:unmount()

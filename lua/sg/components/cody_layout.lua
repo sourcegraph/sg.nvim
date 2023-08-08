@@ -123,7 +123,7 @@ function CodyLayout:complete()
   self:render()
   vim.api.nvim_buf_set_lines(self.prompt.bufnr, 0, -1, false, {})
 
-  self.state:complete(self.history.bufnr, self.history.win, callback)
+  self.state:complete(self.history.bufnr, self.history.win, false, callback)
 end
 
 function CodyLayout:mount()

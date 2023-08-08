@@ -33,9 +33,9 @@ function Message:render()
   if self.speaker == Speaker.cody then
     return self.msg
   elseif self.speaker == Speaker.user then
-    return vim.tbl_map(function(row)
+    return { "", unpack(vim.tbl_map(function(row)
       return "> " .. row
-    end, self.msg)
+    end, self.msg)), "" }
   else
     return vim.tbl_map(function(row)
       return "system: " .. row

@@ -61,8 +61,9 @@ end
 --- Get a new completion, based on the state
 ---@param bufnr number
 ---@param win number
+---@param code boolean
 ---@param callback function(noti)
-function State:complete(bufnr, win, callback)
+function State:complete(bufnr, win, code, callback)
   set_last_state(self)
 
   local snippet = ""
@@ -77,7 +78,11 @@ function State:complete(bufnr, win, callback)
   vim.cmd [[mode]]
 
   -- Execute chat question. Will be completed async
-  require("sg.cody.rpc").execute.chat_question(snippet, callback)
+  if code then
+    require("sg.cody.rpc").execute.code_question(snippet, callback)
+  else
+    require("sg.cody.rpc").execute.chat_question(snippet, callback)
+  end
 end
 
 --- Render the state to a buffer and window
@@ -89,19 +94,27 @@ function State:render(bufnr, win)
   -- that wasn't a ephemeral, and then render the rest?
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
 
-  -- TODO: Don't waste the first line, that's gross
   local messages = {}
+  local rendered_lines = {}
   for _, message in ipairs(self.messages) do
-    local rendered = message:render()
-    if not vim.tbl_isempty(rendered) then
-      vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, rendered)
-      vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "" })
+    for _, line in ipairs(message:render()) do
+      if not vim.tbl_isempty(rendered_lines) or line ~= "" then
+        if message.speaker == Speaker.cody then
+          -- Cody has a tendency to have random trailing white space
+          line = line:gsub("%s+$", "")
+          table.insert(rendered_lines, line)
+        else
+          table.insert(rendered_lines, line)
+        end
+      end
     end
 
     if not message.ephemeral then
       table.insert(messages, message)
     end
   end
+
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, rendered_lines)
 
   self.messages = messages
 
