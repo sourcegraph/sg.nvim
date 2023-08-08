@@ -46,11 +46,11 @@ jobs:
           git clone --depth 1 https://github.com/nvim-lua/plenary.nvim ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
           git clone https://github.com/tjdevries/tree-sitter-lua ~/.local/share/nvim/site/pack/vendor/start/tree-sitter-lua
           ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
+          echo "${PWD}/_neovim/bin" >> $GITHUB_PATH
+          echo VIM="${PWD}/_neovim/share/nvim/runtime" >> $GITHUB_ENV
 
       - name: Run build scripts
         run: |
-          export PATH="${PWD}/_neovim/bin:${PATH}"
-          export VIM="${PWD}/_neovim/share/nvim/runtime"
           nvim -l build/init.lua
 
       - name: Build parser
@@ -62,8 +62,6 @@ jobs:
 
       - name: Generating docs
         run: |
-          export PATH="${PWD}/_neovim/bin:${PATH}"
-          export VIM="${PWD}/_neovim/share/nvim/runtime"
           nvim --version
           nvim -l scripts/gendocs.lua
 
