@@ -62,7 +62,7 @@ end, { range = 2, nargs = 1 })
 ---@command :CodyFloatCode {module} [[
 --- Ask Cody to perform a task on the selected code and respond in a floating window.
 ---@command ]]
-vim.api.nvim_create_user_command("CodyFloatCode", function(command)
+vim.api.nvim_create_user_command("CodyDo", function(command)
   local bufnr = vim.api.nvim_get_current_buf()
   cody_commands.float_code(bufnr, command.line1 - 1, command.line2, command.args)
 end, { range = 2, nargs = 1 })
@@ -73,14 +73,6 @@ end, { range = 2, nargs = 1 })
 vim.api.nvim_create_user_command("CodyToggleFloat", function(_)
   cody_commands.float_toggle()
 end, {})
-
----@command :CodyDo {module} [[
---- Instruct Cody to perform a task on selected text.
----@command ]]
-vim.api.nvim_create_user_command("CodyDo", function(command)
-  local bufnr = vim.api.nvim_get_current_buf()
-  cody_commands.do_task(bufnr, command.line1 - 1, command.line2, command.args)
-end, { range = 2, nargs = 1 })
 
 ---@command CodyToggle [[
 --- Toggles the current Cody Chat window.

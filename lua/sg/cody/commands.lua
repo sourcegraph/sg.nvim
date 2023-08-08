@@ -136,49 +136,6 @@ commands.float_code = function(bufnr, start_line, end_line, message)
   end)
 end
 
---- Ask Cody to preform a task on the selected code.
----@param bufnr number
----@param start_line number
----@param end_line number
----@param message string
-commands.do_task = function(bufnr, start_line, end_line, message)
-  local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
-
-  local formatted = require("sg.utils").format_code(bufnr, selection)
-
-  local prompt = message
-  prompt = prompt .. "\nReply only with code, nothing else\n"
-  prompt = prompt .. table.concat(formatted, "\n")
-
-  local prefix = string.format("```%s", vim.bo[bufnr].filetype)
-
-  void(function()
-    print "Performing task..."
-    local err, completed = require("sg.rpc").complete(prompt, { prefix = prefix, temperature = 0.1 })
-
-    if err ~= nil or not completed then
-      error("failed to execute instruction " .. message)
-      return
-    end
-
-    local lines = {}
-    for _, line in ipairs(vim.split(completed, "\n")) do
-      -- This is to trim the rambling at the end that LLMs tend to do.
-      -- TODO: This should be handled in the agent/LSP/whatever doing
-      -- the GQL request, so that the response can be cut short
-      -- without having to wait for the stream to complete. No sense
-      -- waiting for text to complete that you're going to throw
-      -- away.
-      if line == "```" then
-        break
-      end
-      table.insert(lines, line)
-    end
-
-    vim.api.nvim_buf_set_lines(0, start_line, end_line, false, lines)
-  end)()
-end
-
 --- Open a selection to get an existing Cody conversation
 commands.history = function()
   local states = State.history()
