@@ -122,13 +122,14 @@ Default commands for interacting with Cody
 :CodyFloat {module} ~
     State a new cody chat in a floating window
 
+                                                              *:CodyFloatCode*
+:CodyFloatCode {module} ~
+    Ask Cody to perform a task on the selected code and respond in a floating
+    window.
+
                                                             *:CodyToggleFloat*
 :CodyToggleFloat ~
     Hides/shows the Cody float window.
-
-                                                                     *:CodyDo*
-:CodyDo {module} ~
-    Instruct Cody to perform a task on selected text.
 
                                                                  *:CodyToggle*
 :CodyToggle ~
@@ -187,8 +188,9 @@ commands.chat({name})                                         *sg.cody.chat()*
         CodyLayout
 
 
-commands.do_task({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.do_task()*
-    Ask Cody to preform a task on the selected code.
+commands.float_code({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.float_code()*
+    Ask Cody to perform a task on the selected code and respond in a floating
+    window.
 
 
     Parameters: ~
