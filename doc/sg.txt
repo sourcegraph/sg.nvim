@@ -203,16 +203,6 @@ COMMANDS                                                           *sg.commands*
 
 Default commands for interacting with Sourcegraph
 
-                                                            *:SourcegraphLink*
-:SourcegraphLink ~
-    Get a sourcegraph link to the current repo + file + line. Automatically
-    adds it to your '+' register
-
-                                                          *:SourcegraphSearch*
-:SourcegraphSearch ~
-    Run a search. For more sourcegraph search syntax, refer to online
-    documentation
-
                                                            *:SourcegraphLogin*
 :SourcegraphLogin ~
     Get prompted for endpoint and access_token if you don't want to set them
@@ -228,6 +218,16 @@ Default commands for interacting with Sourcegraph
     (Re-)Download the sourcegraph binaries. This should happen during
     installation but you can force redownloading the binaries this way to
     ensure that sg.nvim is properly installed.
+
+                                                            *:SourcegraphLink*
+:SourcegraphLink ~
+    Get a sourcegraph link to the current repo + file + line. Automatically
+    adds it to your '+' register
+
+                                                          *:SourcegraphSearch*
+:SourcegraphSearch ~
+    Run a search. For more sourcegraph search syntax, refer to online
+    documentation
 
 
 
