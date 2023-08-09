@@ -1,6 +1,6 @@
 local shared = require "sg.components.shared"
 
----@class CodyHistoryOptions
+---@class CodyHistoryOpts
 ---@field split string?
 ---@field height number|string
 ---@field width number|string
@@ -8,16 +8,16 @@ local shared = require "sg.components.shared"
 ---@field col number|string
 
 ---@class CodyHistory
----@field opts CodyHistoryOptions
+---@field opts CodyHistoryOpts
 ---@field popup_options table
 ---@field bufnr number
 ---@field win number
----@field mounted boolean
+---@field visible boolean
 local CodyHistory = {}
 CodyHistory.__index = CodyHistory
 
 --- Create a new CodyHistory
----@param opts CodyHistoryOptions
+---@param opts CodyHistoryOpts
 ---@return CodyHistory
 function CodyHistory.init(opts)
   local popup_options = {
@@ -37,11 +37,11 @@ function CodyHistory.init(opts)
     popup_options = popup_options,
     bufnr = -1,
     win = -1,
-    mounted = false,
+    visible = false,
   }, CodyHistory)
 end
 
-function CodyHistory:mount()
+function CodyHistory:show()
   if self.opts.split then
     -- TODO: I don't remember how to do this
     vim.cmd [[botright vnew]]
@@ -54,7 +54,7 @@ function CodyHistory:mount()
   vim.bo[self.bufnr].filetype = "markdown"
 end
 
-function CodyHistory:unmount()
+function CodyHistory:delete()
   self:hide()
   self.bufnr = shared.buf_del(self.bufnr)
 end

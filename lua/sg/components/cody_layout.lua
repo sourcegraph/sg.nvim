@@ -1,5 +1,4 @@
 local _ = require "sg.components.shared"
-local keymaps = require "sg.keymaps"
 
 local CodyPrompt = require "sg.components.cody_prompt"
 local CodyHistory = require "sg.components.cody_history"
@@ -10,12 +9,11 @@ local State = require "sg.cody.state"
 
 local context = require "sg.cody.context"
 local void = require("plenary.async").void
-local util = require "sg.utils"
 
 ---@class CodyLayoutOptions
 ---@field name string?
----@field prompt CodyPromptOptions
----@field history CodyHistoryOptions
+---@field prompt CodyPromptOpts
+---@field history CodyHistoryOpts
 ---@field width number?
 ---@field state CodyState?
 
@@ -136,58 +134,10 @@ function CodyLayout:mount()
   end
 
   self.history = CodyHistory.init(self.opts.history)
-  self.history:mount()
+  self.history:show()
 
   self.prompt = CodyPrompt.init(self.opts.prompt)
-  self.prompt:mount()
-
-  -- TODO: add ? as shortcut to display shortcuts haha
-
-  keymaps.map(self.prompt.bufnr, "n", "<CR>", "[cody] submit message", function()
-    self.prompt:on_submit()
-  end)
-
-  keymaps.map(self.prompt.bufnr, "i", "<C-CR>", "[cody] submit message", function()
-    self.prompt:on_submit()
-  end)
-
-  -- TODO: We'll add this back after thinking about it a bit more
-  -- keymaps.map(self.prompt.bufnr, "i", "<M-CR>", function()
-  --   self.prompt:on_submit { request_embeddings = true }
-  -- end)
-
-  keymaps.map(self.prompt.bufnr, "i", "<c-c>", "[cody] quit chat", function()
-    self.prompt:on_close()
-  end)
-
-  keymaps.map(self.prompt.bufnr, "n", "<ESC>", "[cody] quit chat", function()
-    self.prompt:hide()
-    self.history:hide()
-  end)
-
-  local with_history = function(key, mapped)
-    if not mapped then
-      mapped = key
-    end
-
-    local desc = "[cody] execute '" .. key .. "' in history buffer"
-    keymaps.map(self.prompt.bufnr, { "n", "i" }, key, desc, function()
-      if vim.api.nvim_win_is_valid(self.history.win) then
-        vim.api.nvim_win_call(self.history.win, function()
-          util.execute_keystrokes(mapped)
-        end)
-      end
-    end)
-  end
-
-  with_history "<c-f>"
-  with_history "<c-b>"
-  with_history "<c-e>"
-  with_history "<c-y>"
-
-  keymaps.map(self.prompt.bufnr, "n", "?", "[cody] show keymaps", function()
-    keymaps.help(self.prompt.bufnr)
-  end)
+  self.prompt:show()
 
   self:render()
 
@@ -195,8 +145,8 @@ function CodyLayout:mount()
 end
 
 function CodyLayout:show()
-  self.history:mount()
-  self.prompt:mount()
+  self.history:show()
+  self.prompt:show()
   vim.api.nvim_set_current_win(self.prompt.win)
 end
 
@@ -206,8 +156,8 @@ function CodyLayout:hide()
 end
 
 function CodyLayout:unmount()
-  self.history:unmount()
-  self.prompt:unmount()
+  self.history:delete()
+  self.prompt:delete()
 
   CodyLayout.active = nil
 end

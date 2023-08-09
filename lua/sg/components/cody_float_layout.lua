@@ -11,17 +11,17 @@ local context = require "sg.cody.context"
 local void = require("plenary.async").void
 local util = require "sg.utils"
 
----@class CodyFloatLayoutOptions
+---@class CodyFloatLayoutOptionsOld
 ---@field name string?
----@field history CodyHistoryOptions
+---@field history CodyHistoryOpts
 ---@field width number?
 ---@field state CodyState?
 ---@field bufnr number?
 ---@field start_line number?
 ---@field end_line number?
 
----@class CodyFloatLayout
----@field opts CodyFloatLayoutOptions
+---@class CodyFloatLayoutOld
+---@field opts CodyFloatLayoutOptionsOld
 ---@field state CodyState
 ---@field history CodyHistory
 ---@field active CodyFloatLayout?
@@ -29,7 +29,7 @@ local CodyFloatLayout = {}
 CodyFloatLayout.__index = CodyFloatLayout
 
 --- Create a new CodyFloatLayout
----@param opts CodyFloatLayoutOptions
+---@param opts CodyLayoutFloatOpts
 ---@return CodyFloatLayout
 CodyFloatLayout.init = function(opts)
   opts.history = opts.history or {}
@@ -88,7 +88,7 @@ function CodyFloatLayout:mount()
   end
 
   self.history = CodyHistory.init(self.opts.history)
-  self.history:mount()
+  self.history:show()
 
   keymaps.map(self.history.bufnr, "n", "<CR>", "[cody] confirm edit", function()
     vim.api.nvim_buf_set_lines(
@@ -110,7 +110,7 @@ function CodyFloatLayout:mount()
 end
 
 function CodyFloatLayout:show()
-  self.history:mount()
+  self.history:show()
   vim.api.nvim_set_current_win(self.history.win)
 end
 
@@ -119,7 +119,7 @@ function CodyFloatLayout:hide()
 end
 
 function CodyFloatLayout:unmount()
-  self.history:unmount()
+  self.history:delete()
 
   CodyFloatLayout.active = nil
 end

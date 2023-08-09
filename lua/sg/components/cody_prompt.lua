@@ -7,7 +7,7 @@ local shared = require "sg.components.shared"
 ---@class CodyPromptSubmitOptions
 ---@field request_embeddings boolean
 
----@class CodyPromptOptions
+---@class CodyPromptOpts
 ---@field split string?
 ---@field height number|string
 ---@field width number|string
@@ -18,16 +18,16 @@ local shared = require "sg.components.shared"
 ---@field on_close function?
 
 ---@class CodyPrompt
----@field opts CodyPromptOptions
+---@field opts CodyPromptOpts
 ---@field popup_options table
 ---@field bufnr number
 ---@field win number
----@field mounted boolean
+---@field visible boolean
 local CodyPrompt = {}
 CodyPrompt.__index = CodyPrompt
 
 --- Create a new CodyPrompt
----@param opts CodyPromptOptions
+---@param opts CodyPromptOpts
 ---@return CodyPrompt
 function CodyPrompt.init(opts)
   local popup_options = {
@@ -47,7 +47,7 @@ function CodyPrompt.init(opts)
     popup_options = popup_options,
     bufnr = -1,
     win = -1,
-    mounted = false,
+    visible = false,
   }, CodyPrompt)
 end
 
@@ -79,7 +79,7 @@ function CodyPrompt:on_close()
   end)
 end
 
-function CodyPrompt:mount()
+function CodyPrompt:show()
   if self.opts.split then
     vim.cmd(self.opts.split)
     self.win = vim.api.nvim_get_current_win()
@@ -92,7 +92,7 @@ function CodyPrompt:mount()
   vim.cmd [[startinsert!]]
 end
 
-function CodyPrompt:unmount()
+function CodyPrompt:delete()
   self:hide()
 
   self.bufnr = shared.buf_del(self.bufnr)
