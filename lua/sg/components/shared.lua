@@ -2,7 +2,7 @@ local shared = {}
 
 shared.create = function(bufnr, win, popup_options)
   if not vim.api.nvim_buf_is_valid(bufnr) then
-    bufnr = vim.api.nvim_create_buf(false, true)
+    bufnr = vim.api.nvim_create_buf(true, true)
   end
 
   if not vim.api.nvim_win_is_valid(win) then

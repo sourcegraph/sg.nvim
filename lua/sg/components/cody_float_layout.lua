@@ -155,7 +155,7 @@ function CodyFloatLayout:mount()
       false,
       vim.api.nvim_buf_get_lines(self.history.bufnr, 0, -1, false)
     )
-    self.history:hide()
+    self.history:unmount()
   end)
 
   keymaps.map(self.history.bufnr, "n", "<ESC>", "[cody] quit float layout", function()
@@ -167,6 +167,10 @@ function CodyFloatLayout:mount()
 end
 
 function CodyFloatLayout:show()
+  vim.api.nvim_set_current_buf(self.opts.bufnr)
+  local start_line =
+    vim.api.nvim_buf_get_extmark_by_id(self.opts.bufnr, self.opts.extmark_namespace, self.opts.start_extmark_id, {})[1]
+  vim.api.nvim_win_set_cursor(0, { start_line, 0 })
   self.history:mount()
   vim.api.nvim_set_current_win(self.history.win)
 end
