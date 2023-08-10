@@ -9,7 +9,7 @@ local util = require "sg.utils"
 
 local CodyFloat = require "sg.components.layout.float"
 local CodySplit = require "sg.components.layout.split"
-local CodyHover = require "sg.components.cody_float_layout"
+local CodyHover = require "sg.components.layout.hover"
 local Message = require "sg.cody.message"
 local Speaker = require "sg.cody.speaker"
 local State = require "sg.cody.state"
@@ -30,13 +30,7 @@ commands.explain = function(bufnr, start_line, end_line)
     util.format_code(bufnr, selection),
   }
 
-  layout:run(function()
-    -- context.add_context(bufnr, table.concat(selection, "\n"), layout.state)
-
-    layout.state:append(Message.init(Speaker.user, contents))
-    layout:show()
-    layout:request_completion()
-  end)
+  layout:request_user_message(contents)
 end
 
 --- Ask Cody about the selected code
@@ -54,13 +48,7 @@ commands.ask = function(bufnr, start_line, end_line, message)
     util.format_code(bufnr, selection),
   }
 
-  layout:run(function()
-    -- context.add_context(bufnr, table.concat(selection, "\n"), layout.state)
-
-    layout.state:append(Message.init(Speaker.user, contents))
-    layout:show()
-    layout:request_completion()
-  end)
+  layout:request_user_message(contents)
 end
 
 --- Ask Cody about the selected code
@@ -78,23 +66,18 @@ commands.float = function(bufnr, start_line, end_line, message)
     util.format_code(bufnr, selection),
   }
 
-  layout:run(function()
-    -- context.add_context(bufnr, table.concat(selection, "\n"), layout.state)
-
-    layout.state:append(Message.init(Speaker.user, contents))
-    layout:show()
-    layout:request_completion()
-  end)
+  layout:request_user_message(contents)
 end
 
 commands.float_toggle = function()
-  CodyHover.active:show()
+  CodyHover:toggle()
 end
 
 --- Start a new CodyChat
 ---@param name string?
 ---@return CodyLayout
 commands.chat = function(name)
+  -- TODO: Config for this :)
   local layout = CodySplit.init { name = name }
   layout:show()
 

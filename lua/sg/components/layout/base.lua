@@ -55,11 +55,8 @@ end
 function Base:toggle()
   local active = self:get_active()
   if not active then
-    print "NO ACTIVE"
     active = self.init {}
   end
-
-  print("is visible:", active:is_visible())
 
   if not active:is_visible() then
     return active:show()
@@ -70,6 +67,17 @@ end
 
 function Base:run(cb)
   void(cb)()
+end
+
+--- Asynchronously request a new message from a user.
+---@param contents string[]
+---@return nil: Does not return. Executes async
+function Base:request_user_message(contents)
+  self:run(function()
+    self.state:append(Message.init(Speaker.user, contents))
+    self:show()
+    self:request_completion()
+  end)
 end
 
 function Base:request_completion()
