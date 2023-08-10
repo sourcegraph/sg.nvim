@@ -7,8 +7,9 @@ local auth = require "sg.auth"
 local sg = require "sg"
 local util = require "sg.utils"
 
-local CodyLayout = require "sg.components.cody_layout"
-local CodyFloatLayout = require "sg.components.cody_float_layout"
+local CodyFloat = require "sg.components.layout.float"
+local CodySplit = require "sg.components.layout.split"
+local CodyHover = require "sg.components.cody_float_layout"
 local Message = require "sg.cody.message"
 local Speaker = require "sg.cody.speaker"
 local State = require "sg.cody.state"
@@ -21,7 +22,7 @@ local commands = {}
 ---@param end_line number
 commands.explain = function(bufnr, start_line, end_line)
   local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
-  local layout = CodyLayout.init {}
+  local layout = CodyFloat.init {}
 
   local contents = vim.tbl_flatten {
     "Explain the following code for me:",
@@ -33,8 +34,8 @@ commands.explain = function(bufnr, start_line, end_line)
     -- context.add_context(bufnr, table.concat(selection, "\n"), layout.state)
 
     layout.state:append(Message.init(Speaker.user, contents))
-    layout:mount()
-    layout:complete()
+    layout:show()
+    layout:request_completion()
   end)
 end
 
@@ -45,7 +46,7 @@ end
 ---@param message string
 commands.ask = function(bufnr, start_line, end_line, message)
   local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
-  local layout = CodyLayout.init {}
+  local layout = CodyFloat.init {}
 
   local contents = vim.tbl_flatten {
     message,
@@ -57,8 +58,8 @@ commands.ask = function(bufnr, start_line, end_line, message)
     -- context.add_context(bufnr, table.concat(selection, "\n"), layout.state)
 
     layout.state:append(Message.init(Speaker.user, contents))
-    layout:mount()
-    layout:complete()
+    layout:show()
+    layout:request_completion()
   end)
 end
 
@@ -69,7 +70,7 @@ end
 ---@param message string
 commands.float = function(bufnr, start_line, end_line, message)
   local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
-  local layout = CodyFloatLayout.init { name = message, bufnr = bufnr, start_line = start_line, end_line = end_line }
+  local layout = CodyHover.init { name = message, bufnr = bufnr, start_line = start_line, end_line = end_line }
 
   local contents = vim.tbl_flatten {
     message,
@@ -81,21 +82,21 @@ commands.float = function(bufnr, start_line, end_line, message)
     -- context.add_context(bufnr, table.concat(selection, "\n"), layout.state)
 
     layout.state:append(Message.init(Speaker.user, contents))
-    layout:mount()
-    layout:complete()
+    layout:show()
+    layout:request_completion()
   end)
 end
 
 commands.float_toggle = function()
-  CodyFloatLayout.active:show()
+  CodyHover.active:show()
 end
 
 --- Start a new CodyChat
 ---@param name string?
 ---@return CodyLayout
 commands.chat = function(name)
-  local layout = CodyLayout.init { name = name }
-  layout:mount()
+  local layout = CodySplit.init { name = name }
+  layout:show()
 
   return layout
 end
@@ -154,8 +155,8 @@ commands.history = function()
     end,
   }, function(state)
     vim.schedule(function()
-      local layout = CodyLayout.init { state = state }
-      layout:mount()
+      local layout = CodyFloat.init { state = state }
+      layout:show()
     end)
   end)
 end
@@ -180,7 +181,7 @@ commands.add_context = function(bufnr, start_line, end_line, state)
 end
 
 commands.toggle = function()
-  CodyLayout.active:show()
+  CodyFloat:toggle()
 end
 
 commands.recipes = function(bufnr, start_line, end_line)

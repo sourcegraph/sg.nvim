@@ -1,13 +1,11 @@
-RELOAD "sg"
-
 local Message = require "sg.cody.message"
 local Speaker = require "sg.cody.speaker"
 
+local shared = require "sg.components.shared"
 local keymaps = require "sg.keymaps"
 local util = require "sg.utils"
 
 local Base = require "sg.components.layout.base"
-local State = require "sg.cody.state"
 
 ---@class CodyLayoutFloatOpts : CodyBaseLayoutOpts
 ---@field width number?
@@ -47,13 +45,36 @@ function CodyFloat.init(opts)
   opts.history.col = col
   opts.prompt.col = col
 
-  local on_close = opts.prompt.on_close
-  opts.prompt.on_close = function()
-    if on_close then
-      on_close()
-    end
+  -- opts.prompt.history = function(history)
+  -- end
 
-    self:delete()
+  opts.history.open = function(history)
+    history.bufnr, history.win = shared.create(history.bufnr, history.win, {
+      relative = "editor",
+      width = shared.calculate_width(opts.history.width),
+      height = shared.calculate_height(opts.history.height),
+      row = shared.calculate_row(opts.history.row),
+      col = shared.calculate_col(opts.history.col),
+      style = "minimal",
+      border = "rounded",
+      title = " Cody History ",
+      title_pos = "center",
+    })
+  end
+
+  opts.prompt.open = function(prompt)
+    prompt.bufnr, prompt.win = shared.create(prompt.bufnr, prompt.win, {
+      relative = "editor",
+      width = shared.calculate_width(prompt.opts.width),
+      height = shared.calculate_height(prompt.opts.height),
+      row = shared.calculate_row(prompt.opts.row),
+      col = shared.calculate_col(prompt.opts.col),
+      style = "minimal",
+      border = "rounded",
+      title = " Cody Chat ",
+      title_pos = "left",
+    })
+    vim.api.nvim_set_current_win(prompt.win)
   end
 
   local object = Base.init(opts)
@@ -67,7 +88,6 @@ function CodyFloat:set_keymaps()
   end)
 
   keymaps.map(self.prompt.bufnr, "i", "<C-CR>", "[cody] submit message", function()
-    print "MAP SUBMIT"
     self.prompt:on_submit()
   end)
 
@@ -119,8 +139,5 @@ function CodyFloat:request_completion()
     self:render()
   end)
 end
-
-local x = CodyFloat.init {}
-print(x:show())
 
 return CodyFloat

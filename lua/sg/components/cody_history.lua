@@ -1,6 +1,7 @@
 local shared = require "sg.components.shared"
 
 ---@class CodyHistoryOpts
+---@field open function(self): Create a buf, win pair
 ---@field split string?
 ---@field height number|string
 ---@field width number|string
@@ -8,8 +9,8 @@ local shared = require "sg.components.shared"
 ---@field col number|string
 
 ---@class CodyHistory
+---@field open function(self): Open the window and bufnr, mutating self to store new win and bufnr
 ---@field opts CodyHistoryOpts
----@field popup_options table
 ---@field bufnr number
 ---@field win number
 ---@field visible boolean
@@ -20,21 +21,9 @@ CodyHistory.__index = CodyHistory
 ---@param opts CodyHistoryOpts
 ---@return CodyHistory
 function CodyHistory.init(opts)
-  local popup_options = {
-    relative = "editor",
-    width = shared.calculate_width(opts.width),
-    height = shared.calculate_height(opts.height),
-    row = shared.calculate_row(opts.row),
-    col = shared.calculate_col(opts.col),
-    style = "minimal",
-    border = "rounded",
-    title = " Cody History ",
-    title_pos = "center",
-  }
-
   return setmetatable({
+    open = assert(opts.open, "Must have open function passed"),
     opts = opts,
-    popup_options = popup_options,
     bufnr = -1,
     win = -1,
     visible = false,
@@ -42,15 +31,9 @@ function CodyHistory.init(opts)
 end
 
 function CodyHistory:show()
-  if self.opts.split then
-    -- TODO: I don't remember how to do this
-    vim.cmd [[botright vnew]]
-    self.win = vim.api.nvim_get_current_win()
-    self.bufnr = vim.api.nvim_get_current_buf()
-  else
-    self.bufnr, self.win = shared.create(self.bufnr, self.win, self.popup_options)
-  end
+  self:open()
 
+  vim.api.nvim_buf_set_name(self.bufnr, string.format("Cody History (%d)", self.bufnr))
   vim.bo[self.bufnr].filetype = "markdown"
 end
 

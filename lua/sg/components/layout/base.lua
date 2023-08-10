@@ -20,7 +20,6 @@ local State = require "sg.cody.state"
 ---@field history CodyHistory
 ---@field prompt CodyPrompt?
 ---@field _active CodyBaseLayout?
----@field created boolean
 local Base = {}
 Base.__index = Base
 
@@ -30,21 +29,48 @@ Base.__index = Base
 function Base.init(opts)
   return setmetatable({
     opts = opts,
-    visible = false,
     state = opts.state or State.init {
       name = opts.name,
     },
   }, Base)
 end
 
+-- TODO: This doesn't really let us have multiple "active" windows...
+-- I'll have to think about how to register this kind of idea.
+--
+-- Possibly an autocmd when entering a cody window that sets it to the
+-- most recently active window?
 function Base:get_active()
-  return self._active
-end
-function Base:set_active(obj)
-  self._active = obj
+  return Base._active
 end
 
-function Base:run() end
+function Base:set_active(obj)
+  Base._active = obj
+end
+
+function Base:is_visible()
+  return self.history and self.history.win and vim.api.nvim_win_is_valid(self.history.win)
+end
+
+function Base:toggle()
+  local active = self:get_active()
+  if not active then
+    print "NO ACTIVE"
+    active = self.init {}
+  end
+
+  print("is visible:", active:is_visible())
+
+  if not active:is_visible() then
+    return active:show()
+  else
+    return active:hide()
+  end
+end
+
+function Base:run(cb)
+  void(cb)()
+end
 
 function Base:request_completion()
   error "Base:request_completion() is an abstract function"
@@ -64,7 +90,6 @@ function Base:create()
     local prompt_opts = assert(vim.deepcopy(self.opts.prompt))
     prompt_opts.on_submit = function(bufnr, text, submit_opts)
       void(function()
-        print("submitting...", text)
         if self.opts.prompt.on_submit then
           self.opts.prompt.on_submit(bufnr, text, submit_opts)
         end
@@ -73,7 +98,14 @@ function Base:create()
       end)()
     end
 
-    print "Creating prompt..."
+    prompt_opts.on_close = function()
+      if self.opts.prompt.on_close then
+        self.opts.prompt.on_close()
+      end
+
+      self:delete()
+    end
+
     self.prompt = CodyPrompt.init(prompt_opts)
   end
 
@@ -87,7 +119,7 @@ function Base:show()
     self:create()
   end
 
-  self:set_active(self.state)
+  self:set_active(self)
 
   self.history:show()
   if self.prompt then
