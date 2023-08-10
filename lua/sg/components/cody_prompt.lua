@@ -85,7 +85,7 @@ function CodyPrompt:mount()
     self.win = vim.api.nvim_get_current_win()
     self.bufnr = vim.api.nvim_get_current_buf()
   else
-    self.bufnr, self.win = shared.create(self.bufnr, self.win, self.popup_options)
+    self.bufnr, self.win = shared.create(self.bufnr, self.win, false, self.popup_options)
     vim.api.nvim_set_current_win(self.win)
   end
 

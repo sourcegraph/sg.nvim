@@ -136,7 +136,7 @@ function CodyLayout:mount()
   end
 
   self.history = CodyHistory.init(self.opts.history)
-  self.history:mount()
+  self.history:mount(false)
 
   self.prompt = CodyPrompt.init(self.opts.prompt)
   self.prompt:mount()
@@ -195,7 +195,7 @@ function CodyLayout:mount()
 end
 
 function CodyLayout:show()
-  self.history:mount()
+  self.history:mount(false)
   self.prompt:mount()
   vim.api.nvim_set_current_win(self.prompt.win)
 end

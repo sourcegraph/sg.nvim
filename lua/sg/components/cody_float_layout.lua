@@ -137,7 +137,7 @@ function CodyFloatLayout:mount()
   end
 
   self.history = CodyHistory.init(self.opts.history)
-  self.history:mount()
+  self.history:mount(true)
 
   keymaps.map(self.history.bufnr, "n", "<CR>", "[cody] confirm edit", function()
     local start_line = vim.api.nvim_buf_get_extmark_by_id(
@@ -171,7 +171,7 @@ function CodyFloatLayout:show()
   local start_line =
     vim.api.nvim_buf_get_extmark_by_id(self.opts.bufnr, self.opts.extmark_namespace, self.opts.start_extmark_id, {})[1]
   vim.api.nvim_win_set_cursor(0, { start_line, 0 })
-  self.history:mount()
+  self.history:mount(true)
   vim.api.nvim_set_current_win(self.history.win)
 end
 
