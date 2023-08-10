@@ -19,6 +19,9 @@ local util = require "sg.utils"
 ---@field bufnr number?
 ---@field start_line number?
 ---@field end_line number?
+---@field extmark_namespace string?
+---@field start_extmark_id number?
+---@field end_extmark_id number?
 ---@field code_response boolean?
 
 ---@class CodyFloatLayout
@@ -33,12 +36,21 @@ CodyFloatLayout.__index = CodyFloatLayout
 ---@param opts CodyFloatLayoutOptions
 ---@return CodyFloatLayout
 CodyFloatLayout.init = function(opts)
+  -- Initialize history table if not provided
   opts.history = opts.history or {}
 
+  -- Set default width if not provided
   local width = opts.width or 0.25
+
+  -- Save width in history table
   opts.history.width = width
 
+  -- Set height for history window
   opts.history.height = 30
+
+  opts.extmark_namespace = vim.api.nvim_create_namespace "sg.nvim"
+  opts.start_extmark_id = vim.api.nvim_buf_set_extmark(opts.bufnr, opts.extmark_namespace, opts.start_line, 0, {})
+  opts.end_extmark_id = vim.api.nvim_buf_set_extmark(opts.bufnr, opts.extmark_namespace, opts.end_line, 0, {})
 
   local cursor = vim.api.nvim_win_get_cursor(0)
 
@@ -128,10 +140,18 @@ function CodyFloatLayout:mount()
   self.history:mount()
 
   keymaps.map(self.history.bufnr, "n", "<CR>", "[cody] confirm edit", function()
+    local start_line = vim.api.nvim_buf_get_extmark_by_id(
+      self.opts.bufnr,
+      self.opts.extmark_namespace,
+      self.opts.start_extmark_id,
+      {}
+    )[1]
+    local end_line =
+      vim.api.nvim_buf_get_extmark_by_id(self.opts.bufnr, self.opts.extmark_namespace, self.opts.end_extmark_id, {})[1]
     vim.api.nvim_buf_set_lines(
       self.opts.bufnr,
-      self.opts.start_line,
-      self.opts.end_line,
+      start_line,
+      end_line,
       false,
       vim.api.nvim_buf_get_lines(self.history.bufnr, 0, -1, false)
     )
