@@ -37,7 +37,7 @@ M.find_rust_bin = function(cmd)
   sort_by_time(candidates)
   local result = candidates[1]
   if not result then
-    error(string.format("Failed to load %s: You probably did not run `nvim -l build/init.lua`", cmd))
+    return nil
   end
 
   return result.path
@@ -78,7 +78,7 @@ M.find_rust_lib = function(name)
     end
   end
 
-  error(string.format("Failed to load %s: You probably did not run `nvim -l build/init.lua`", name))
+  -- error(string.format("Failed to load %s: You probably did not run `nvim -l build/init.lua`", name))
 end
 
 return M
