@@ -101,6 +101,20 @@ M.get = function(ordering)
   return nil, nil
 end
 
+M.get_all_valid = function(ordering)
+  ordering = ordering or config.auth_strategy
+
+  local results = {}
+  for _, order in ipairs(ordering) do
+    local res = M.get { order }
+    if res then
+      table.insert(results, { res, order })
+    end
+  end
+
+  return results
+end
+
 M.valid = function()
   return M.get() ~= nil
 end
