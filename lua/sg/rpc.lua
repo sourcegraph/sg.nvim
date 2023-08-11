@@ -1,6 +1,10 @@
 ---@tag sg.rpc
 ---@config { ["module"] = "sg.rpc" }
 
+if not require "sg.request" then
+  return {}
+end
+
 local req = require("sg.request").request
 
 local rpc = {}

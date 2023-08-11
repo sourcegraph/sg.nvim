@@ -1,5 +1,4 @@
 local void = require("plenary.async").void
-local block_on = require("plenary.async").util.block_on
 local M = {}
 
 local report_nvim = function()
@@ -13,14 +12,13 @@ local report_nvim = function()
 end
 
 local report_lib = function()
-  -- TODO: This should probably just check that the binary exists?
-
   if 1 ~= vim.fn.executable "cargo" then
-    vim.health.error "Unable to find valid cargo executable."
+    vim.health.error "Unable to find valid cargo executable. Trying to build sg.nvim will fail. Instead use `:SourcegraphDownloadBinaries`"
+    return false
   else
     local result = require("sg.utils").system({ "cargo", "--version" }, { text = true }):wait()
     if result.code ~= 0 then
-      vim.health.error "cargo failed to run `cargo --version`"
+      vim.health.error "cargo failed to run `cargo --version`. Instead use `:SourcegraphDownloadBinaries`"
 
       for _, msg in ipairs(vim.split(result.stdout, "\n")) do
         vim.health.info(msg)
@@ -28,10 +26,14 @@ local report_lib = function()
       for _, msg in ipairs(vim.split(result.stderr, "\n")) do
         vim.health.info(msg)
       end
+
+      return false
     else
       vim.health.ok "Found `cargo` is executable"
     end
   end
+
+  return true
 end
 
 local report_nvim_agent = function()
@@ -50,21 +52,25 @@ local report_env = function()
 
   local ok = true
 
-  local creds, strategy = auth.get()
-
   vim.health.info(string.format("Auth strategy order: %s", vim.inspect(require("sg.config").auth_strategy)))
 
-  if not creds then
+  local all_valid = auth.get_all_valid()
+  if vim.tbl_isempty(all_valid) then
     vim.health.error "No valid auth strategy detected. See `:help sg` for more info."
     ok = false
-  end
+  else
+    for idx, valid in ipairs(all_valid) do
+      local creds, strategy = unpack(valid)
+      assert(creds, "must have valid credentials")
 
-  if ok then
-    assert(creds, "must have valid credentials")
-
-    vim.health.ok "Authentication setup correctly"
-    vim.health.ok(string.format("  endpoint set to: %s", creds.endpoint))
-    vim.health.ok(string.format("  strategy used: %s", strategy))
+      if idx == 1 then
+        vim.health.ok(string.format('  Authentication setup correctly ("%s")', strategy))
+        vim.health.ok(string.format("    endpoint set to: %s", creds.endpoint))
+      else
+        vim.health.ok(string.format('  Backup Authentication also available ("%s")', strategy))
+        vim.health.ok(string.format("    endpoint set to: %s", creds.endpoint))
+      end
+    end
   end
 
   local err, info
@@ -78,8 +84,19 @@ local report_env = function()
 
   if err then
     vim.health.error("  Sourcegraph Connection info failed: " .. vim.inspect(err))
+    ok = false
   else
     vim.health.ok("  Sourcegraph Connection info: " .. vim.inspect(info))
+  end
+
+  local expected_cargo_version = require "sg.private.cargo_version"
+  if expected_cargo_version ~= info.sg_nvim_version then
+    vim.health.error "Mismatched cargo and expected version. Update using :SourcegraphDownloadBinaries or :SourcegraphBuild"
+    vim.health.error(string.format("Exptected: %s | Found: %s", expected_cargo_version, info.sg_nvim_version))
+
+    ok = false
+  else
+    vim.health.ok("Found correct binary versions: " .. expected_cargo_version .. " = " .. info.sg_nvim_version)
   end
 
   return ok

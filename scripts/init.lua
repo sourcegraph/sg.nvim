@@ -9,3 +9,8 @@ vim.cmd [[runtime! plugin/plenary.vim]]
 vim.cmd [[runtime! plugin/sg.lua]]
 vim.cmd [[runtime! plugin/cody.lua]]
 vim.cmd [[runtime! plugin/cody-agent.lua]]
+
+require("sg").setup {
+  download_binaries = false,
+  accept_tos = true,
+}

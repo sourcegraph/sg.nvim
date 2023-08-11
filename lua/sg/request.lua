@@ -1,3 +1,14 @@
+-- Verify that the environment is properly configured
+local creds = require("sg.auth").get()
+if not creds then
+  return require("sg.notify").NO_AUTH()
+end
+
+local bin_sg_nvim = require("sg.config").get_nvim_agent()
+if not bin_sg_nvim then
+  return require("sg.notify").NO_BUILD()
+end
+
 -- Attempt to clear SG_SG_CLIENT if one is already
 -- running currently.
 --
@@ -13,23 +24,14 @@ if SG_SG_CLIENT then
 end
 
 local log = require "sg.log"
-
-local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
+local lsp = require "sg.vendored.vim-lsp-rpc"
 
 local M = {}
 
 local notification_handlers = {}
 local server_handlers = {}
 
-local auth = require "sg.auth"
-local creds = auth.get()
-if not creds then
-  require("sg.notify").NO_AUTH()
-  return nil
-end
-
-local bin_sg_nvim = require("sg.config").get_nvim_agent()
-SG_SG_CLIENT = vendored_rpc.start(bin_sg_nvim, {}, {
+SG_SG_CLIENT = lsp.start(bin_sg_nvim, {}, {
   notification = function(method, data)
     if notification_handlers[method] then
       notification_handlers[method](data)

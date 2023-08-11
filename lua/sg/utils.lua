@@ -1,5 +1,10 @@
-local async = require "plenary.async"
+--[[
 
+NOTE: Do not require from this file to any other SG files.
+      This makes sure that this can be required without
+      anything else being built and/or linked up.
+
+--]]
 local utils = {}
 
 utils.once = function(f)
@@ -52,9 +57,12 @@ end
 -- Probably will break on me unexpectedly. Nice
 utils.system = vim.system or (require "sg.vendored.vim-system")
 
-utils.async_system = async.wrap(function(cmd, opts, on_exit)
-  return utils.system(cmd, opts, vim.schedule_wrap(on_exit))
-end, 3)
+local ok, async = pcall(require, "plenary.async")
+if ok then
+  utils.async_system = async.wrap(function(cmd, opts, on_exit)
+    return utils.system(cmd, opts, vim.schedule_wrap(on_exit))
+  end, 3)
+end
 
 -- From https://gist.github.com/jrus/3197011
 utils.uuid = function()

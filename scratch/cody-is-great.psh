@@ -1,0 +1,19 @@
+$link = "https://example.com/file.tar.gz"
+$tarfile = "file.tar.gz"
+
+Invoke-WebRequest -Uri $link -OutFile $tarfile
+
+if ($?) {
+  Write-Output "Done downloading"
+
+  Expand-Archive -Path $tarfile -DestinationPath .\dist\
+  if ($?) {
+    Write-Output "Done extracting" 
+  }
+  else {
+    Write-Output "Failed to extract archive"
+  }
+}
+else {
+  Write-Output "Failed to download file"
+}

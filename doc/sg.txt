@@ -34,6 +34,9 @@ sg.config                                                          *sg.config*
 
 
   Configuration Options: ~
+    {download_binaries}   (boolean)                    Default true, download
+                                                       latest release from
+                                                       Github
     {node_executable}     (string)                     path to node executable
     {cody_agent}          (string)                     path to the cody-agent
                                                        js bundle
@@ -200,16 +203,6 @@ COMMANDS                                                           *sg.commands*
 
 Default commands for interacting with Sourcegraph
 
-                                                            *:SourcegraphLink*
-:SourcegraphLink ~
-    Get a sourcegraph link to the current repo + file + line. Automatically
-    adds it to your '+' register
-
-                                                          *:SourcegraphSearch*
-:SourcegraphSearch ~
-    Run a search. For more sourcegraph search syntax, refer to online
-    documentation
-
                                                            *:SourcegraphLogin*
 :SourcegraphLogin ~
     Get prompted for endpoint and access_token if you don't want to set them
@@ -219,6 +212,22 @@ Default commands for interacting with Sourcegraph
 :SourcegraphBuild ~
     Rebuild the Sourcegraph crates and required dependencies (in case build
     failed during installation)
+
+                                                *:SourcegraphDownloadBinaries*
+:SourcegraphDownloadBinaries ~
+    (Re-)Download the sourcegraph binaries. This should happen during
+    installation but you can force redownloading the binaries this way to
+    ensure that sg.nvim is properly installed.
+
+                                                            *:SourcegraphLink*
+:SourcegraphLink ~
+    Get a sourcegraph link to the current repo + file + line. Automatically
+    adds it to your '+' register
+
+                                                          *:SourcegraphSearch*
+:SourcegraphSearch ~
+    Run a search. For more sourcegraph search syntax, refer to online
+    documentation
 
 
 
