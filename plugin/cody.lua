@@ -78,15 +78,13 @@ vim.api.nvim_create_user_command("CodyDo", function(command)
   M.active_task_index = #M.tasks
 end, { range = 2, nargs = 1 })
 
-vim.api.nvim_create_user_command("CodyTask", function()
-  if #M.tasks < M.active_task_index then
-    M.active_task_index = #M.tasks
-  end
+vim.api.nvim_create_user_command("CodyTask", function(command)
+  M.active_task_index = tonumber(command.args)
 
   if M.active_task_index > 0 then
     M.tasks[M.active_task_index].layout:show()
   end
-end, {})
+end, { nargs = 1 })
 
 vim.api.nvim_create_user_command("CodyTaskNext", function()
   if #M.tasks == 0 then
@@ -102,6 +100,63 @@ vim.api.nvim_create_user_command("CodyTaskNext", function()
     M.active_task_index = 1
   end
   M.tasks[M.active_task_index]:show()
+end, {})
+
+vim.api.nvim_create_user_command("CodyTasks", function()
+  local previewer = require("telescope.previewers.previewer"):new {
+    setup = function() end,
+    teardown = function() end,
+
+    title = function(_)
+      return "Cody Task Preview"
+    end,
+
+    dynamic_title = function()
+      return "Cody Task Preview"
+    end,
+
+    preview_fn = function(_, entry, status)
+      local bufnr = vim.api.nvim_win_get_buf(status.preview_win)
+
+      entry.value.layout.state:render(bufnr, status.preview_win)
+      vim.bo[bufnr].filetype = vim.bo[entry.value.bufnr].filetype
+    end,
+
+    send_input = function() end,
+    scroll_fn = function() end,
+  }
+  -- our picker function: colors
+  local colors = function(opts)
+    opts = opts or {}
+    require("telescope.pickers")
+      .new(opts, {
+        prompt_title = " Cody Tasks ",
+        finder = require("telescope.finders").new_table {
+          results = M.tasks,
+          entry_maker = function(entry)
+            return {
+              value = entry,
+              display = entry.task,
+              ordinal = entry.task,
+            }
+          end,
+        },
+        sorter = require("telescope.config").values.generic_sorter(opts),
+        previewer = previewer,
+        attach_mappings = function(prompt_bufnr, map)
+          require("telescope.actions").select_default:replace(function()
+            require("telescope.actions").close(prompt_bufnr)
+            local selection = require("telescope.actions.state").get_selected_entry()
+            selection.value:show()
+          end)
+          return true
+        end,
+      })
+      :find()
+  end
+
+  -- to execute the function
+  colors()
 end, {})
 
 vim.api.nvim_create_user_command("CodyTaskAccept", function()

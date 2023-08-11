@@ -100,7 +100,8 @@ commands.do_task = function(bufnr, start_line, end_line, message)
 
   return require("sg.cody.tasks").init {
     bufnr = bufnr,
-    task = prompt,
+    task = message,
+    prompt = prompt,
     start_line = start_line,
     end_line = end_line,
   }

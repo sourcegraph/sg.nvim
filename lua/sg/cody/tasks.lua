@@ -17,6 +17,7 @@ CodyTask.__index = CodyTask
 ---@class CodyTaskOptions
 ---@field bufnr number
 ---@field task string
+---@field prompt string
 ---@field start_line number
 ---@field end_line number
 
@@ -36,7 +37,7 @@ CodyTask.init = function(opts)
     },
   }
   layout:run(function()
-    layout.state:append(Message.init(Speaker.user, vim.split(opts.task, "\n"), { hidden = true }))
+    layout.state:append(Message.init(Speaker.user, vim.split(opts.prompt, "\n"), { hidden = true }))
     layout:show()
     layout:request_completion(true)
   end)
