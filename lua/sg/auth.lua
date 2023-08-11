@@ -116,8 +116,8 @@ M.set_nvim_auth = function(opts)
   assert(opts.endpoint, "[sg-cody] Nvim auth must have an endpoint")
 
   local cody_data = data.get_cody_data()
-  cody_data.token = data.token
-  cody_data.endpoint = data.endpoint
+  cody_data.token = opts.token
+  cody_data.endpoint = opts.endpoint
   data.write_cody_data(cody_data)
 end
 
