@@ -98,33 +98,12 @@ commands.do_task = function(bufnr, start_line, end_line, message)
   prompt = prompt .. "\nReply only with code, nothing else\n"
   prompt = prompt .. table.concat(formatted, "\n")
 
-  local prefix = string.format("```%s", vim.bo[bufnr].filetype)
-
-  void(function()
-    print "Performing task..."
-    local err, completed = require("sg.rpc").complete(prompt, { prefix = prefix, temperature = 0.1 })
-
-    if err ~= nil or not completed then
-      error("failed to execute instruction " .. message)
-      return
-    end
-
-    local lines = {}
-    for _, line in ipairs(vim.split(completed, "\n")) do
-      -- This is to trim the rambling at the end that LLMs tend to do.
-      -- TODO: This should be handled in the agent/LSP/whatever doing
-      -- the GQL request, so that the response can be cut short
-      -- without having to wait for the stream to complete. No sense
-      -- waiting for text to complete that you're going to throw
-      -- away.
-      if line == "```" then
-        break
-      end
-      table.insert(lines, line)
-    end
-
-    vim.api.nvim_buf_set_lines(0, start_line, end_line, false, lines)
-  end)()
+  return require("sg.cody.tasks").init {
+    bufnr = bufnr,
+    task = prompt,
+    start_line = start_line,
+    end_line = end_line,
+  }
 end
 
 --- Open a selection to get an existing Cody conversation

@@ -65,17 +65,6 @@ end
 
 function CodyHover:set_keymaps()
   local bufnr = self.history.bufnr
-  keymaps.map(bufnr, "n", "<CR>", "[cody] submit message", function()
-    vim.api.nvim_buf_set_lines(
-      self.opts.bufnr,
-      self.opts.start_line,
-      self.opts.end_line,
-      false,
-      vim.api.nvim_buf_get_lines(self.history.bufnr, 0, -1, false)
-    )
-
-    self:hide()
-  end)
 
   keymaps.map(bufnr, "i", "<c-c>", "[cody] quit chat", function()
     self:hide()
@@ -110,11 +99,17 @@ function CodyHover:set_keymaps()
   end)
 end
 
-function CodyHover:request_completion()
+function CodyHover:request_completion(code_only)
   self:render()
 
   self.state:complete(self.history.bufnr, self.history.win, function(noti)
-    self.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n")))
+    local lines = vim.split(noti.text, "\n")
+    if code_only then
+      table.remove(lines, 1)
+      table.remove(lines)
+    end
+
+    self.state:update_message(Message.init(Speaker.cody, lines))
     self:render()
   end)
 end
