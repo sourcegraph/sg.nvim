@@ -346,5 +346,14 @@ rpc.get_link()                                             *sg.rpc.get_link()*
         table?: contents, if successful
 
 
+rpc.get_diff()                                             *sg.rpc.get_diff()*
+    Get info about current sourcegraph info
+
+
+    Return: ~
+        string?: err, if any
+        table[]: diff contents
+
+
 
  vim:tw=78:ts=8:ft=help:norl:
