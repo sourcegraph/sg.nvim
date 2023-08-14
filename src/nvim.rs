@@ -102,6 +102,12 @@ pub enum RequestData {
         line: usize,
         col: usize,
     },
+
+    #[serde(rename = "editor/diff")]
+    EditorDiff {
+        left: String,
+        right: String,
+    },
 }
 
 #[allow(unused_variables)]
@@ -237,6 +243,10 @@ impl Request {
 
                 Ok(Response::new(id, ResponseData::SourcegraphLink(link)))
             }
+            RequestData::EditorDiff { left, right } => Ok(Response::new(
+                id,
+                ResponseData::EditorDiff(crate::diff::make_diff(&left, &right)),
+            )),
         }
     }
 }
@@ -267,6 +277,7 @@ pub enum ResponseData {
     SourcegraphSearch(Vec<SearchResult>),
     SourcegraphInfo(Value),
     SourcegraphLink(String),
+    EditorDiff(Value),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

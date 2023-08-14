@@ -131,4 +131,11 @@ function rpc.get_link(path, line, col)
   return req("sourcegraph/link", { path = path, line = line, col = col })
 end
 
+--- Get info about current sourcegraph info
+---@return string?: err, if any
+---@return table[]: diff contents
+function rpc.get_diff(left, right)
+  return req("editor/diff", { left = left, right = right })
+end
+
 return rpc
