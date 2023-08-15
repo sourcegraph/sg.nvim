@@ -117,6 +117,10 @@ Default commands for interacting with Cody
 
     Use from visual mode to pass the current selection
 
+                                                                 *:CodyCancel*
+:CodyCancel ~
+    Cancels all active Cody completions.
+
                                                                    *:CodyChat*
 :CodyChat {module} ~
     State a new cody chat, with an optional {title}
