@@ -160,6 +160,11 @@ commands.ask({bufnr}, {start_line}, {end_line}, {message})     *sg.cody.ask()*
         {message}    (string)
 
 
+commands.cancel()                                           *sg.cody.cancel()*
+    Cancels any running Cody completions
+
+
+
 commands.chat({name})                                         *sg.cody.chat()*
     Start a new CodyChat
 
