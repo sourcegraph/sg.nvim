@@ -156,6 +156,9 @@ function CodyLayout:mount()
   --   self.prompt:on_submit { request_embeddings = true }
   -- end)
 
+  keymaps.map(self.prompt.bufnr, "n", "<c-c>", "[cody] cancel completions", function()
+    vim.cmd "CodyCancel"
+  end)
   keymaps.map(self.prompt.bufnr, "i", "<c-c>", "[cody] quit chat", function()
     self.prompt:on_close()
   end)

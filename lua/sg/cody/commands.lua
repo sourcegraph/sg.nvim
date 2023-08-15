@@ -61,6 +61,11 @@ commands.ask = function(bufnr, start_line, end_line, message)
   end)
 end
 
+--- Cancels any running Cody completions
+commands.cancel = function()
+  require("sg.cody.rpc").message_callbacks = {}
+end
+
 --- Start a new CodyChat
 ---@param name string?
 ---@return CodyLayout
