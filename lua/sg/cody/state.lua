@@ -92,6 +92,9 @@ function State:render(bufnr, win)
   local messages = {}
   local rendered_lines = {}
   for _, message in ipairs(self.messages) do
+    if #rendered_lines > 0 then
+        table.insert(rendered_lines, "")
+    end
     for _, line in ipairs(message:render()) do
       if not vim.tbl_isempty(rendered_lines) or line ~= "" then
         if message.speaker == Speaker.cody then
