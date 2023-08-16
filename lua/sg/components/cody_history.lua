@@ -7,6 +7,7 @@ local shared = require "sg.components.shared"
 ---@field width number|string
 ---@field row number|string
 ---@field col number|string
+---@field filetype string?
 
 ---@class CodyHistory
 ---@field open function(self): Open the window and bufnr, mutating self to store new win and bufnr
@@ -34,7 +35,7 @@ function CodyHistory:show()
   self:open()
 
   vim.api.nvim_buf_set_name(self.bufnr, string.format("Cody History (%d)", self.bufnr))
-  vim.bo[self.bufnr].filetype = "markdown"
+  vim.bo[self.bufnr].filetype = self.opts.filetype or "markdown"
 end
 
 function CodyHistory:delete()

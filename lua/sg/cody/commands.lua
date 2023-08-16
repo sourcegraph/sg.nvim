@@ -16,23 +16,6 @@ local State = require "sg.cody.state"
 
 local commands = {}
 
---- Explain a piece of code
----@param bufnr number
----@param start_line number
----@param end_line number
-commands.explain = function(bufnr, start_line, end_line)
-  local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
-  local layout = CodyFloat.init {}
-
-  local contents = vim.tbl_flatten {
-    "Explain the following code for me:",
-    "",
-    util.format_code(bufnr, selection),
-  }
-
-  layout:request_user_message(contents)
-end
-
 --- Ask Cody about the selected code
 ---@param bufnr number
 ---@param start_line number
@@ -40,7 +23,7 @@ end
 ---@param message string
 commands.ask = function(bufnr, start_line, end_line, message)
   local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
-  local layout = CodyFloat.init {}
+  local layout = CodySplit.init {}
 
   local contents = vim.tbl_flatten {
     message,
@@ -69,13 +52,9 @@ commands.float = function(bufnr, start_line, end_line, message)
   layout:request_user_message(contents)
 end
 
-commands.float_toggle = function()
-  CodyHover:toggle()
-end
-
 --- Start a new CodyChat
 ---@param name string?
----@return CodyLayout
+---@return CodyLayoutSplit
 commands.chat = function(name)
   -- TODO: Config for this :)
   local layout = CodySplit.init { name = name }
@@ -98,33 +77,12 @@ commands.do_task = function(bufnr, start_line, end_line, message)
   prompt = prompt .. "\nReply only with code, nothing else\n"
   prompt = prompt .. table.concat(formatted, "\n")
 
-  local prefix = string.format("```%s", vim.bo[bufnr].filetype)
-
-  void(function()
-    print "Performing task..."
-    local err, completed = require("sg.rpc").complete(prompt, { prefix = prefix, temperature = 0.1 })
-
-    if err ~= nil or not completed then
-      error("failed to execute instruction " .. message)
-      return
-    end
-
-    local lines = {}
-    for _, line in ipairs(vim.split(completed, "\n")) do
-      -- This is to trim the rambling at the end that LLMs tend to do.
-      -- TODO: This should be handled in the agent/LSP/whatever doing
-      -- the GQL request, so that the response can be cut short
-      -- without having to wait for the stream to complete. No sense
-      -- waiting for text to complete that you're going to throw
-      -- away.
-      if line == "```" then
-        break
-      end
-      table.insert(lines, line)
-    end
-
-    vim.api.nvim_buf_set_lines(0, start_line, end_line, false, lines)
-  end)()
+  return require("sg.cody.tasks").init {
+    bufnr = bufnr,
+    task = prompt,
+    start_line = start_line,
+    end_line = end_line,
+  }
 end
 
 --- Open a selection to get an existing Cody conversation

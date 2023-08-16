@@ -69,6 +69,7 @@ local notification_handlers = {
       end
 
       if noti.data and M.message_callbacks[noti.data.id] ~= nil then
+        noti.text = vim.trim(noti.text) -- trim random white space
         M.message_callbacks[noti.data.id](noti)
       end
     end)()
@@ -241,6 +242,20 @@ M.execute.chat_question = function(message, callback)
   M.message_callbacks[message_id] = callback
 
   return M.request("recipes/execute", { id = "chat-question", humanChatInput = message, data = { id = message_id } })
+end
+
+--- Execute a code question and get a streaming response
+--- Returns only code (hopefully)
+---@param message string
+---@param callback function(noti)
+---@return table | nil
+---@return table | nil
+M.execute.code_question = function(message, callback)
+  local message_id = utils.uuid()
+
+  M.message_callbacks[message_id] = callback
+
+  return M.request("recipes/execute", { id = "code-question", humanChatInput = message, data = { id = message_id } })
 end
 
 -- M.execute.fixup = function(message) end
