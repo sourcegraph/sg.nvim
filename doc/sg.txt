@@ -116,10 +116,6 @@ Default commands for interacting with Cody
 :CodyFloat {module} ~
     State a new cody chat in a floating window
 
-                                                            *:CodyToggleFloat*
-:CodyToggleFloat ~
-    Hides/shows the Cody float window.
-
                                                                      *:CodyDo*
 :CodyDo {module} ~
     Instruct Cody to perform a task on selected text.
