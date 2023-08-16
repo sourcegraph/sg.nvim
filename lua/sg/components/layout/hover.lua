@@ -41,7 +41,7 @@ function CodyHover.init(opts)
 
   opts.history.open = function(history)
     history.bufnr, history.win = shared.create(history.bufnr, history.win, {
-      relative = "editor",
+      relative = "win",
       width = shared.calculate_width(opts.history.width),
       height = shared.calculate_height(opts.history.height),
       row = shared.calculate_row(opts.history.row),
