@@ -52,10 +52,6 @@ commands.float = function(bufnr, start_line, end_line, message)
   layout:request_user_message(contents)
 end
 
-commands.float_toggle = function()
-  CodyHover:toggle()
-end
-
 --- Start a new CodyChat
 ---@param name string?
 ---@return CodyLayoutSplit
