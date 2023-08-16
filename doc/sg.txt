@@ -102,12 +102,6 @@ COMMANDS                                                         *cody.commands*
 
 Default commands for interacting with Cody
 
-                                                                *:CodyExplain*
-:CodyExplain ~
-    Explain how to use Cody.
-
-    Use from visual mode to pass the current selection
-
                                                                     *:CodyAsk*
 :CodyAsk ~
     Ask a question about the current selection.
@@ -144,16 +138,6 @@ Default commands for interacting with Cody
 ================================================================================
 COMMANDS"                                                      *"cody.commands"*
 
-commands.explain({bufnr}, {start_line}, {end_line})        *sg.cody.explain()*
-    Explain a piece of code
-
-
-    Parameters: ~
-        {bufnr}      (number)
-        {start_line} (number)
-        {end_line}   (number)
-
-
 commands.ask({bufnr}, {start_line}, {end_line}, {message})     *sg.cody.ask()*
     Ask Cody about the selected code
 
@@ -184,7 +168,7 @@ commands.chat({name})                                         *sg.cody.chat()*
         {name} (string?)
 
     Return: ~
-        CodyLayout
+        CodyLayoutSplit
 
 
 commands.do_task({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.do_task()*
