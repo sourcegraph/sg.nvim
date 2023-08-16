@@ -10,15 +10,7 @@ local cody_commands = require "sg.cody.commands"
 
 local M = {}
 
----@command CodyExplain [[
---- Explain how to use Cody.
----
---- Use from visual mode to pass the current selection
----@command ]]
-vim.api.nvim_create_user_command("CodyExplain", function(command)
-  local bufnr = vim.api.nvim_get_current_buf()
-  cody_commands.explain(bufnr, command.line1 - 1, command.line2)
-end, { range = 2 })
+M.tasks = {}
 
 ---@command CodyAsk [[
 --- Ask a question about the current selection.
@@ -59,20 +51,54 @@ vim.api.nvim_create_user_command("CodyFloat", function(command)
   cody_commands.float(bufnr, command.line1 - 1, command.line2, command.args)
 end, { range = 2, nargs = 1 })
 
----@command :CodyToggleFloat [[
---- Hides/shows the Cody float window.
----@command ]]
-vim.api.nvim_create_user_command("CodyToggleFloat", function(_)
-  cody_commands.float_toggle()
-end, {})
-
 ---@command :CodyDo {module} [[
 --- Instruct Cody to perform a task on selected text.
 ---@command ]]
 vim.api.nvim_create_user_command("CodyDo", function(command)
   local bufnr = vim.api.nvim_get_current_buf()
-  cody_commands.do_task(bufnr, command.line1 - 1, command.line2, command.args)
+  local task = cody_commands.do_task(bufnr, command.line1 - 1, command.line2, command.args)
+  table.insert(M.tasks, task)
+  M.active_task_index = #M.tasks
 end, { range = 2, nargs = 1 })
+
+vim.api.nvim_create_user_command("CodyTask", function()
+  if #M.tasks < M.active_task_index then
+    M.active_task_index = #M.tasks
+  end
+
+  if M.active_task_index > 0 then
+    M.tasks[M.active_task_index].layout:show()
+  end
+end, {})
+
+vim.api.nvim_create_user_command("CodyTaskNext", function()
+  if #M.tasks == 0 then
+    print "No pending tasks"
+    return
+  end
+
+  if M.tasks[M.active_task_index] then
+    M.tasks[M.active_task_index].layout:hide()
+  end
+  M.active_task_index = M.active_task_index + 1
+  if M.active_task_index > #M.tasks then
+    M.active_task_index = 1
+  end
+  M.tasks[M.active_task_index]:show()
+end, {})
+
+vim.api.nvim_create_user_command("CodyTaskAccept", function()
+  if #M.tasks == 0 then
+    print "No pending tasks"
+    return
+  end
+
+  if M.tasks[M.active_task_index] then
+    M.tasks[M.active_task_index]:apply()
+    M.tasks[M.active_task_index].layout:hide()
+    table.remove(M.tasks, M.active_task_index)
+  end
+end, {})
 
 ---@command CodyToggle [[
 --- Toggles the current Cody Chat window.

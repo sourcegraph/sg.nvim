@@ -140,7 +140,9 @@ function Base:show()
 end
 
 function Base:render()
-  self.state:render(self.history.bufnr, self.history.win)
+  if self.created then
+    self.state:render(self.history.bufnr, self.history.win)
+  end
 end
 
 function Base:hide()
