@@ -121,6 +121,14 @@ Default commands for interacting with Cody
 :CodyChat {module} ~
     State a new cody chat, with an optional {title}
 
+                                                                  *:CodyFloat*
+:CodyFloat {module} ~
+    State a new cody chat in a floating window
+
+                                                            *:CodyToggleFloat*
+:CodyToggleFloat ~
+    Hides/shows the Cody float window.
+
                                                                      *:CodyDo*
 :CodyDo {module} ~
     Instruct Cody to perform a task on selected text.
@@ -150,6 +158,17 @@ commands.explain({bufnr}, {start_line}, {end_line})        *sg.cody.explain()*
 
 
 commands.ask({bufnr}, {start_line}, {end_line}, {message})     *sg.cody.ask()*
+    Ask Cody about the selected code
+
+
+    Parameters: ~
+        {bufnr}      (number)
+        {start_line} (number)
+        {end_line}   (number)
+        {message}    (string)
+
+
+commands.float({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.float()*
     Ask Cody about the selected code
 
 

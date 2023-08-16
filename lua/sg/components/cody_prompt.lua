@@ -7,7 +7,8 @@ local shared = require "sg.components.shared"
 ---@class CodyPromptSubmitOptions
 ---@field request_embeddings boolean
 
----@class CodyPromptOptions
+---@class CodyPromptOpts
+---@field open function(self): Create a buf, win pair
 ---@field split string?
 ---@field height number|string
 ---@field width number|string
@@ -18,36 +19,22 @@ local shared = require "sg.components.shared"
 ---@field on_close function?
 
 ---@class CodyPrompt
----@field opts CodyPromptOptions
----@field popup_options table
+---@field open function(self): Open the window and bufnr, mutating self to store new win and bufnr
+---@field opts CodyPromptOpts
 ---@field bufnr number
 ---@field win number
----@field mounted boolean
 local CodyPrompt = {}
 CodyPrompt.__index = CodyPrompt
 
 --- Create a new CodyPrompt
----@param opts CodyPromptOptions
+---@param opts CodyPromptOpts
 ---@return CodyPrompt
 function CodyPrompt.init(opts)
-  local popup_options = {
-    relative = "editor",
-    width = shared.calculate_width(opts.width),
-    height = shared.calculate_height(opts.height),
-    row = shared.calculate_row(opts.row),
-    col = shared.calculate_col(opts.col),
-    style = "minimal",
-    border = "rounded",
-    title = " Cody Chat ",
-    title_pos = "left",
-  }
-
   return setmetatable({
+    open = assert(opts.open, "Must have an `open` function for CodyPrompt"),
     opts = opts,
-    popup_options = popup_options,
     bufnr = -1,
     win = -1,
-    mounted = false,
   }, CodyPrompt)
 end
 
@@ -79,20 +66,14 @@ function CodyPrompt:on_close()
   end)
 end
 
-function CodyPrompt:mount()
-  if self.opts.split then
-    vim.cmd(self.opts.split)
-    self.win = vim.api.nvim_get_current_win()
-    self.bufnr = vim.api.nvim_get_current_buf()
-  else
-    self.bufnr, self.win = shared.create(self.bufnr, self.win, self.popup_options)
-    vim.api.nvim_set_current_win(self.win)
-  end
-
+function CodyPrompt:show()
+  self:open()
+  vim.api.nvim_set_current_win(self.win)
+  vim.api.nvim_buf_set_name(self.bufnr, string.format("Cody Prompt (%d)", self.bufnr))
   vim.cmd [[startinsert!]]
 end
 
-function CodyPrompt:unmount()
+function CodyPrompt:delete()
   self:hide()
 
   self.bufnr = shared.buf_del(self.bufnr)

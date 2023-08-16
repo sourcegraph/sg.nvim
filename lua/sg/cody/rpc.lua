@@ -60,16 +60,18 @@ M.message_callbacks = {}
 
 local notification_handlers = {
   ["chat/updateMessageInProgress"] = function(noti)
-    if not noti or not noti.text then
-      if noti.data and M.message_callbacks[noti.data] ~= nil then
-        M.message_callbacks[noti.data.id] = nil
+    void(function()
+      if not noti or not noti.text then
+        if noti.data and M.message_callbacks[noti.data] ~= nil then
+          M.message_callbacks[noti.data.id] = nil
+        end
+        return
       end
-      return
-    end
 
-    if noti.data and M.message_callbacks[noti.data.id] ~= nil then
-      M.message_callbacks[noti.data.id](noti)
-    end
+      if noti.data and M.message_callbacks[noti.data.id] ~= nil then
+        M.message_callbacks[noti.data.id](noti)
+      end
+    end)()
   end,
 }
 

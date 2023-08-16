@@ -59,4 +59,28 @@ shared.calculate_col = function(col)
   return col
 end
 
+shared.make_win_minimal = function(win)
+  local options = {
+    number = false,
+    relativenumber = false,
+    cursorline = false,
+    cursorcolumn = false,
+    list = false,
+    signcolumn = "auto",
+  }
+
+  for key, value in pairs(options) do
+    vim.wo[win][key] = value
+  end
+
+  vim.wo[win].statuscolumn = nil
+  vim.opt_local.fillchars:append { eob = " " }
+end
+
+shared.make_buf_minimal = function(bufnr)
+  vim.bo[bufnr].buflisted = false
+  vim.bo[bufnr].modified = false
+  vim.bo[bufnr].buftype = "nofile"
+end
+
 return shared
