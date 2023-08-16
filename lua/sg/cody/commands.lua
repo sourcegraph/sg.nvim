@@ -40,7 +40,7 @@ end
 ---@param message string
 commands.ask = function(bufnr, start_line, end_line, message)
   local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
-  local layout = CodyFloat.init {}
+  local layout = CodySplit.init {}
 
   local contents = vim.tbl_flatten {
     message,
