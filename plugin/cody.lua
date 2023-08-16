@@ -12,16 +12,6 @@ local M = {}
 
 M.tasks = {}
 
----@command CodyExplain [[
---- Explain how to use Cody.
----
---- Use from visual mode to pass the current selection
----@command ]]
-vim.api.nvim_create_user_command("CodyExplain", function(command)
-  local bufnr = vim.api.nvim_get_current_buf()
-  cody_commands.explain(bufnr, command.line1 - 1, command.line2)
-end, { range = 2 })
-
 ---@command CodyAsk [[
 --- Ask a question about the current selection.
 ---

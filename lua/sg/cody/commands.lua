@@ -16,23 +16,6 @@ local State = require "sg.cody.state"
 
 local commands = {}
 
---- Explain a piece of code
----@param bufnr number
----@param start_line number
----@param end_line number
-commands.explain = function(bufnr, start_line, end_line)
-  local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
-  local layout = CodyFloat.init {}
-
-  local contents = vim.tbl_flatten {
-    "Explain the following code for me:",
-    "",
-    util.format_code(bufnr, selection),
-  }
-
-  layout:request_user_message(contents)
-end
-
 --- Ask Cody about the selected code
 ---@param bufnr number
 ---@param start_line number
@@ -75,7 +58,7 @@ end
 
 --- Start a new CodyChat
 ---@param name string?
----@return CodyLayout
+---@return CodyLayoutSplit
 commands.chat = function(name)
   -- TODO: Config for this :)
   local layout = CodySplit.init { name = name }
