@@ -266,6 +266,11 @@ M.execute.code_question = function(message, callback)
   return M.request("recipes/execute", { id = "code-question", humanChatInput = message, data = { id = message_id } })
 end
 
+M.execute.autocomplete = function(file, line, character)
+    print(file)
+  return M.request("autocomplete/execute", { filePath = file, position = { line = line, character = character } })
+end
+
 -- M.execute.fixup = function(message) end
 
 -- M.execute.git_history = function()

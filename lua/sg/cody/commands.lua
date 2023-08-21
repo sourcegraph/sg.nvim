@@ -1,4 +1,5 @@
 local void = require("plenary.async").void
+local run = require("plenary.async").run
 
 ---@tag "cody.commands"
 ---@config { module = "sg.cody" }
@@ -13,6 +14,7 @@ local CodyHover = require "sg.components.layout.hover"
 local Message = require "sg.cody.message"
 local Speaker = require "sg.cody.speaker"
 local State = require "sg.cody.state"
+local protocol = require "sg.cody.protocol"
 
 local commands = {}
 
@@ -33,6 +35,57 @@ commands.ask = function(bufnr, start_line, end_line, message)
 
   layout:request_user_message(contents)
 end
+
+commands.autocomplete = function(request, callback)
+  local filename = vim.api.nvim_buf_get_name(0)
+  local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+  void(function()
+    local doc = protocol.get_text_document(0)
+    require("sg.cody.rpc").notify("textDocument/didChange", doc)
+    local err, data = require("sg.cody.rpc").execute.autocomplete(filename, row - 1, col)
+
+    local items = {}
+    for _, item in ipairs(data.items) do
+      table.insert(items, {
+        filterText = item.insertText,
+        detail = item.insertText,
+        label = item.insertText,
+        textEdit = {
+          newText = item.insertText,
+          range = item.range,
+        },
+      })
+      callback {
+        items = items,
+        isIncomplete = true,
+      }
+    end
+  end)()
+end
+
+local cmp = require "cmp"
+
+local source = {}
+
+source.new = function()
+  return setmetatable({}, { __index = source })
+end
+
+source.get_trigger_characters = function()
+  return { "@" }
+end
+
+source.get_keyword_pattern = function()
+  -- Add dot to existing keyword characters (\k).
+  return [[\%(\k\|\.\)\+]]
+end
+
+source.complete = function(self, request, callback)
+  -- local prefix = string.sub(request.context.cursor_before_line, 2, request.offset - 1)
+  commands.autocomplete(request, callback)
+end
+
+cmp.register_source("sgnvim", source.new())
 
 --- Ask Cody about the selected code
 ---@param bufnr number
