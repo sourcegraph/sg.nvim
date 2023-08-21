@@ -51,7 +51,7 @@ function CodySplit.init(opts)
   end
 
   opts.prompt.open = function(prompt)
-    vim.cmd(opts.prompt.split or "new")
+    vim.cmd(opts.prompt.split or "below new")
     prompt.win = vim.api.nvim_get_current_win()
     prompt.bufnr = vim.api.nvim_get_current_buf()
 
