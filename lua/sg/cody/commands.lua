@@ -118,7 +118,7 @@ commands.add_context = function(bufnr, start_line, end_line, state)
   if not state then
     state = State.last()
   end
-  state:append(Message.init(Speaker.user, content))
+  state:append(Message.init(Speaker.user, content, {}))
 end
 
 commands.toggle = function()

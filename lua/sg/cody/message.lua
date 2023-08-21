@@ -12,7 +12,7 @@ Message.__index = Message
 ---comment
 ---@param speaker CodySpeaker
 ---@param msg string[]
----@param contextFiles string[]
+---@param contextFiles string[]?
 --- @param opts { ephemeral?:  boolean; hidden?: boolean }?
 ---@return CodyMessage
 function Message.init(speaker, msg, contextFiles, opts)

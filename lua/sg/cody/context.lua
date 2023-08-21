@@ -92,9 +92,9 @@ context.add_context = function(bufnr, text, state)
     return
   end
 
-  state:append(Message.init(Speaker.user, { "Here is some context" }, { hidden = true }))
+  state:append(Message.init(Speaker.user, { "Here is some context" }, {}, { hidden = true }))
   for _, embed in ipairs(embeddings) do
-    state:append(Message.init(Speaker.user, vim.split(embed.content, "\n"), { hidden = true }))
+    state:append(Message.init(Speaker.user, vim.split(embed.content, "\n"), {}, { hidden = true }))
   end
 end
 

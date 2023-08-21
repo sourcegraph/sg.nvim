@@ -102,7 +102,7 @@ end
 function CodyHover:request_completion(code_only)
   self:render()
 
-  self.state:complete(self.history.bufnr, self.history.win, function(noti)
+  self.state:complete(self.history.bufnr, self.history.win, code_only, function(noti)
     local lines = vim.split(noti.text, "\n")
     if code_only then
       table.remove(lines, 1)
