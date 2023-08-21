@@ -181,14 +181,17 @@ M.initialize = function()
     creds = {}
   end
 
+  local remoteurl = vim.fn.system "git config --get remote.origin.url"
+
   ---@type CodyClientInfo
   local info = {
     name = "neovim",
     version = "0.1",
     workspaceRootPath = vim.loop.cwd() or "",
-    connectionConfiguration = {
+    extensionConfiguration = {
       accessToken = creds.token,
       serverEndpoint = creds.endpoint,
+      codebase = remoteurl,
       -- TODO: Custom Headers for neovim
       -- customHeaders = { "
     },

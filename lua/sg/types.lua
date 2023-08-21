@@ -41,12 +41,13 @@ local M = {}
 ---@field name string
 ---@field version string
 ---@field workspaceRootPath string
----@field connectionConfiguration CodyConnectionConfiguration?
+---@field extensionConfiguration CodyExtensionConfiguration?
 ---@field capabilities CodyClientCapabilities?
 
----@class CodyConnectionConfiguration
+---@class CodyExtensionConfiguration
 ---@field serverEndpoint string
 ---@field accessToken string
+---@field codebase string?
 ---@field customHeaders table<string, string>
 
 ---@class CodyClientCapabilities
