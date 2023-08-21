@@ -188,6 +188,8 @@ M.initialize = function()
       serverEndpoint = creds.endpoint,
       -- TODO: Custom Headers for neovim
       -- customHeaders = { "
+      autocompleteAdvancedProvider = "anthropic",
+      autocompleteAdvancedEmbeddings = true,
     },
     capabilities = {
       chat = "streaming",
@@ -216,6 +218,15 @@ M.exit = function()
   -- Force closing the connection.
   -- I think this is good to make sure we don't leave anything running
   client.terminate()
+end
+
+--- Request autocomplete
+---@param filepath string
+---@param position CodyPosition
+---@return string?
+---@return CodyAutocompleteResult
+M.autocomplete = function(filepath, position)
+  return M.request("autocomplete/execute", { filePath = filepath, position = position })
 end
 
 M.execute = {}

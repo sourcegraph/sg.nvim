@@ -112,3 +112,21 @@ aucmd {
 
 -- TODO: Should add something in the protocol for changing workspace root
 -- aucmd { "DirChanged", cb = function() end, }
+
+TEST_AUTOCOMPLETE = function()
+  print "requesting..."
+  local void = require("plenary.async").void
+
+  void(function()
+    local filepath = vim.fn.expand "%:p"
+
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local position = { line = cursor[1] - 1, character = cursor[2] }
+    print("For... ", filepath, vim.inspect(position))
+
+    local err, data = rpc.autocomplete(filepath, position)
+
+    print("Error:", err)
+    print("Data:", vim.inspect(data))
+  end)()
+end

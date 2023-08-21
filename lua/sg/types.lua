@@ -48,6 +48,10 @@ local M = {}
 ---@field serverEndpoint string
 ---@field accessToken string
 ---@field customHeaders table<string, string>
+---@field autocompleteAdvancedProvider string
+---@field autocompleteAdvancedServerEndpoint string | null
+---@field autocompleteAdvancedAccessToken string | null
+---@field autocompleteAdvancedEmbeddings boolean
 
 ---@class CodyClientCapabilities
 ---@field completions 'none'?
@@ -76,6 +80,17 @@ local M = {}
 ---@class CodyRange
 ---@field start CodyPosition
 ---@field end CodyPosition
+
+---@class CodyAutocompleteParams
+---@field filePath string
+---@field position CodyPosition
+
+---@class CodyAutocompleteResult
+---@field items CodyAutocompleteItem[]
+
+---@class CodyAutocompleteItem
+---@field insertText string
+---@field range CodyRange
 
 ---@class SourcegraphAuthConfig
 ---@field endpoint string: The sourcegraph endpoint
