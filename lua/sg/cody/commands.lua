@@ -122,7 +122,7 @@ commands.add_context = function(bufnr, start_line, end_line, state)
 end
 
 commands.toggle = function()
-  CodyFloat:toggle()
+  CodySplit:toggle()
 end
 
 commands.recipes = function(bufnr, start_line, end_line)
