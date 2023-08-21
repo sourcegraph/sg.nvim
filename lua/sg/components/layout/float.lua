@@ -135,7 +135,7 @@ function CodyFloat:request_completion()
   vim.api.nvim_buf_set_lines(self.prompt.bufnr, 0, -1, false, {})
 
   self.state:complete(self.history.bufnr, self.history.win, function(noti)
-    self.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n")))
+    self.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n"), {}))
     self:render()
   end)
 end

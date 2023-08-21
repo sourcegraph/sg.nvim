@@ -110,7 +110,11 @@ function CodySplit:request_completion()
   vim.api.nvim_buf_set_lines(self.prompt.bufnr, 0, -1, false, {})
 
   self.state:complete(self.history.bufnr, self.history.win, function(noti)
-    self.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n")))
+    local contextFiles = {}
+    for _, v in ipairs(noti.contextFiles) do
+      table.insert(contextFiles, v.fileName)
+    end
+    self.state:update_message(Message.init(Speaker.cody, vim.split(noti.text, "\n"), contextFiles))
     self:render()
   end)
 end

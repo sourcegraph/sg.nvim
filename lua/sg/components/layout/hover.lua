@@ -109,7 +109,7 @@ function CodyHover:request_completion(code_only)
       table.remove(lines)
     end
 
-    self.state:update_message(Message.init(Speaker.cody, lines))
+    self.state:update_message(Message.init(Speaker.cody, lines, {}))
     self:render()
   end)
 end

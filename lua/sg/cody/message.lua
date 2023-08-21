@@ -5,20 +5,23 @@ local Speaker = require "sg.cody.speaker"
 ---@field msg string[]
 ---@field ephemeral boolean
 ---@field hidden boolean
+---@field contextFiles string[]
 local Message = {}
 Message.__index = Message
 
 ---comment
 ---@param speaker CodySpeaker
 ---@param msg string[]
+---@param contextFiles string[]
 --- @param opts { ephemeral?:  boolean; hidden?: boolean }?
 ---@return CodyMessage
-function Message.init(speaker, msg, opts)
+function Message.init(speaker, msg, contextFiles, opts)
   opts = opts or {}
 
   return setmetatable({
     speaker = speaker,
     msg = msg,
+    contextFiles = contextFiles,
     hidden = opts.hidden or false,
     ephemeral = opts.ephemeral or false,
   }, Message)
@@ -31,7 +34,20 @@ function Message:render()
   end
 
   if self.speaker == Speaker.cody then
-    return self.msg
+    local out = {}
+    if #self.contextFiles > 0 then
+      table.insert(out, "```")
+      table.insert(out, "# Cody read the following files")
+      for _, v in ipairs(self.contextFiles) do
+        table.insert(out, "- " .. v)
+      end
+      table.insert(out, "```")
+      table.insert(out, "")
+    end
+    for _, v in ipairs(self.msg) do
+      table.insert(out, v)
+    end
+    return out
   elseif self.speaker == Speaker.user then
     return vim.tbl_map(function(row)
       return "> " .. row
