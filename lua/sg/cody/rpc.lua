@@ -175,25 +175,6 @@ M.request = async.wrap(function(method, params, callback)
   end)
 end, 3)
 
----@return string | nil
-local function get_current_repo_url()
-  local remoteurl = vim.trim(vim.fn.system "git config --get remote.origin.url")
-
-  -- Try ssh
-  local codehost, repo = remoteurl:match "git@([^:]+):(.+)"
-  if codehost == nil then
-    -- Try http(s)
-    codehost, repo = remoteurl:match "http(s?)://([^/]+)/(.+)"
-  end
-  if not codehost or not repo then
-    return nil
-  end
-
-  repo = repo:gsub(".git$", "")
-
-  return codehost .. "/" .. repo
-end
-
 --- Initialize the client by sending initialization info to the server.
 --- This must be called before any other requests.
 ---@return string?
@@ -205,7 +186,7 @@ M.initialize = function()
     creds = {}
   end
 
-  local remoteurl = get_current_repo_url()
+  local remoteurl = require("sg.cody.context").get_origin(0)
 
   ---@type CodyClientInfo
   local info = {

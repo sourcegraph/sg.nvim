@@ -9,6 +9,8 @@ local repository_ids = {}
 
 local context = {}
 
+---@param bufnr number
+---@return string|nil
 context.get_origin = function(bufnr)
   local dir = vim.api.nvim_buf_get_name(bufnr)
   dir = vim.fn.fnamemodify(dir, ":p:h")
@@ -20,19 +22,32 @@ context.get_origin = function(bufnr)
   })
 
   local origin = vim.trim(obj.stdout)
-  origin = origin:gsub("^https://", "")
-  origin = origin:gsub("^http://", "")
 
-  return origin
+  local codehost, repo = origin:match "git@([^:]+):(.+)"
+  if codehost == nil then
+    -- Try http(s)
+    codehost, repo = origin:match "http(s?)://([^/]+)/(.+)"
+  end
+  if not codehost or not repo then
+    return nil
+  end
+
+  repo = repo:gsub(".git$", "")
+
+  return codehost .. "/" .. repo
 end
 
+---@return string|nil
 context.get_repo_id = function(bufnr)
   if not bufnr or bufnr == 0 then
     bufnr = vim.api.nvim_get_current_buf()
   end
+  local origin = context.get_origin(bufnr)
+  if not origin then
+    return nil
+  end
 
   if not repository_ids[bufnr] then
-    local origin = context.get_origin(bufnr)
     local repository = rpc.repository(origin)
     repository_ids[bufnr] = repository
   end
@@ -86,6 +101,9 @@ end
 ---@param state CodyState
 context.add_context = function(bufnr, text, state)
   local repo = context.get_repo_id(bufnr)
+  if not repo then
+    return
+  end
   local _, embeddings = context.embeddings(repo, text, { only = "Code" })
 
   if vim.tbl_isempty(embeddings) then
