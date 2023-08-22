@@ -55,37 +55,14 @@ commands.autocomplete = function(request, callback)
           range = item.range,
         },
       })
-      callback {
-        items = items,
-        isIncomplete = true,
-      }
     end
+
+    callback {
+      items = items,
+      isIncomplete = false,
+    }
   end)()
 end
-
-local cmp = require "cmp"
-
-local source = {}
-
-source.new = function()
-  return setmetatable({}, { __index = source })
-end
-
-source.get_trigger_characters = function()
-  return { "@" }
-end
-
-source.get_keyword_pattern = function()
-  -- Add dot to existing keyword characters (\k).
-  return [[\%(\k\|\.\)\+]]
-end
-
-source.complete = function(self, request, callback)
-  -- local prefix = string.sub(request.context.cursor_before_line, 2, request.offset - 1)
-  commands.autocomplete(request, callback)
-end
-
-cmp.register_source("sgnvim", source.new())
 
 --- Ask Cody about the selected code
 ---@param bufnr number
