@@ -175,18 +175,21 @@ M.request = async.wrap(function(method, params, callback)
   end)
 end, 3)
 
+---@return string | nil
 local function get_current_repo_url()
   local remoteurl = vim.trim(vim.fn.system "git config --get remote.origin.url")
 
-  local protocol, codehost, repo = remoteurl:match "([^@]+)@([^:]+):(.+)"
-  repo = repo:gsub(".git$", "")
-  if protocol == nil then
-    -- Likely an HTTP(S) URL, extract host and path
-    local url = require "socket.url"
-    local parsed = url.parse(remoteurl)
-    codehost = parsed.host
-    repo = parsed.path:gsub(".git$", "")
+  -- Try ssh
+  local codehost, repo = remoteurl:match "git@([^:]+):(.+)"
+  if codehost == nil then
+    -- Try http(s)
+    codehost, repo = remoteurl:match "http(s?)://([^/]+)/(.+)"
   end
+  if not codehost or not repo then
+    return nil
+  end
+
+  repo = repo:gsub(".git$", "")
 
   return codehost .. "/" .. repo
 end
