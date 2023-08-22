@@ -67,6 +67,7 @@ shared.make_win_minimal = function(win)
     cursorcolumn = false,
     list = false,
     signcolumn = "auto",
+    wrap = true,
   }
 
   for key, value in pairs(options) do
