@@ -102,13 +102,13 @@ end
 function CodyHover:request_completion(code_only)
   self:render()
 
-  self.state:complete(self.history.bufnr, self.history.win, code_only, function(noti)
-    local lines = vim.split(noti.text, "\n")
+  self.state:complete(self.history.bufnr, self.history.win, code_only, function(msg)
+    local lines = vim.split(msg.text, "\n")
     local render_lines = {}
     for _, line in ipairs(lines) do
       if code_only then
         if vim.trim(line) == "```" then
-          require("sg.cody.rpc").message_callbacks[noti.data.id] = nil
+          require("sg.cody.rpc").message_callbacks[msg.data.id] = nil
           break
         end
       end

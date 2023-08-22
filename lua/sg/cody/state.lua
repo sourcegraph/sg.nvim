@@ -62,7 +62,7 @@ end
 ---@param bufnr number
 ---@param win number
 ---@param code_only boolean
----@param callback function(noti)
+---@param callback CodyChatCallback
 function State:complete(bufnr, win, code_only, callback)
   set_last_state(self)
 

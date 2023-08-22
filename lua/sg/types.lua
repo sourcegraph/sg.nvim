@@ -78,6 +78,28 @@ local M = {}
 ---@field start CodyPosition
 ---@field end CodyPosition
 
+---@class CodyContextFile
+---@field fileName string
+---@field repoName string?
+---@field revision string?
+---@field source string?
+
+---@class CodyChatMessageData
+---@field id string
+
+---@class CodyChatMessage
+---@field speaker string
+---@field text string
+---@field displayText string?
+---@field contextFiles CodyContextFile[]?
+---@field data CodyChatMessageData
+
+---@class CodyChatUpdateMessageInProgressNoti: CodyChatMessage
+---@field text string?
+---@field data any?
+
+---@alias CodyChatCallback fun(msg: CodyChatMessage)
+
 ---@class SourcegraphAuthConfig
 ---@field endpoint string: The sourcegraph endpoint
 ---@field token string: The sourcegraph auth token

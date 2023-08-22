@@ -56,21 +56,26 @@ local track = function(msg)
   end
 end
 
+---@type table<string, CodyChatCallback?>
 M.message_callbacks = {}
 
+---@type {["chat/updateMessageInProgress"]: fun(noti: CodyChatUpdateMessageInProgressNoti?)}
 local notification_handlers = {
   ["chat/updateMessageInProgress"] = function(noti)
     void(function()
-      if not noti or not noti.text then
-        if noti.data and M.message_callbacks[noti.data] ~= nil then
-          M.message_callbacks[noti.data.id] = nil
-        end
+      if not noti or not noti.data or not noti.data.id then
         return
       end
 
-      if noti.data and M.message_callbacks[noti.data.id] ~= nil then
+      if not noti.text then
+        M.message_callbacks[noti.data.id] = nil
+        return
+      end
+
+      local callback = M.message_callbacks[noti.data.id]
+      if callback then
         noti.text = vim.trim(noti.text) -- trim random white space
-        M.message_callbacks[noti.data.id](noti)
+        callback(noti)
       end
     end)()
   end,
@@ -252,7 +257,7 @@ end
 --- Sadly just puts whatever we get as the response into the currently
 --- open window... I will fix this later (needs protocol changes)
 ---@param message string
----@param callback function(noti)
+---@param callback CodyChatCallback
 ---@return table | nil
 ---@return table | nil
 M.execute.chat_question = function(message, callback)
@@ -273,7 +278,7 @@ end
 --- Execute a code question and get a streaming response
 --- Returns only code (hopefully)
 ---@param message string
----@param callback function(noti)
+---@param callback CodyChatCallback
 ---@return table | nil
 ---@return table | nil
 M.execute.code_question = function(message, callback)

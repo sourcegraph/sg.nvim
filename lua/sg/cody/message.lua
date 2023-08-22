@@ -5,15 +5,15 @@ local Speaker = require "sg.cody.speaker"
 ---@field msg string[]
 ---@field ephemeral boolean
 ---@field hidden boolean
----@field contextFiles string[]
+---@field contextFiles CodyContextFile[]?
 local Message = {}
 Message.__index = Message
 
 ---comment
 ---@param speaker CodySpeaker
 ---@param msg string[]
----@param contextFiles string[]?
---- @param opts { ephemeral?:  boolean; hidden?: boolean }?
+---@param contextFiles CodyContextFile[]?
+---@param opts { ephemeral?: boolean; hidden?: boolean }?
 ---@return CodyMessage
 function Message.init(speaker, msg, contextFiles, opts)
   opts = opts or {}
@@ -37,7 +37,7 @@ function Message:render_context()
   if #self.contextFiles > 0 then
     table.insert(out, "{{{ " .. tostring(#self.contextFiles) .. " context files")
     for _, v in ipairs(self.contextFiles) do
-      table.insert(out, "- " .. v)
+      table.insert(out, "- " .. v.fileName)
     end
     table.insert(out, "}}}")
     table.insert(out, "")
