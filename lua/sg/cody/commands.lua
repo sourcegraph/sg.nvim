@@ -5,9 +5,11 @@ local run = require("plenary.async").run
 ---@config { module = "sg.cody.commands" }
 ---
 local auth = require "sg.auth"
+local config = require "sg.config"
 local sg = require "sg"
 local util = require "sg.utils"
 
+local Layout = require "sg.components.layout"
 local CodyBase = require "sg.components.layout.base"
 local CodyFloat = require "sg.components.layout.float"
 local CodySplit = require "sg.components.layout.split"
@@ -81,10 +83,9 @@ end
 
 --- Start a new CodyChat
 ---@param name string?
----@return CodyLayoutSplit
-commands.chat = function(name)
-  -- TODO: Config for this :)
-  local layout = CodySplit.init { name = name }
+---@return CodyBaseLayout
+commands.chat = function(kind, name)
+  local layout = Layout.get(kind).init { name = name }
   layout:show()
 
   return layout
@@ -148,8 +149,9 @@ commands.add_context = function(bufnr, start_line, end_line, state)
   state:append(Message.init(Speaker.user, content, {}))
 end
 
-commands.toggle = function()
-  CodySplit:toggle()
+commands.toggle = function(kind)
+  kind = kind or config.default_layout
+  Layout.get(kind):toggle()
 end
 
 --- Focus the currently active history window.

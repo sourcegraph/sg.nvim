@@ -26,6 +26,7 @@ local types = require "sg.types"
 ---@field on_attach function: function to run when attaching to sourcegraph buffers
 ---@field auth_strategy SourcegraphAuthStrategy[]: Ordering for auth strategies.
 ---  Default { "environment-variables", "nvim", "sourcegraph-app" }
+---@field default_layout CodyLayoutStrategyKind: Default layout for Cody UI
 
 ---@type sg.config
 local config = {}
@@ -33,6 +34,7 @@ local config = {}
 config.download_binaries = true
 config.node_executable = "node"
 config.cody_agent = vim.api.nvim_get_runtime_file("dist/cody-agent.js", false)[1]
+config.default_layout = types.auth_strategy.split
 
 config.on_attach = function(_, bufnr)
   vim.keymap.set("n", "gd", vim.lsp.buf.definition, { buffer = bufnr })

@@ -1,7 +1,5 @@
 local void = require("plenary.async").void
 
-local shared = require "sg.components.shared"
-
 local CodyPrompt = require "sg.components.cody_prompt"
 local CodyHistory = require "sg.components.cody_history"
 local Message = require "sg.cody.message"

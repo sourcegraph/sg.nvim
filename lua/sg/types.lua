@@ -126,4 +126,7 @@ M.auth_strategy = { app = "cody-app", nvim = "nvim", env = "environment-variable
 ---@field preview string
 ---@field line number
 
+---@enum CodyLayoutStrategyKind
+M.layout_strategy = { split = "split", float = "float", hover = "hover" }
+
 return M

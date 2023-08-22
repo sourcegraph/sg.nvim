@@ -7,6 +7,7 @@
 ---@config { ["module"] = "cody" }
 
 local cody_commands = require "sg.cody.commands"
+local config = require "sg.config"
 
 local M = {}
 
@@ -35,20 +36,34 @@ end, { range = 2, nargs = 1 })
 --- State a new cody chat, with an optional {title}
 ---@command ]]
 vim.api.nvim_create_user_command("CodyChat", function(command)
+  -- TODO: This is not great... how to configure? Can at least
+  -- pass default here.
+
   local name = nil
   if not vim.tbl_isempty(command.fargs) then
     name = table.concat(command.fargs, " ")
   end
 
-  cody_commands.chat(name)
+  cody_commands.chat(config.default_layout, name)
 end, { nargs = "*" })
 
----@command :CodyToggle [[
+---@command CodyToggle [[
 --- Toggles the current Cody Chat window.
 ---@command ]]
-vim.api.nvim_create_user_command("CodyToggle", function(_)
-  cody_commands.toggle()
-end, {})
+vim.api.nvim_create_user_command("CodyToggle", function(args)
+  local kind = args[1] or config.default_layout
+  cody_commands.toggle(kind)
+end, {
+  nargs = "*",
+})
+
+---@command :CodyDo [[
+---@deprecated
+--- DEPRECATED. Use CodyTask.
+---@command ]]
+vim.api.nvim_create_user_command("CodyDo", function(_)
+  error "CodyDo is deprecated. Use CodyTask instead."
+end, { range = 2, nargs = 1 })
 
 ---@command :CodyTask {module} [[
 --- Instruct Cody to perform a task on selected text.
@@ -58,14 +73,6 @@ vim.api.nvim_create_user_command("CodyTask", function(command)
   local task = cody_commands.do_task(bufnr, command.line1 - 1, command.line2, command.args)
   table.insert(M.tasks, task)
   M.active_task_index = #M.tasks
-end, { range = 2, nargs = 1 })
-
----@command :CodyDo [[
----@deprecated
---- DEPRECATED. Use CodyTask.
----@command ]]
-vim.api.nvim_create_user_command("CodyDo", function(_)
-  error "CodyDo is deprecated. Use CodyTask instead."
 end, { range = 2, nargs = 1 })
 
 ---@command :CodyTaskView [[
@@ -140,6 +147,13 @@ vim.api.nvim_create_user_command("CodyTaskNext", function()
     M.active_task_index = 1
   end
   M.tasks[M.active_task_index]:show()
+end, {})
+
+---@command CodyHistory [[
+--- Select a previous chat from the current neovim session
+---@command ]]
+vim.api.nvim_create_user_command("CodyHistory", function()
+  cody_commands.history()
 end, {})
 
 return M
