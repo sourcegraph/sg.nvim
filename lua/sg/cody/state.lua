@@ -58,12 +58,15 @@ function State:update_message(message)
   end
 end
 
+---@class CompleteOpts
+---@field code_only boolean
+
 --- Get a new completion, based on the state
 ---@param bufnr number
 ---@param win number
----@param code_only boolean
 ---@param callback CodyChatCallback
-function State:complete(bufnr, win, code_only, callback)
+---@param opts CompleteOpts?
+function State:complete(bufnr, win, callback, opts)
   set_last_state(self)
 
   local snippet = ""
@@ -78,7 +81,7 @@ function State:complete(bufnr, win, code_only, callback)
   vim.cmd [[mode]]
 
   -- Execute chat question. Will be completed async
-  if code_only then
+  if opts and opts.code_only then
     require("sg.cody.rpc").execute.code_question(snippet, callback)
   else
     require("sg.cody.rpc").execute.chat_question(snippet, callback)

@@ -102,7 +102,7 @@ end
 function CodyHover:request_completion(code_only)
   self:render()
 
-  self.state:complete(self.history.bufnr, self.history.win, code_only, function(msg)
+  self.state:complete(self.history.bufnr, self.history.win, function(msg)
     local lines = vim.split(msg.text, "\n")
     local render_lines = {}
     for _, line in ipairs(lines) do
@@ -117,7 +117,7 @@ function CodyHover:request_completion(code_only)
 
     self.state:update_message(Message.init(Speaker.cody, render_lines, {}))
     self:render()
-  end)
+  end, { code_only = code_only })
 end
 
 return CodyHover
