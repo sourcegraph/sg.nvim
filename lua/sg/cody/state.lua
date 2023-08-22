@@ -95,19 +95,25 @@ function State:render(bufnr, win)
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
 
   local messages = {}
-  local rendered_lines = {}
   for _, message in ipairs(self.messages) do
-    if #rendered_lines > 0 then
-      table.insert(rendered_lines, "")
-    end
-    for _, line in ipairs(message:render()) do
-      if not vim.tbl_isempty(rendered_lines) or line ~= "" then
-        if message.speaker == Speaker.cody then
-          -- Cody has a tendency to have random trailing white space
-          line = line:gsub("%s+$", "")
-          table.insert(rendered_lines, line)
-        else
-          table.insert(rendered_lines, line)
+    if not message.hidden then
+      if vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)[1] ~= "" then
+        vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "" })
+      end
+      for _, line in ipairs(message:render_context()) do
+        vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { line })
+      end
+      for _, line in ipairs(message:render()) do
+        if not vim.tbl_isempty(messages) or line ~= "" then
+          if message.speaker == Speaker.cody then
+            -- Cody has a tendency to have random trailing white space
+            line = line:gsub("%s+$", "")
+          end
+          if vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)[1] ~= "" then
+            vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { line })
+          else
+            vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { line })
+          end
         end
       end
     end
@@ -117,7 +123,6 @@ function State:render(bufnr, win)
     end
   end
 
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, rendered_lines)
   self.messages = messages
 
   local linecount = vim.api.nvim_buf_line_count(bufnr)

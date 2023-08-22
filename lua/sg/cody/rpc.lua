@@ -170,6 +170,22 @@ M.request = async.wrap(function(method, params, callback)
   end)
 end, 3)
 
+local function get_current_repo_url()
+  local remoteurl = vim.trim(vim.fn.system "git config --get remote.origin.url")
+
+  local protocol, codehost, repo = remoteurl:match "([^@]+)@([^:]+):(.+)"
+  repo = repo:gsub(".git$", "")
+  if protocol == nil then
+    -- Likely an HTTP(S) URL, extract host and path
+    local url = require "socket.url"
+    local parsed = url.parse(remoteurl)
+    codehost = parsed.host
+    repo = parsed.path:gsub(".git$", "")
+  end
+
+  return codehost .. "/" .. repo
+end
+
 --- Initialize the client by sending initialization info to the server.
 --- This must be called before any other requests.
 ---@return string?
@@ -181,7 +197,7 @@ M.initialize = function()
     creds = {}
   end
 
-  local remoteurl = vim.fn.system "git config --get remote.origin.url"
+  local remoteurl = get_current_repo_url()
 
   ---@type CodyClientInfo
   local info = {
@@ -244,7 +260,14 @@ M.execute.chat_question = function(message, callback)
 
   M.message_callbacks[message_id] = callback
 
-  return M.request("recipes/execute", { id = "chat-question", humanChatInput = message, data = { id = message_id } })
+  return M.request(
+    "recipes/execute",
+    { id = "chat-question", humanChatInput = message, data = { id = message_id } },
+    function(err, data)
+      print(err)
+      print(data)
+    end
+  )
 end
 
 --- Execute a code question and get a streaming response
