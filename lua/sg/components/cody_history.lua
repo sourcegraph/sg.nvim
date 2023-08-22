@@ -36,6 +36,7 @@ function CodyHistory:show()
 
   vim.api.nvim_buf_set_name(self.bufnr, string.format("Cody History (%d)", self.bufnr))
   vim.bo[self.bufnr].filetype = self.opts.filetype or "markdown"
+  vim.wo[self.win].foldmethod = "marker"
 end
 
 function CodyHistory:delete()

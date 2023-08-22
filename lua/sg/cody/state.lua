@@ -58,11 +58,15 @@ function State:update_message(message)
   end
 end
 
+---@class CompleteOpts
+---@field code_only boolean
+
 --- Get a new completion, based on the state
 ---@param bufnr number
 ---@param win number
----@param callback function(noti)
-function State:complete(bufnr, win, callback)
+---@param callback CodyChatCallback
+---@param opts CompleteOpts?
+function State:complete(bufnr, win, callback, opts)
   set_last_state(self)
 
   local snippet = ""
@@ -72,12 +76,16 @@ function State:complete(bufnr, win, callback)
     end
   end
 
-  self:append(Message.init(Speaker.system, { "Loading ... " }, { ephemeral = true }))
+  self:append(Message.init(Speaker.system, { "Loading ... " }, {}, { ephemeral = true }))
   self:render(bufnr, win)
   vim.cmd [[mode]]
 
   -- Execute chat question. Will be completed async
-  require("sg.cody.rpc").execute.chat_question(snippet, callback)
+  if opts and opts.code_only then
+    require("sg.cody.rpc").execute.code_question(snippet, callback)
+  else
+    require("sg.cody.rpc").execute.chat_question(snippet, callback)
+  end
 end
 
 --- Render the state to a buffer and window
@@ -93,7 +101,7 @@ function State:render(bufnr, win)
   local rendered_lines = {}
   for _, message in ipairs(self.messages) do
     if #rendered_lines > 0 then
-        table.insert(rendered_lines, "")
+      table.insert(rendered_lines, "")
     end
     for _, line in ipairs(message:render()) do
       if not vim.tbl_isempty(rendered_lines) or line ~= "" then

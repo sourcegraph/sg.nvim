@@ -70,7 +70,6 @@ function CodyPrompt:show()
   self:open()
   vim.api.nvim_set_current_win(self.win)
   vim.api.nvim_buf_set_name(self.bufnr, string.format("Cody Prompt (%d)", self.bufnr))
-  vim.cmd [[startinsert!]]
 end
 
 function CodyPrompt:delete()

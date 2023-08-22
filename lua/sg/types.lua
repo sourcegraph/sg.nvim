@@ -41,12 +41,13 @@ local M = {}
 ---@field name string
 ---@field version string
 ---@field workspaceRootPath string
----@field connectionConfiguration CodyConnectionConfiguration?
+---@field extensionConfiguration CodyExtensionConfiguration?
 ---@field capabilities CodyClientCapabilities?
 
----@class CodyConnectionConfiguration
+---@class CodyExtensionConfiguration
 ---@field serverEndpoint string
 ---@field accessToken string
+---@field codebase string?
 ---@field customHeaders table<string, string>
 
 ---@class CodyClientCapabilities
@@ -76,6 +77,28 @@ local M = {}
 ---@class CodyRange
 ---@field start CodyPosition
 ---@field end CodyPosition
+
+---@class CodyContextFile
+---@field fileName string
+---@field repoName string?
+---@field revision string?
+---@field source string?
+
+---@class CodyChatMessageData
+---@field id string
+
+---@class CodyChatMessage
+---@field speaker string
+---@field text string
+---@field displayText string?
+---@field contextFiles CodyContextFile[]?
+---@field data CodyChatMessageData
+
+---@class CodyChatUpdateMessageInProgressNoti: CodyChatMessage
+---@field text string?
+---@field data any?
+
+---@alias CodyChatCallback fun(msg: CodyChatMessage)
 
 ---@class SourcegraphAuthConfig
 ---@field endpoint string: The sourcegraph endpoint

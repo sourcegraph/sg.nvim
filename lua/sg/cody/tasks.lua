@@ -36,7 +36,7 @@ CodyTask.init = function(opts)
     },
   }
   layout:run(function()
-    layout.state:append(Message.init(Speaker.user, vim.split(opts.task, "\n"), { hidden = true }))
+    layout.state:append(Message.init(Speaker.user, vim.split(opts.task, "\n"), {}, { hidden = true }))
     layout:show()
     layout:request_completion(true)
   end)
