@@ -1,12 +1,12 @@
-name: nix-build
+name: nix
 
 on:
   pull_request:
   push:
-    branches: ["master"]
+    branches: [ "master" ]
 
 jobs:
-  nix-build:
+  nix:
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
@@ -15,10 +15,37 @@ jobs:
           - macos-latest
       fail-fast: false
 
-    name: nix-build (${{ matrix.os }})
+    name: nix test (${{ matrix.os }})
     steps:
       - uses: actions/checkout@v3
-      - uses: cachix/install-nix-action@v22
+      - name: Install Nix
+        uses: nixbuild/nix-quick-install-action@v25
         with:
-          github_access_token: ${{ secrets.GITHUB_TOKEN }}
-      - run: nix build
+          nix_conf: |
+            substituters = https://cache.nixos.org/ https://nix-community.cachix.org
+            trusted-public-keys = cache.nixos.org-1:6NCHdD59X431o0gWypbMrAURkbJ16ZPMQFGspcDShjY= nix-community.cachix.org-1:mB9FSh9qf2dCimDSUo8Zy7bkq5CX+/rkCWyvRCYg3Fs=
+            keep-outputs = true
+
+      - name: Restore and cache Nix store
+        uses: nix-community/cache-nix-action@v1
+        with:
+          linux-gc-enabled: true
+          macos-gc-enabled: true
+
+          # 500 MB
+          linux-max-store-size: 500000000
+          # 500 MB
+          macos-max-store-size: 500000000
+
+          # save a new cache every time
+          key: cache-${{ matrix.os }}-${{ hashFiles('.github/workflows/nix.yaml') }}
+          restore-keys: |
+            cache-${{ matrix.os }}-${{ hashFiles('.github/workflows/nix.yaml') }}
+            cache-${{ matrix.os }}-
+
+      - run: nix flake show
+      - run: nix build .#neovim-with-sg
+      - run: nix run .#neovim-with-sg -- --version
+      # Should have a default app
+      - run: nix run . -- --version
+      - run: nix run . -- -l scripts/test.lua

@@ -1,7 +1,7 @@
 {
   pkgs,
   stdenv,
-  proj_root ? ./.,
+  proj_root ? ./..,
   meta ? (pkgs.callPackage (import ./meta.nix)),
   ...
 }:
@@ -11,7 +11,7 @@ stdenv.mkDerivation {
   phases = ["installPhase"];
   installPhase = ''
     mkdir -p $out
-    cp -r $src/{lua,plugin} $out
+    cp -r $src/{lua,plugin,dist} $out
   '';
   inherit meta;
 }
