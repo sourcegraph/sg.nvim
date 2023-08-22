@@ -28,31 +28,26 @@ function Message.init(speaker, msg, contextFiles, opts)
 end
 
 ---@return string[]
-function Message:render_context()
-  if self.speaker ~= Speaker.cody or self.hidden then
-    return {}
-  end
-
-  local out = {}
-  if #self.contextFiles > 0 then
-    table.insert(out, "{{{ " .. tostring(#self.contextFiles) .. " context files")
-    for _, v in ipairs(self.contextFiles) do
-      table.insert(out, "- " .. v.fileName)
-    end
-    table.insert(out, "}}}")
-    table.insert(out, "")
-  end
-  return out
-end
-
----@return string[]
 function Message:render()
   if self.hidden then
     return {}
   end
 
   if self.speaker == Speaker.cody then
-    return self.msg
+    local out = {}
+    if #self.contextFiles > 0 then
+      table.insert(out, "{{{ " .. tostring(#self.contextFiles) .. " context files")
+      for _, v in ipairs(self.contextFiles) do
+        table.insert(out, "- " .. v.fileName)
+      end
+      table.insert(out, "}}}")
+      table.insert(out, "")
+    end
+
+    for _, line in ipairs(self.msg) do
+      table.insert(out, line)
+    end
+    return out
   elseif self.speaker == Speaker.user then
     return vim.tbl_map(function(row)
       return "> " .. row
