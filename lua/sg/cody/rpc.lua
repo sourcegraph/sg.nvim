@@ -265,14 +265,7 @@ M.execute.chat_question = function(message, callback)
 
   M.message_callbacks[message_id] = callback
 
-  return M.request(
-    "recipes/execute",
-    { id = "chat-question", humanChatInput = message, data = { id = message_id } },
-    function(err, data)
-      print(err)
-      print(data)
-    end
-  )
+  return M.request("recipes/execute", { id = "chat-question", humanChatInput = message, data = { id = message_id } })
 end
 
 --- Execute a code question and get a streaming response
