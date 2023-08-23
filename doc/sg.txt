@@ -30,6 +30,10 @@ All options can be set via
   require("sg").setup { ... }
 <
 
+Other configuration notes:
+- To configure options for the prompt, you can use `ftplugin/cody_prompt.lua`
+- To configure options for the history, you can use `ftplugin/cody_history.lua`
+
 sg.config                                                          *sg.config*
 
 

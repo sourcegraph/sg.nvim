@@ -6,6 +6,10 @@
 --- <code=lua>
 ---   require("sg").setup { ... }
 --- </code>
+---
+--- Other configuration notes:
+--- - To configure options for the prompt, you can use `ftplugin/cody_prompt.lua`
+--- - To configure options for the history, you can use `ftplugin/cody_history.lua`
 ---@brief ]]
 
 ---@config { field_heading = "Configuration Options", space_prefix = 2 }

@@ -1,9 +1,5 @@
 local shared = require "sg.components.shared"
 
--- exiting insert mode places cursor one character backward,
--- so patch the cursor position to one character forward
--- when unmounting input.
-
 ---@class CodyPromptSubmitOptions
 ---@field request_embeddings boolean
 
@@ -17,6 +13,7 @@ local shared = require "sg.components.shared"
 ---@field on_submit function(bufnr: number, text: string[], opts: CodyPromptSubmitOptions): void
 ---@field on_change function?
 ---@field on_close function?
+---@field filetype string: The filetype to assign to the prompt buffer
 
 ---@class CodyPrompt
 ---@field open function(self): Open the window and bufnr, mutating self to store new win and bufnr
@@ -70,6 +67,8 @@ function CodyPrompt:show()
   self:open()
   vim.api.nvim_set_current_win(self.win)
   vim.api.nvim_buf_set_name(self.bufnr, string.format("Cody Prompt (%d)", self.bufnr))
+
+  vim.bo[self.bufnr].filetype = self.opts.filetype or "markdown.cody_prompt"
 end
 
 function CodyPrompt:delete()
