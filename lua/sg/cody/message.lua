@@ -53,9 +53,7 @@ function Message:render()
       return "> " .. row
     end, self.msg)
   else
-    return vim.tbl_map(function(row)
-      return "system: " .. row
-    end, self.msg)
+    return self.msg
   end
 end
 
