@@ -137,10 +137,6 @@ Default commands for interacting with Cody
 
 
 
-M.tasks()                                                       *cody.tasks()*
-
-
-
 
 ================================================================================
 COMMANDS                                                         *cody.commands*
