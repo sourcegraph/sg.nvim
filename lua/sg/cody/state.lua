@@ -113,11 +113,13 @@ function State:render(bufnr, win, s, e)
     end
   end
 
-  local first_line = rendered_lines[1]
-  if first_line:sub(1, 3) == "```" then
-    local lang = first_line:sub(4)
-    vim.bo[bufnr].filetype = lang
-    rendered_lines = { unpack(rendered_lines, 2, #rendered_lines - 1) }
+  if #rendered_lines > 0 then
+    local first_line = rendered_lines[1]
+    if first_line:sub(1, 3) == "```" then
+      local lang = first_line:sub(4)
+      vim.bo[bufnr].filetype = lang
+      rendered_lines = { unpack(rendered_lines, 2, #rendered_lines - 1) }
+    end
   end
 
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, rendered_lines)
