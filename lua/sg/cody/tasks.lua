@@ -32,9 +32,6 @@ CodyTask.init = function(opts)
 
   local layout = CodyHover.init {
     bufnr = opts.bufnr,
-    history = {
-      filetype = vim.bo[opts.bufnr].filetype,
-    },
   }
   layout.state:append(Message.init(Speaker.user, vim.split(opts.task, "\n"), {}))
 
@@ -49,7 +46,7 @@ CodyTask.init = function(opts)
 
   layout:run(function()
     layout:show()
-    local id = layout:request_completion(true)
+    local id = layout:request_completion(true, vim.bo[opts.bufnr].filetype)
     task.message_id = id
     layout:show(id, id)
   end)

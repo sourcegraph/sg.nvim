@@ -103,8 +103,9 @@ end
 
 ---Returns the id of the message where the completion will be.
 ---@param code_only boolean
+---@param filetype string
 ---@return number
-function CodyHover:request_completion(code_only)
+function CodyHover:request_completion(code_only, filetype)
   self:render()
 
   return self.state:complete(self.history.bufnr, self.history.win, function(id)
@@ -119,6 +120,11 @@ function CodyHover:request_completion(code_only)
           end
         end
         table.insert(render_lines, line)
+      end
+
+      if code_only then
+        render_lines = { "```" .. filetype, unpack(render_lines) }
+        table.insert(render_lines, "```")
       end
 
       self.state:update_message(id, Message.init(Speaker.cody, render_lines, {}))
