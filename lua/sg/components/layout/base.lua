@@ -141,7 +141,6 @@ function Base:show(s, e)
   self:render(s, e)
 end
 
----comment
 ---@param s number?
 ---@param e number?
 function Base:render(s, e)

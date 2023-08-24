@@ -37,7 +37,7 @@ function State.last()
   return last_state
 end
 
---- Add a new message
+--- Add a new message and return its id
 ---@param message CodyMessage
 ---@return number
 function State:append(message)
@@ -47,8 +47,7 @@ function State:append(message)
   return #self.messages
 end
 
---- Update the last message
---- TODO: Should add a filter or some way to track the message down
+--- Replace the message with the provided id with the new message
 ---@param id number
 ---@param message CodyMessage
 function State:update_message(id, message)

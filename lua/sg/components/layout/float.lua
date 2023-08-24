@@ -130,6 +130,7 @@ function CodyFloat:set_keymaps()
   end)
 end
 
+--- Requests a completion and returns the message id where the completion will happen
 ---@return number
 function CodyFloat:request_completion()
   self:render()

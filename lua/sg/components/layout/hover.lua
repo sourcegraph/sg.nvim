@@ -58,6 +58,8 @@ function CodyHover.init(opts)
   return setmetatable(object, CodyHover) --[[@as CodyLayoutHover]]
 end
 
+---@param s number?
+---@param e number?
 function CodyHover:show(s, e)
   self.super.show(self, s, e)
   vim.api.nvim_set_current_win(self.history.win)
