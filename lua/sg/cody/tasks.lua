@@ -11,6 +11,7 @@ local keymaps = require "sg.keymaps"
 ---@field end_mark_id number
 ---@field taskbufnr number buffer where the task result is stored
 ---@field layout CodyLayoutHover
+---@field message_id number
 local CodyTask = {}
 CodyTask.__index = CodyTask
 
@@ -24,21 +25,22 @@ CodyTask.__index = CodyTask
 ---@param opts CodyTaskOptions
 ---@return CodyTask
 CodyTask.init = function(opts)
+  -- A CodyTask should point to a very specific question and answer.
   local marks_namespace = vim.api.nvim_create_namespace("sg.nvim." .. opts.task)
   local start_mark_id = vim.api.nvim_buf_set_extmark(opts.bufnr, marks_namespace, opts.start_line, 0, {})
   local end_mark_id = vim.api.nvim_buf_set_extmark(opts.bufnr, marks_namespace, opts.end_line, 0, {})
 
   local layout = CodyHover.init {
-    name = opts.task,
     bufnr = opts.bufnr,
     history = {
       filetype = vim.bo[opts.bufnr].filetype,
     },
   }
+  layout.state:append(Message.init(Speaker.user, vim.split(opts.task, "\n"), {}))
+  local id = layout.state:append(Message.init(Speaker.cody, { "Loading ..." }, {}))
   layout:run(function()
-    layout.state:append(Message.init(Speaker.user, vim.split(opts.task, "\n"), {}, { hidden = true }))
-    layout:show()
-    layout:request_completion(true)
+    layout:show(id, id)
+    layout:request_completion(true, id)
   end)
 
   return setmetatable({
@@ -48,6 +50,7 @@ CodyTask.init = function(opts)
     end_mark_id = end_mark_id,
     task = opts.task,
     layout = layout,
+    message_id = id,
   }, CodyTask)
 end
 
@@ -67,7 +70,7 @@ function CodyTask:show()
   vim.api.nvim_set_current_buf(self.bufnr)
   local start_line = vim.api.nvim_buf_get_extmark_by_id(self.bufnr, self.marks_namespace, self.start_mark_id, {})[1]
   vim.api.nvim_win_set_cursor(0, { start_line, 0 })
-  self.layout:show()
+  self.layout:show(self.message_id, self.message_id)
 
   keymaps.map(self.layout.history.bufnr, "n", "<CR>", "", function()
     vim.cmd "CodyTaskAccept"

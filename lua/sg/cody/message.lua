@@ -35,7 +35,7 @@ function Message:render()
 
   if self.speaker == Speaker.cody then
     local out = {}
-    if #self.contextFiles > 0 then
+    if self.contextFiles and #self.contextFiles > 0 then
       table.insert(out, "{{{ " .. tostring(#self.contextFiles) .. " context files")
       for _, v in ipairs(self.contextFiles) do
         table.insert(out, "- " .. v.fileName)

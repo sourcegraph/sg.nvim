@@ -29,7 +29,7 @@ Base.__index = Base
 function Base.init(opts)
   return setmetatable({
     opts = opts,
-    state = opts.state or State.init {
+    state = opts.state or State.last() or State.init {
       name = opts.name,
     },
   }, Base)
@@ -122,7 +122,9 @@ end
 
 --- Something
 ---@param self CodyBaseLayout
-function Base:show()
+---@param s number?
+---@param e number?
+function Base:show(s, e)
   if not self.created then
     self:create()
   end
@@ -136,12 +138,15 @@ function Base:show()
   end
 
   self:set_keymaps()
-  self:render()
+  self:render(s, e)
 end
 
-function Base:render()
+---comment
+---@param s number?
+---@param e number?
+function Base:render(s, e)
   if self.created then
-    self.state:render(self.history.bufnr, self.history.win)
+    self.state:render(self.history.bufnr, self.history.win, s, e)
   end
 end
 

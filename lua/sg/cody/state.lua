@@ -39,23 +39,22 @@ end
 
 --- Add a new message
 ---@param message CodyMessage
+---@return number
 function State:append(message)
   set_last_state(self)
 
   table.insert(self.messages, message)
+  return #self.messages
 end
 
 --- Update the last message
 --- TODO: Should add a filter or some way to track the message down
+---@param id number
 ---@param message CodyMessage
-function State:update_message(message)
+function State:update_message(id, message)
   set_last_state(self)
 
-  if not vim.tbl_isempty(self.messages) and self.messages[#self.messages].speaker ~= Speaker.user then
-    self.messages[#self.messages] = message
-  else
-    self:append(message)
-  end
+  self.messages[id] = message
 end
 
 ---@class CompleteOpts
@@ -76,7 +75,6 @@ function State:complete(bufnr, win, callback, opts)
     end
   end
 
-  self:append(Message.init(Speaker.system, { "Loading ... " }, {}, { ephemeral = true }))
   self:render(bufnr, win)
   vim.cmd [[mode]]
 
@@ -91,15 +89,16 @@ end
 --- Render the state to a buffer and window
 ---@param bufnr number
 ---@param win number
-function State:render(bufnr, win)
+---@param s number?: The first message id to render.
+---@param e number?: The last message id to render.
+function State:render(bufnr, win, s, e)
   -- TODO: It should be possible to not wipe away the whole buffer... we
   -- need to start marking where regions start with extmarks, find the last one
   -- that wasn't a ephemeral, and then render the rest?
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
 
-  local messages = {}
   local rendered_lines = {}
-  for _, message in ipairs(self.messages) do
+  for _, message in ipairs { unpack(self.messages, s, e) } do
     if #rendered_lines > 0 then
       table.insert(rendered_lines, "")
     end
@@ -114,14 +113,9 @@ function State:render(bufnr, win)
         end
       end
     end
-
-    if not message.ephemeral then
-      table.insert(messages, message)
-    end
   end
 
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, rendered_lines)
-  self.messages = messages
 
   local linecount = vim.api.nvim_buf_line_count(bufnr)
   if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == bufnr then

@@ -105,14 +105,18 @@ function CodySplit:set_keymaps()
   end)
 end
 
+---Returns the id of the message where the completion will go
+---@return number
 function CodySplit:request_completion()
   self:render()
   vim.api.nvim_buf_set_lines(self.prompt.bufnr, 0, -1, false, {})
 
+  local id = self.state:append(Message.init(Speaker.cody, { "Loading ..." }, {}))
   self.state:complete(self.history.bufnr, self.history.win, function(msg)
-    self.state:update_message(Message.init(Speaker.cody, vim.split(msg.text, "\n"), msg.contextFiles))
+    self.state:update_message(id, Message.init(Speaker.cody, vim.split(msg.text, "\n"), msg.contextFiles))
     self:render()
   end)
+  return id
 end
 
 return CodySplit

@@ -58,8 +58,8 @@ function CodyHover.init(opts)
   return setmetatable(object, CodyHover) --[[@as CodyLayoutHover]]
 end
 
-function CodyHover:show()
-  self.super.show(self)
+function CodyHover:show(s, e)
+  self.super.show(self, s, e)
   vim.api.nvim_set_current_win(self.history.win)
 end
 
@@ -99,7 +99,10 @@ function CodyHover:set_keymaps()
   end)
 end
 
-function CodyHover:request_completion(code_only)
+---Returns the id of the message where the completion will be.
+---@param id number: message id where completion should be made
+---@return number
+function CodyHover:request_completion(code_only, id)
   self:render()
 
   self.state:complete(self.history.bufnr, self.history.win, function(msg)
@@ -115,9 +118,10 @@ function CodyHover:request_completion(code_only)
       table.insert(render_lines, line)
     end
 
-    self.state:update_message(Message.init(Speaker.cody, render_lines, {}))
-    self:render()
+    self.state:update_message(id, Message.init(Speaker.cody, render_lines, {}))
+    self:render(id, id)
   end, { code_only = code_only })
+  return id
 end
 
 return CodyHover
