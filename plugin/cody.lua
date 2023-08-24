@@ -10,7 +10,6 @@ local cody_commands = require "sg.cody.commands"
 
 local M = {}
 
----@type CodyTask[]
 M.tasks = {}
 
 ---@command CodyAsk [[
