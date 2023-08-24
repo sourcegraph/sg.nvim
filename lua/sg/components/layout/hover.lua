@@ -100,28 +100,29 @@ function CodyHover:set_keymaps()
 end
 
 ---Returns the id of the message where the completion will be.
----@param id number: message id where completion should be made
+---@param code_only boolean
 ---@return number
-function CodyHover:request_completion(code_only, id)
+function CodyHover:request_completion(code_only)
   self:render()
 
-  self.state:complete(self.history.bufnr, self.history.win, function(msg)
-    local lines = vim.split(msg.text, "\n")
-    local render_lines = {}
-    for _, line in ipairs(lines) do
-      if code_only then
-        if vim.trim(line) == "```" then
-          require("sg.cody.rpc").message_callbacks[msg.data.id] = nil
-          break
+  return self.state:complete(self.history.bufnr, self.history.win, function(id)
+    return function(msg)
+      local lines = vim.split(msg.text, "\n")
+      local render_lines = {}
+      for _, line in ipairs(lines) do
+        if code_only then
+          if vim.trim(line) == "```" then
+            require("sg.cody.rpc").message_callbacks[msg.data.id] = nil
+            break
+          end
         end
+        table.insert(render_lines, line)
       end
-      table.insert(render_lines, line)
-    end
 
-    self.state:update_message(id, Message.init(Speaker.cody, render_lines, {}))
-    self:render(id, id)
+      self.state:update_message(id, Message.init(Speaker.cody, render_lines, {}))
+      self:render(id, id)
+    end
   end, { code_only = code_only })
-  return id
 end
 
 return CodyHover

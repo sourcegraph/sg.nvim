@@ -98,7 +98,9 @@ local M = {}
 ---@field text string?
 ---@field data any?
 
----@alias CodyChatCallback fun(msg: CodyChatMessage)
+---@alias CodyMessageHandler fun(msg: CodyChatMessage)
+
+---@alias CodyChatCallbackHandler fun(id: number): CodyMessageHandler
 
 ---@class CodyAutocompleteItem
 ---@field insertText string

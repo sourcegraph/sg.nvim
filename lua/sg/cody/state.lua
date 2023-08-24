@@ -63,27 +63,26 @@ end
 --- Get a new completion, based on the state
 ---@param bufnr number
 ---@param win number
----@param callback CodyChatCallback
+---@param callback CodyChatCallbackHandler
 ---@param opts CompleteOpts?
+---@return number: message ID where completion will happen
 function State:complete(bufnr, win, callback, opts)
   set_last_state(self)
 
-  local snippet = ""
-  for _, message in ipairs(self.messages) do
-    if message.speaker == Speaker.user then
-      snippet = snippet .. table.concat(message.msg, "\n") .. "\n"
-    end
-  end
+  local snippet = table.concat(self.messages[#self.messages].msg, "\n") .. "\n"
 
   self:render(bufnr, win)
   vim.cmd [[mode]]
 
+  local id = self:append(Message.init(Speaker.cody, { "Loading ..." }, {}))
   -- Execute chat question. Will be completed async
   if opts and opts.code_only then
-    require("sg.cody.rpc").execute.code_question(snippet, callback)
+    require("sg.cody.rpc").execute.code_question(snippet, callback(id))
   else
-    require("sg.cody.rpc").execute.chat_question(snippet, callback)
+    require("sg.cody.rpc").execute.chat_question(snippet, callback(id))
   end
+
+  return id
 end
 
 --- Render the state to a buffer and window

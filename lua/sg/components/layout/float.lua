@@ -135,12 +135,12 @@ function CodyFloat:request_completion()
   self:render()
   vim.api.nvim_buf_set_lines(self.prompt.bufnr, 0, -1, false, {})
 
-  local id = self.state:append(Message.init(Speaker.cody, { "Loading ..." }, {}))
-  self.state:complete(self.history.bufnr, self.history.win, function(msg)
-    self.state:update_message(id, Message.init(Speaker.cody, vim.split(msg.text, "\n"), {}))
-    self:render()
+  return self.state:complete(self.history.bufnr, self.history.win, function(id)
+    return function(msg)
+      self.state:update_message(id, Message.init(Speaker.cody, vim.split(msg.text, "\n"), {}))
+      self:render()
+    end
   end)
-  return id
 end
 
 return CodyFloat

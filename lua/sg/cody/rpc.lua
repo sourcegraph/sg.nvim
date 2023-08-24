@@ -56,7 +56,7 @@ local track = function(msg)
   end
 end
 
----@type table<string, CodyChatCallback?>
+---@type table<string, CodyMessageHandler?>
 M.message_callbacks = {}
 
 ---@type {["chat/updateMessageInProgress"]: fun(noti: CodyChatUpdateMessageInProgressNoti?)}
@@ -241,7 +241,7 @@ end
 --- Sadly just puts whatever we get as the response into the currently
 --- open window... I will fix this later (needs protocol changes)
 ---@param message string
----@param callback CodyChatCallback
+---@param callback CodyMessageHandler
 ---@return table | nil
 ---@return table | nil
 M.execute.chat_question = function(message, callback)
@@ -255,7 +255,7 @@ end
 --- Execute a code question and get a streaming response
 --- Returns only code (hopefully)
 ---@param message string
----@param callback CodyChatCallback
+---@param callback CodyMessageHandler
 ---@return table | nil
 ---@return table | nil
 M.execute.code_question = function(message, callback)

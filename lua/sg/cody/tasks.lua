@@ -37,21 +37,24 @@ CodyTask.init = function(opts)
     },
   }
   layout.state:append(Message.init(Speaker.user, vim.split(opts.task, "\n"), {}))
-  local id = layout.state:append(Message.init(Speaker.cody, { "Loading ..." }, {}))
-  layout:run(function()
-    layout:show(id, id)
-    layout:request_completion(true, id)
-  end)
 
-  return setmetatable({
+  local task = setmetatable({
     bufnr = opts.bufnr,
     marks_namespace = marks_namespace,
     start_mark_id = start_mark_id,
     end_mark_id = end_mark_id,
     task = opts.task,
     layout = layout,
-    message_id = id,
   }, CodyTask)
+
+  layout:run(function()
+    layout:show()
+    local id = layout:request_completion(true)
+    task.message_id = id
+    layout:show(id, id)
+  end)
+
+  return task
 end
 
 function CodyTask:apply()
