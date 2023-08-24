@@ -79,17 +79,20 @@ source.complete = function(self, params, callback)
     ---@type lsp.CompletionItem[]
     local items = {}
     for _, item in ipairs(data.items) do
+      local trimmed = vim.trim(item.insertText)
       ---@type lsp.CompletionItem
       local completion_item = {
+        filterText = trimmed,
+        detail = trimmed,
+        label = trimmed,
+
         -- Mark as snippet, not text.
         kind = cmp_types.CompletionItemKind.Snippet,
 
-        -- Ideally, adjust indentation (not sure if this works reliably)
+        -- Attempt to adjust indentation
         insertTextMode = cmp_types.InsertTextMode.AdjustIndentation,
 
-        filterText = item.insertText,
-        detail = item.insertText,
-        label = vim.trim(item.insertText),
+        -- TODO: Should the range always be the entire line?...
         textEdit = {
           newText = item.insertText,
           range = item.range,
