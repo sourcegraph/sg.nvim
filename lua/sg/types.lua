@@ -100,6 +100,13 @@ local M = {}
 
 ---@alias CodyChatCallback fun(msg: CodyChatMessage)
 
+---@class CodyAutocompleteItem
+---@field insertText string
+---@field range CodyRange
+
+---@class CodyAutocompleteResult
+---@field items CodyAutocompleteItem[]
+
 ---@class SourcegraphAuthConfig
 ---@field endpoint string: The sourcegraph endpoint
 ---@field token string: The sourcegraph auth token

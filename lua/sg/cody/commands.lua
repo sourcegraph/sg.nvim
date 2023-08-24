@@ -36,31 +36,27 @@ commands.ask = function(bufnr, start_line, end_line, message)
   layout:request_user_message(contents)
 end
 
+--- Send an autocomplete request
+---@param request { filename: string, row: number, col: number }?
+---@param callback function(data: CodyAutocompleteResult)
 commands.autocomplete = function(request, callback)
-  local filename = vim.api.nvim_buf_get_name(0)
-  local row, col = unpack(vim.api.nvim_win_get_cursor(0))
+  if not request then
+    request = {}
+    request.filename = vim.api.nvim_buf_get_name(0)
+    request.row, request.col = unpack(vim.api.nvim_win_get_cursor(0))
+  end
+
   void(function()
     local doc = protocol.get_text_document(0)
     require("sg.cody.rpc").notify("textDocument/didChange", doc)
-    local err, data = require("sg.cody.rpc").execute.autocomplete(filename, row - 1, col)
+    local err, data = require("sg.cody.rpc").execute.autocomplete(request.filename, request.row - 1, request.col)
 
-    local items = {}
-    for _, item in ipairs(data.items) do
-      table.insert(items, {
-        filterText = item.insertText,
-        detail = item.insertText,
-        label = item.insertText,
-        textEdit = {
-          newText = item.insertText,
-          range = item.range,
-        },
-      })
+    if err then
+      vim.notify(string.format("Failed to get autocompletions: %s", vim.inspect(err)))
+      return
     end
 
-    callback {
-      items = items,
-      isIncomplete = false,
-    }
+    callback(data)
   end)()
 end
 
