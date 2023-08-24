@@ -10,6 +10,7 @@ local cody_commands = require "sg.cody.commands"
 
 local M = {}
 
+---@type CodyTask[]
 M.tasks = {}
 
 ---@command CodyAsk [[
@@ -83,6 +84,22 @@ vim.api.nvim_create_user_command("CodyTaskNext", function()
   M.active_task_index = M.active_task_index + 1
   if M.active_task_index > #M.tasks then
     M.active_task_index = 1
+  end
+  M.tasks[M.active_task_index]:show()
+end, {})
+
+vim.api.nvim_create_user_command("CodyTaskPrevious", function()
+  if #M.tasks == 0 then
+    print "No pending tasks"
+    return
+  end
+
+  if M.tasks[M.active_task_index] then
+    M.tasks[M.active_task_index].layout:hide()
+  end
+  M.active_task_index = M.active_task_index - 1
+  if M.active_task_index < 1 then
+    M.active_task_index = #M.tasks
   end
   M.tasks[M.active_task_index]:show()
 end, {})

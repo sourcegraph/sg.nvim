@@ -46,9 +46,10 @@ CodyTask.init = function(opts)
 
   layout:run(function()
     layout:show()
+    layout:hide()
     local id = layout:request_completion(true, vim.bo[opts.bufnr].filetype)
     task.message_id = id
-    layout:show(id, id)
+    task:show()
   end)
 
   return task
@@ -74,6 +75,12 @@ function CodyTask:show()
 
   keymaps.map(self.layout.history.bufnr, "n", "<CR>", "", function()
     vim.cmd "CodyTaskAccept"
+  end)
+  keymaps.map(self.layout.history.bufnr, "n", "]", "", function()
+    vim.cmd "CodyTaskNext"
+  end)
+  keymaps.map(self.layout.history.bufnr, "n", "[", "", function()
+    vim.cmd "CodyTaskPrevious"
   end)
 end
 
