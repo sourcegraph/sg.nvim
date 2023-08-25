@@ -73,7 +73,10 @@ function State:complete(bufnr, win, callback, opts)
   self:render(bufnr, win)
   vim.cmd [[mode]]
 
+  -- Draw the "Loading" before sending a request
   local id = self:append(Message.init(Speaker.cody, { "Loading ..." }, {}))
+  self:render(bufnr, win)
+
   -- Execute chat question. Will be completed async
   if opts and opts.code_only then
     require("sg.cody.rpc").execute.code_question(snippet, callback(id))
@@ -87,16 +90,16 @@ end
 --- Render the state to a buffer and window
 ---@param bufnr number
 ---@param win number
----@param s number?: The first message id to render.
----@param e number?: The last message id to render.
-function State:render(bufnr, win, s, e)
-  -- TODO: It should be possible to not wipe away the whole buffer... we
-  -- need to start marking where regions start with extmarks, find the last one
-  -- that wasn't a ephemeral, and then render the rest?
+---@param render_opts CodyLayoutRenderOpts?
+function State:render(bufnr, win, render_opts)
+  render_opts = render_opts or {}
+
+  -- TODO: It should be possible to not wipe away the whole buffer, but I think it's fine for now.
+  --       (main reason I mention is cause maybe extmarks would be more effective at maintaing messages)
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
 
   local rendered_lines = {}
-  for _, message in ipairs { unpack(self.messages, s, e) } do
+  for _, message in ipairs { unpack(self.messages, render_opts.start, render_opts.finish) } do
     if #rendered_lines > 0 then
       table.insert(rendered_lines, "")
     end

@@ -3,7 +3,6 @@ local Speaker = require "sg.cody.speaker"
 ---@class CodyMessage
 ---@field speaker CodySpeaker
 ---@field msg string[]
----@field ephemeral boolean
 ---@field hidden boolean
 ---@field contextFiles CodyContextFile[]?
 local Message = {}
@@ -13,7 +12,7 @@ Message.__index = Message
 ---@param speaker CodySpeaker
 ---@param msg string[]
 ---@param contextFiles CodyContextFile[]?
----@param opts { ephemeral?: boolean; hidden?: boolean }?
+---@param opts { hidden: boolean? }?
 ---@return CodyMessage
 function Message.init(speaker, msg, contextFiles, opts)
   opts = opts or {}
@@ -23,7 +22,6 @@ function Message.init(speaker, msg, contextFiles, opts)
     msg = msg,
     contextFiles = contextFiles,
     hidden = opts.hidden or false,
-    ephemeral = opts.ephemeral or false,
   }, Message)
 end
 

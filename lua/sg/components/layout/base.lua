@@ -14,6 +14,10 @@ local State = require "sg.cody.state"
 ---@field prompt CodyPromptOpts?
 ---@field history CodyHistoryOpts
 
+---@class CodyLayoutRenderOpts
+---@field start number?
+---@field finish number?
+
 ---@class CodyBaseLayout
 ---@field opts CodyBaseLayoutOpts
 ---@field state CodyState
@@ -120,11 +124,10 @@ function Base:create()
   self.created = true
 end
 
---- Something
+--- Show the layout
 ---@param self CodyBaseLayout
----@param s number?
----@param e number?
-function Base:show(s, e)
+---@param render_opts CodyLayoutRenderOpts?
+function Base:show(render_opts)
   if not self.created then
     self:create()
   end
@@ -138,14 +141,14 @@ function Base:show(s, e)
   end
 
   self:set_keymaps()
-  self:render(s, e)
+  self:render(render_opts)
 end
 
----@param s number?
----@param e number?
-function Base:render(s, e)
+--- Render the layout with the current state
+---@param render_opts CodyLayoutRenderOpts?
+function Base:render(render_opts)
   if self.created then
-    self.state:render(self.history.bufnr, self.history.win, s, e)
+    self.state:render(self.history.bufnr, self.history.win, render_opts)
   end
 end
 

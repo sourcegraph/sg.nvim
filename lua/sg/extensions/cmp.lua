@@ -50,6 +50,7 @@ local cmp = require "cmp"
 local cmp_types = require "cmp.types.lsp"
 
 local commands = require "sg.cody.commands"
+local document = require "sg.document"
 
 local M = {}
 
@@ -75,6 +76,13 @@ end
 source.complete = function(self, params, callback)
   _ = self
   _ = params
+
+  -- Don't trigger completions on useless buffers.
+  -- This messes up the state of the agent.
+  local bufnr = vim.api.nvim_get_current_buf()
+  if not document.is_useful(bufnr) then
+    return
+  end
 
   commands.autocomplete(nil, function(data)
     local items = {}

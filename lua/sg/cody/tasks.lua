@@ -73,6 +73,8 @@ function CodyTask:show()
   vim.api.nvim_win_set_cursor(0, { start_line, 0 })
   self.layout:show(self.message_id, self.message_id)
 
+  -- TODO: We should expose these as lua functions and use them here.
+  -- I don't like making the command strings the primary way of interacting
   keymaps.map(self.layout.history.bufnr, "n", "<CR>", "", function()
     vim.cmd "CodyTaskAccept"
   end)

@@ -58,10 +58,10 @@ function CodyHover.init(opts)
   return setmetatable(object, CodyHover) --[[@as CodyLayoutHover]]
 end
 
----@param s number?
----@param e number?
-function CodyHover:show(s, e)
-  self.super.show(self, s, e)
+--- Show current Hovered layout
+---@param render_opts CodyLayoutRenderOpts?
+function CodyHover:show(render_opts)
+  self.super.show(self, render_opts)
   vim.api.nvim_set_current_win(self.history.win)
 end
 
@@ -128,7 +128,7 @@ function CodyHover:request_completion(code_only, filetype)
       end
 
       self.state:update_message(id, Message.init(Speaker.cody, render_lines, {}))
-      self:render(id, id)
+      self:render { start = id, finish = id }
     end
   end, { code_only = code_only })
 end
