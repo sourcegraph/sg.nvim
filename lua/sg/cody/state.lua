@@ -97,9 +97,13 @@ function State:render(bufnr, win, render_opts)
   -- TODO: It should be possible to not wipe away the whole buffer, but I think it's fine for now.
   --       (main reason I mention is cause maybe extmarks would be more effective at maintaing messages)
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
+  local messages = self.messages
+  if render_opts then
+    messages = { unpack(messages, render_opts.start, render_opts.finish) }
+  end
 
   local rendered_lines = {}
-  for _, message in ipairs { unpack(self.messages, render_opts.start, render_opts.finish) } do
+  for _, message in ipairs(messages) do
     if #rendered_lines > 0 then
       table.insert(rendered_lines, "")
     end

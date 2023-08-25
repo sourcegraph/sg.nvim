@@ -71,7 +71,7 @@ function CodyTask:show()
   vim.api.nvim_set_current_buf(self.bufnr)
   local start_line = vim.api.nvim_buf_get_extmark_by_id(self.bufnr, self.marks_namespace, self.start_mark_id, {})[1]
   vim.api.nvim_win_set_cursor(0, { start_line, 0 })
-  self.layout:show(self.message_id, self.message_id)
+  self.layout:show { start = self.message_id, finish = self.message_id }
 
   -- TODO: We should expose these as lua functions and use them here.
   -- I don't like making the command strings the primary way of interacting
