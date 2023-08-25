@@ -123,13 +123,13 @@ Default commands for interacting with Cody
 :CodyToggle ~
     Toggles the current Cody Chat window.
 
-                                                                   *:CodyTask*
-:CodyTask {module} ~
-    Instruct Cody to perform a task on selected text.
-
                                                                      *:CodyDo*
 :CodyDo ~
     @deprecated DEPRECATED. Use CodyTask.
+
+                                                                   *:CodyTask*
+:CodyTask {module} ~
+    Instruct Cody to perform a task on selected text.
 
                                                                *:CodyTaskView*
 :CodyTaskView ~
@@ -149,6 +149,10 @@ Default commands for interacting with Cody
                                                                *:CodyTaskNext*
 :CodyTaskNext ~
     Cycles to the next CodyTask. Navigates to the appropriate buffer location.
+
+                                                                *:CodyHistory*
+:CodyHistory ~
+    Select a previous chat from the current neovim session
 
 
 
@@ -195,7 +199,7 @@ commands.chat({name})                                *sg.cody.commands.chat()*
         {name} (string?)
 
     Return: ~
-        CodyLayoutSplit
+        CodyBaseLayout
 
 
 commands.do_task({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands.do_task()*
