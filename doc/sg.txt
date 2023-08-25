@@ -123,12 +123,12 @@ Default commands for interacting with Cody
 :CodyToggle ~
     Toggles the current Cody Chat window.
 
-                                                                     *:CodyDo*
-:CodyDo {module} ~
+                                                                   *:CodyTask*
+:CodyTask {module} ~
     Instruct Cody to perform a task on selected text.
 
-                                                                   *:CodyTask*
-:CodyTask ~
+                                                               *:CodyTaskView*
+:CodyTaskView ~
     Opens the last active CodyTask.
 
                                                              *:CodyTaskAccept*
