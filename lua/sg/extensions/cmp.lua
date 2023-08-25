@@ -20,7 +20,7 @@
 ---       },
 ---     },
 ---   }
---- </codce>
+--- </code>
 ---
 --- You can add formatting via the `formatting` field in nvim-cmp. For example,
 --- here's how you could configure if you're using `lspkind`:
