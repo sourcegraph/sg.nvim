@@ -98,7 +98,7 @@ end
 commands.do_task = function(bufnr, start_line, end_line, message)
   local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
 
-  local formatted = require("sg.utils").format_code(bufnr, selection)
+  local formatted = util.format_code(bufnr, selection)
 
   local prompt = message
   prompt = prompt .. "\nReply only with code, nothing else\n"

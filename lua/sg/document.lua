@@ -8,7 +8,7 @@ document.is_useful = function(bufnr)
   end
 
   local bo = vim.bo[bufnr]
-  if bo.buflisted == 0 then
+  if not bo.buflisted then
     return false
   end
 

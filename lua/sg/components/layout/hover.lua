@@ -58,8 +58,10 @@ function CodyHover.init(opts)
   return setmetatable(object, CodyHover) --[[@as CodyLayoutHover]]
 end
 
-function CodyHover:show()
-  self.super.show(self)
+--- Show current Hovered layout
+---@param render_opts CodyLayoutRenderOpts?
+function CodyHover:show(render_opts)
+  self.super.show(self, render_opts)
   vim.api.nvim_set_current_win(self.history.win)
 end
 
@@ -99,24 +101,35 @@ function CodyHover:set_keymaps()
   end)
 end
 
-function CodyHover:request_completion(code_only)
+---Returns the id of the message where the completion will be.
+---@param code_only boolean
+---@param filetype string
+---@return number
+function CodyHover:request_completion(code_only, filetype)
   self:render()
 
-  self.state:complete(self.history.bufnr, self.history.win, function(msg)
-    local lines = vim.split(msg.text, "\n")
-    local render_lines = {}
-    for _, line in ipairs(lines) do
-      if code_only then
-        if vim.trim(line) == "```" then
-          require("sg.cody.rpc").message_callbacks[msg.data.id] = nil
-          break
+  return self.state:complete(self.history.bufnr, self.history.win, function(id)
+    return function(msg)
+      local lines = vim.split(msg.text, "\n")
+      local render_lines = {}
+      for _, line in ipairs(lines) do
+        if code_only then
+          if vim.trim(line) == "```" then
+            require("sg.cody.rpc").message_callbacks[msg.data.id] = nil
+            break
+          end
         end
+        table.insert(render_lines, line)
       end
-      table.insert(render_lines, line)
-    end
 
-    self.state:update_message(Message.init(Speaker.cody, render_lines, {}))
-    self:render()
+      if code_only then
+        render_lines = { "```" .. filetype, unpack(render_lines) }
+        table.insert(render_lines, "```")
+      end
+
+      self.state:update_message(id, Message.init(Speaker.cody, render_lines, {}))
+      self:render { start = id, finish = id }
+    end
   end, { code_only = code_only })
 end
 

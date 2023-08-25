@@ -37,25 +37,23 @@ function State.last()
   return last_state
 end
 
---- Add a new message
+--- Add a new message and return its id
 ---@param message CodyMessage
+---@return number
 function State:append(message)
   set_last_state(self)
 
   table.insert(self.messages, message)
+  return #self.messages
 end
 
---- Update the last message
---- TODO: Should add a filter or some way to track the message down
+--- Replace the message with the provided id with the new message
+---@param id number
 ---@param message CodyMessage
-function State:update_message(message)
+function State:update_message(id, message)
   set_last_state(self)
 
-  if not vim.tbl_isempty(self.messages) and self.messages[#self.messages].speaker ~= Speaker.user then
-    self.messages[#self.messages] = message
-  else
-    self:append(message)
-  end
+  self.messages[id] = message
 end
 
 ---@class CompleteOpts
@@ -64,42 +62,48 @@ end
 --- Get a new completion, based on the state
 ---@param bufnr number
 ---@param win number
----@param callback CodyChatCallback
+---@param callback CodyChatCallbackHandler
 ---@param opts CompleteOpts?
+---@return number: message ID where completion will happen
 function State:complete(bufnr, win, callback, opts)
   set_last_state(self)
 
-  local snippet = ""
-  for _, message in ipairs(self.messages) do
-    if message.speaker == Speaker.user then
-      snippet = snippet .. table.concat(message.msg, "\n") .. "\n"
-    end
-  end
+  local snippet = table.concat(self.messages[#self.messages].msg, "\n") .. "\n"
 
-  self:append(Message.init(Speaker.system, { "Loading ... " }, {}, { ephemeral = true }))
   self:render(bufnr, win)
   vim.cmd [[mode]]
 
+  -- Draw the "Loading" before sending a request
+  local id = self:append(Message.init(Speaker.cody, { "Loading ..." }, {}))
+  self:render(bufnr, win)
+
   -- Execute chat question. Will be completed async
   if opts and opts.code_only then
-    require("sg.cody.rpc").execute.code_question(snippet, callback)
+    require("sg.cody.rpc").execute.code_question(snippet, callback(id))
   else
-    require("sg.cody.rpc").execute.chat_question(snippet, callback)
+    require("sg.cody.rpc").execute.chat_question(snippet, callback(id))
   end
+
+  return id
 end
 
 --- Render the state to a buffer and window
 ---@param bufnr number
 ---@param win number
-function State:render(bufnr, win)
-  -- TODO: It should be possible to not wipe away the whole buffer... we
-  -- need to start marking where regions start with extmarks, find the last one
-  -- that wasn't a ephemeral, and then render the rest?
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
+---@param render_opts CodyLayoutRenderOpts?
+function State:render(bufnr, win, render_opts)
+  render_opts = render_opts or {}
 
-  local messages = {}
+  -- TODO: It should be possible to not wipe away the whole buffer, but I think it's fine for now.
+  --       (main reason I mention is cause maybe extmarks would be more effective at maintaing messages)
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
+  local messages = self.messages
+  if render_opts then
+    messages = { unpack(messages, render_opts.start, render_opts.finish) }
+  end
+
   local rendered_lines = {}
-  for _, message in ipairs(self.messages) do
+  for _, message in ipairs(messages) do
     if #rendered_lines > 0 then
       table.insert(rendered_lines, "")
     end
@@ -114,14 +118,18 @@ function State:render(bufnr, win)
         end
       end
     end
+  end
 
-    if not message.ephemeral then
-      table.insert(messages, message)
+  if #rendered_lines > 0 then
+    local first_line = rendered_lines[1]
+    if first_line:sub(1, 3) == "```" then
+      local lang = first_line:sub(4)
+      vim.bo[bufnr].filetype = lang
+      rendered_lines = { unpack(rendered_lines, 2, #rendered_lines - 1) }
     end
   end
 
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, rendered_lines)
-  self.messages = messages
 
   local linecount = vim.api.nvim_buf_line_count(bufnr)
   if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == bufnr then

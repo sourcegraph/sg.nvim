@@ -14,6 +14,10 @@ local State = require "sg.cody.state"
 ---@field prompt CodyPromptOpts?
 ---@field history CodyHistoryOpts
 
+---@class CodyLayoutRenderOpts
+---@field start number?
+---@field finish number?
+
 ---@class CodyBaseLayout
 ---@field opts CodyBaseLayoutOpts
 ---@field state CodyState
@@ -29,7 +33,7 @@ Base.__index = Base
 function Base.init(opts)
   return setmetatable({
     opts = opts,
-    state = opts.state or State.init {
+    state = opts.state or State.last() or State.init {
       name = opts.name,
     },
   }, Base)
@@ -120,9 +124,10 @@ function Base:create()
   self.created = true
 end
 
---- Something
+--- Show the layout
 ---@param self CodyBaseLayout
-function Base:show()
+---@param render_opts CodyLayoutRenderOpts?
+function Base:show(render_opts)
   if not self.created then
     self:create()
   end
@@ -136,12 +141,14 @@ function Base:show()
   end
 
   self:set_keymaps()
-  self:render()
+  self:render(render_opts)
 end
 
-function Base:render()
+--- Render the layout with the current state
+---@param render_opts CodyLayoutRenderOpts?
+function Base:render(render_opts)
   if self.created then
-    self.state:render(self.history.bufnr, self.history.win)
+    self.state:render(self.history.bufnr, self.history.win, render_opts)
   end
 end
 
