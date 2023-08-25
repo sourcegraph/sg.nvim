@@ -127,6 +127,10 @@ Default commands for interacting with Cody
 :CodyTask {module} ~
     Instruct Cody to perform a task on selected text.
 
+                                                                     *:CodyDo*
+:CodyDo ~
+    @deprecated DEPRECATED. Use CodyTask.
+
                                                                *:CodyTaskView*
 :CodyTaskView ~
     Opens the last active CodyTask.
