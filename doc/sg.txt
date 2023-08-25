@@ -119,21 +119,18 @@ Default commands for interacting with Cody
 :CodyChat {module} ~
     State a new cody chat, with an optional {title}
 
-                                                                  *:CodyFloat*
-:CodyFloat {module} ~
-    State a new cody chat in a floating window
-
                                                                      *:CodyDo*
 :CodyDo {module} ~
     Instruct Cody to perform a task on selected text.
 
-                                                                 *:CodyToggle*
-:CodyToggle ~
-    Toggles the current Cody Chat window.
+                                                                   *:CodyTask*
+:CodyTask ~
+    Opens the last active CodyTask.
 
-                                                                *:CodyHistory*
-:CodyHistory ~
-    Select a previous chat from the current neovim session
+                                                               *:CodyTaskNext*
+:CodyTaskNext ~
+    Cycles to the next CodyTask. Navigates to the appropriate buffer location. 
+    Can also be triggered by pressing ']' while a task is open.
 
 
 
