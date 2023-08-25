@@ -82,7 +82,7 @@ function CodyTask:show()
     vim.cmd "CodyTaskNext"
   end)
   keymaps.map(self.layout.history.bufnr, "n", "[", "", function()
-    vim.cmd "CodyTaskPrevious"
+    vim.cmd "CodyTaskPrev"
   end)
 end
 

@@ -43,6 +43,13 @@ vim.api.nvim_create_user_command("CodyChat", function(command)
   cody_commands.chat(name)
 end, { nargs = "*" })
 
+---@command :CodyToggle [[
+--- Toggles the current Cody Chat window.
+---@command ]]
+vim.api.nvim_create_user_command("CodyToggle", function(_)
+  cody_commands.toggle()
+end, {})
+
 ---@command :CodyDo {module} [[
 --- Instruct Cody to perform a task on selected text.
 ---@command ]]
@@ -71,46 +78,6 @@ vim.api.nvim_create_user_command("CodyTask", function()
   end
 end, {})
 
----@command :CodyTaskNext [[
---- Cycles to the next CodyTask. Navigates to the appropriate buffer location.
---- Can also be triggered by pressing ']' while a task is open.
----@command ]]
-vim.api.nvim_create_user_command("CodyTaskNext", function()
-  if #M.tasks == 0 then
-    print "No pending tasks"
-    return
-  end
-
-  if M.tasks[M.active_task_index] then
-    M.tasks[M.active_task_index].layout:hide()
-  end
-  M.active_task_index = M.active_task_index + 1
-  if M.active_task_index > #M.tasks then
-    M.active_task_index = 1
-  end
-  M.tasks[M.active_task_index]:show()
-end, {})
-
----@command :CodyTaskPrevious [[
---- Cycles to the previous CodyTask. Navigates to the appropriate buffer location.
---- Can also be triggered by pressing '[' while a task is open.
----@command ]]
-vim.api.nvim_create_user_command("CodyTaskPrevious", function()
-  if #M.tasks == 0 then
-    print "No pending tasks"
-    return
-  end
-
-  if M.tasks[M.active_task_index] then
-    M.tasks[M.active_task_index].layout:hide()
-  end
-  M.active_task_index = M.active_task_index - 1
-  if M.active_task_index < 1 then
-    M.active_task_index = #M.tasks
-  end
-  M.tasks[M.active_task_index]:show()
-end, {})
-
 ---@command :CodyTaskAccept [[
 --- Accepts the current CodyTask, removing it from the pending tasks list and applying
 --- it to the selection the task was performed on.
@@ -129,11 +96,42 @@ vim.api.nvim_create_user_command("CodyTaskAccept", function()
   end
 end, {})
 
----@command :CodyToggle [[
---- Toggles the current Cody Chat window.
+---@command :CodyTaskPrev [[
+--- Cycles to the previous CodyTask. Navigates to the appropriate buffer location.
 ---@command ]]
-vim.api.nvim_create_user_command("CodyToggle", function(_)
-  cody_commands.toggle()
+vim.api.nvim_create_user_command("CodyTaskPrev", function()
+  if #M.tasks == 0 then
+    print "No pending tasks"
+    return
+  end
+
+  if M.tasks[M.active_task_index] then
+    M.tasks[M.active_task_index].layout:hide()
+  end
+  M.active_task_index = M.active_task_index - 1
+  if M.active_task_index < 1 then
+    M.active_task_index = #M.tasks
+  end
+  M.tasks[M.active_task_index]:show()
+end, {})
+
+---@command :CodyTaskNext [[
+--- Cycles to the next CodyTask. Navigates to the appropriate buffer location.
+---@command ]]
+vim.api.nvim_create_user_command("CodyTaskNext", function()
+  if #M.tasks == 0 then
+    print "No pending tasks"
+    return
+  end
+
+  if M.tasks[M.active_task_index] then
+    M.tasks[M.active_task_index].layout:hide()
+  end
+  M.active_task_index = M.active_task_index + 1
+  if M.active_task_index > #M.tasks then
+    M.active_task_index = 1
+  end
+  M.tasks[M.active_task_index]:show()
 end, {})
 
 return M

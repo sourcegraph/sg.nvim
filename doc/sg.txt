@@ -119,6 +119,10 @@ Default commands for interacting with Cody
 :CodyChat {module} ~
     State a new cody chat, with an optional {title}
 
+                                                                 *:CodyToggle*
+:CodyToggle ~
+    Toggles the current Cody Chat window.
+
                                                                      *:CodyDo*
 :CodyDo {module} ~
     Instruct Cody to perform a task on selected text.
@@ -127,10 +131,20 @@ Default commands for interacting with Cody
 :CodyTask ~
     Opens the last active CodyTask.
 
+                                                             *:CodyTaskAccept*
+:CodyTaskAccept ~
+    Accepts the current CodyTask, removing it from the pending tasks list and
+    applying it to the selection the task was performed on. Can also be
+    triggered by pressing <CR> while a task is open.
+
+                                                               *:CodyTaskPrev*
+:CodyTaskPrev ~
+    Cycles to the previous CodyTask. Navigates to the appropriate buffer
+    location.
+
                                                                *:CodyTaskNext*
 :CodyTaskNext ~
-    Cycles to the next CodyTask. Navigates to the appropriate buffer location. 
-    Can also be triggered by pressing ']' while a task is open.
+    Cycles to the next CodyTask. Navigates to the appropriate buffer location.
 
 
 
