@@ -12,7 +12,7 @@ local M = {}
 
 M.tasks = {}
 
----@command CodyAsk [[
+---@command :CodyAsk [[
 --- Ask a question about the current selection.
 ---
 --- Use from visual mode to pass the current selection
@@ -129,7 +129,7 @@ vim.api.nvim_create_user_command("CodyTaskAccept", function()
   end
 end, {})
 
----@command CodyToggle [[
+---@command :CodyToggle [[
 --- Toggles the current Cody Chat window.
 ---@command ]]
 vim.api.nvim_create_user_command("CodyToggle", function(_)
