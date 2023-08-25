@@ -406,12 +406,11 @@ Optionally, you can trigger Cody Completions manually by doing:
       },
     },
   }
-</codce>
+<
 
 You can add formatting via the `formatting` field in nvim-cmp. For example,
 here's how you could configure if you're using `lspkind`:
 
-<
 >lua
   require('cmp').setup {
     ...,
