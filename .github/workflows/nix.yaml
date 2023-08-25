@@ -1,9 +1,11 @@
 name: nix-build
 
 on:
-  pull_request:
   push:
-    branches: ["master"]
+    branches: ["nix/"]
+#   pull_request:
+#   push:
+#     branches: ["master"]
 
 jobs:
   nix-build:
