@@ -50,20 +50,20 @@ vim.api.nvim_create_user_command("CodyToggle", function(_)
   cody_commands.toggle()
 end, {})
 
----@command :CodyDo {module} [[
+---@command :CodyTask {module} [[
 --- Instruct Cody to perform a task on selected text.
 ---@command ]]
-vim.api.nvim_create_user_command("CodyDo", function(command)
+vim.api.nvim_create_user_command("CodyTask", function(command)
   local bufnr = vim.api.nvim_get_current_buf()
   local task = cody_commands.do_task(bufnr, command.line1 - 1, command.line2, command.args)
   table.insert(M.tasks, task)
   M.active_task_index = #M.tasks
 end, { range = 2, nargs = 1 })
 
----@command :CodyTask [[
+---@command :CodyTaskView [[
 --- Opens the last active CodyTask.
 ---@command ]]
-vim.api.nvim_create_user_command("CodyTask", function()
+vim.api.nvim_create_user_command("CodyTaskView", function()
   if #M.tasks == 0 then
     print "No pending tasks"
     return
