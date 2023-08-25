@@ -153,6 +153,13 @@ commands.toggle = function()
 end
 
 --- Focus the currently active history window.
+---
+--- Can be set to a keymap by:
+--- <code=lua>
+---   vim.keymap.set('n', '<leader>ch', function()
+---     require("sg.cody.commands").focus_history()
+---   end)
+--- </code>
 commands.focus_history = function()
   local active = CodyBase:get_active()
   if not active then
@@ -168,6 +175,13 @@ commands.focus_history = function()
 end
 
 --- Focus the currently active prompt.
+---
+--- Can be set to a keymap by:
+--- <code=lua>
+---   vim.keymap.set('n', '<leader>cp', function()
+---     require("sg.cody.commands").focus_prompt()
+---   end)
+--- </code>
 commands.focus_prompt = function()
   local active = CodyBase:get_active()
   if not active then
