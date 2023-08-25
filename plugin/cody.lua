@@ -59,6 +59,14 @@ vim.api.nvim_create_user_command("CodyTask", function(command)
   table.insert(M.tasks, task)
   M.active_task_index = #M.tasks
 end, { range = 2, nargs = 1 })
+--
+---@command :CodyDo [[
+---@deprecated
+--- DEPRECATED. Use CodyTask.
+---@command ]]
+vim.api.nvim_create_user_command("CodyDo", function(_)
+  error "CodyDo is deprecated. Use CodyTask instead."
+end, { range = 2, nargs = 1 })
 
 ---@command :CodyTaskView [[
 --- Opens the last active CodyTask.
