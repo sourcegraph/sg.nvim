@@ -43,14 +43,6 @@ vim.api.nvim_create_user_command("CodyChat", function(command)
   cody_commands.chat(name)
 end, { nargs = "*" })
 
----@command :CodyFloat {module} [[
---- State a new cody chat in a floating window
----@command ]]
-vim.api.nvim_create_user_command("CodyFloat", function(command)
-  local bufnr = vim.api.nvim_get_current_buf()
-  cody_commands.float(bufnr, command.line1 - 1, command.line2, command.args)
-end, { range = 2, nargs = 1 })
-
 ---@command :CodyDo {module} [[
 --- Instruct Cody to perform a task on selected text.
 ---@command ]]
@@ -61,7 +53,15 @@ vim.api.nvim_create_user_command("CodyDo", function(command)
   M.active_task_index = #M.tasks
 end, { range = 2, nargs = 1 })
 
+---@command :CodyTask [[
+--- Opens the last active CodyTask.
+---@command ]]
 vim.api.nvim_create_user_command("CodyTask", function()
+  if #M.tasks == 0 then
+    print "No pending tasks"
+    return
+  end
+
   if #M.tasks < M.active_task_index then
     M.active_task_index = #M.tasks
   end
@@ -71,6 +71,10 @@ vim.api.nvim_create_user_command("CodyTask", function()
   end
 end, {})
 
+---@command :CodyTaskNext [[
+--- Cycles to the next CodyTask. Navigates to the appropriate buffer location.
+--- Can also be triggered by pressing ']' while a task is open.
+---@command ]]
 vim.api.nvim_create_user_command("CodyTaskNext", function()
   if #M.tasks == 0 then
     print "No pending tasks"
@@ -87,6 +91,10 @@ vim.api.nvim_create_user_command("CodyTaskNext", function()
   M.tasks[M.active_task_index]:show()
 end, {})
 
+---@command :CodyTaskPrev [[
+--- Cycles to the previous CodyTask. Navigates to the appropriate buffer location.
+--- Can also be triggered by pressing '[' while a task is open.
+---@command ]]
 vim.api.nvim_create_user_command("CodyTaskPrevious", function()
   if #M.tasks == 0 then
     print "No pending tasks"
@@ -103,6 +111,11 @@ vim.api.nvim_create_user_command("CodyTaskPrevious", function()
   M.tasks[M.active_task_index]:show()
 end, {})
 
+---@command :CodyTaskAccept [[
+--- Accepts the current CodyTask, removing it from the pending tasks list and applying
+--- it to the selection the task was performed on.
+--- Can also be triggered by pressing <CR> while a task is open.
+---@command ]]
 vim.api.nvim_create_user_command("CodyTaskAccept", function()
   if #M.tasks == 0 then
     print "No pending tasks"
@@ -122,22 +135,5 @@ end, {})
 vim.api.nvim_create_user_command("CodyToggle", function(_)
   cody_commands.toggle()
 end, {})
-
----@command CodyHistory [[
---- Select a previous chat from the current neovim session
----@command ]]
-vim.api.nvim_create_user_command("CodyHistory", function()
-  cody_commands.history()
-end, {})
-
--- TODO: Decide if this makes sense to still be here after
--- using cody agent now.
-vim.api.nvim_create_user_command("CodyContext", function(command)
-  local bufnr = vim.api.nvim_get_current_buf()
-  local start_line = command.line1 - 1
-  local end_line = command.line2
-
-  cody_commands.add_context(bufnr, start_line, end_line)
-end, { range = 2 })
 
 return M
