@@ -152,6 +152,15 @@ commands.ask({bufnr}, {start_line}, {end_line}, {message})     *sg.cody.ask()*
         {message}    (string)
 
 
+commands.autocomplete({request}, {callback})          *sg.cody.autocomplete()*
+    Send an autocomplete request
+
+
+    Parameters: ~
+        {request}  ({ filename: string, row: number, col: number }?)
+        {callback} (function(data: CodyAutocompleteResult))
+
+
 commands.float({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.float()*
     Ask Cody about the selected code
 
@@ -347,6 +356,56 @@ rpc.get_link()                                             *sg.rpc.get_link()*
     Return: ~
         string?: err, if any
         table?: contents, if successful
+
+
+
+================================================================================
+COMPLETE                                                         *cody.complete*
+
+Completion source for nvim-cmp.
+
+To enable, add `"cody"` to your nvim-cmp sources.
+
+Optionally, you can trigger Cody Completions manually by doing:
+
+>lua
+  require("cmp").setup {
+    mapping = {
+      ...,
+      -- Manually trigger cody completions
+      ["<c-a>"] = cmp.mapping.complete {
+        config = {
+          sources = {
+            { name = "cody" },
+          },
+        },
+      },
+    },
+  }
+</codce>
+
+You can add formatting via the `formatting` field in nvim-cmp. For example,
+here's how you could configure if you're using `lspkind`:
+
+<
+>lua
+  require('cmp').setup {
+    ...,
+    formatting = {
+      format = lspkind.cmp_format {
+        with_text = true,
+        menu = {
+          nvim_lsp = "[LSP]",
+          ...,
+          cody = "[cody]",
+        },
+      },
+    }
+  }
+<
+
+See |cmp-config.sources| for more information
+
 
 
 

@@ -1,4 +1,5 @@
 local void = require("plenary.async").void
+local run = require("plenary.async").run
 
 ---@tag "cody.commands"
 ---@config { module = "sg.cody" }
@@ -13,6 +14,7 @@ local CodyHover = require "sg.components.layout.hover"
 local Message = require "sg.cody.message"
 local Speaker = require "sg.cody.speaker"
 local State = require "sg.cody.state"
+local protocol = require "sg.cody.protocol"
 
 local commands = {}
 
@@ -32,6 +34,30 @@ commands.ask = function(bufnr, start_line, end_line, message)
   }
 
   layout:request_user_message(contents)
+end
+
+--- Send an autocomplete request
+---@param request { filename: string, row: number, col: number }?
+---@param callback function(data: CodyAutocompleteResult)
+commands.autocomplete = function(request, callback)
+  if not request then
+    request = {}
+    request.filename = vim.api.nvim_buf_get_name(0)
+    request.row, request.col = unpack(vim.api.nvim_win_get_cursor(0))
+  end
+
+  void(function()
+    local doc = protocol.get_text_document(0)
+    require("sg.cody.rpc").notify("textDocument/didChange", doc)
+    local err, data = require("sg.cody.rpc").execute.autocomplete(request.filename, request.row - 1, request.col)
+
+    if err then
+      vim.notify(string.format("Failed to get autocompletions: %s", vim.inspect(err)))
+      return
+    end
+
+    callback(data)
+  end)()
 end
 
 --- Ask Cody about the selected code
