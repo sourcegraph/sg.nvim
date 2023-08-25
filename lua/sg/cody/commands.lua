@@ -1,13 +1,14 @@
 local void = require("plenary.async").void
 local run = require("plenary.async").run
 
----@tag "cody.commands"
----@config { module = "sg.cody" }
+---@tag cody.commands
+---@config { module = "sg.cody.commands" }
 ---
 local auth = require "sg.auth"
 local sg = require "sg"
 local util = require "sg.utils"
 
+local CodyBase = require "sg.components.layout.base"
 local CodyFloat = require "sg.components.layout.float"
 local CodySplit = require "sg.components.layout.split"
 local CodyHover = require "sg.components.layout.hover"
@@ -149,6 +150,57 @@ end
 
 commands.toggle = function()
   CodySplit:toggle()
+end
+
+--- Focus the currently active history window.
+---
+--- Can be set to a keymap by:
+--- <code=lua>
+---   vim.keymap.set('n', '<leader>ch', function()
+---     require("sg.cody.commands").focus_history()
+---   end)
+--- </code>
+commands.focus_history = function()
+  local active = CodyBase:get_active()
+  if not active then
+    return
+  end
+
+  local win = active.history.win
+  if not vim.api.nvim_win_is_valid(win) then
+    return
+  end
+
+  return vim.api.nvim_set_current_win(win)
+end
+
+--- Focus the currently active prompt.
+---
+--- Can be set to a keymap by:
+--- <code=lua>
+---   vim.keymap.set('n', '<leader>cp', function()
+---     require("sg.cody.commands").focus_prompt()
+---   end)
+--- </code>
+commands.focus_prompt = function()
+  local active = CodyBase:get_active()
+  if not active then
+    return
+  end
+
+  if not active.prompt then
+    return
+  end
+
+  local win = active.prompt.win
+  if not vim.api.nvim_win_is_valid(win) then
+    return
+  end
+
+  -- ??
+  -- vim.cmd [[startinsert]]
+
+  return vim.api.nvim_set_current_win(win)
 end
 
 commands.recipes = function(bufnr, start_line, end_line)

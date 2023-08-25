@@ -139,9 +139,9 @@ Default commands for interacting with Cody
 
 
 ================================================================================
-COMMANDS"                                                      *"cody.commands"*
+COMMANDS                                                         *cody.commands*
 
-commands.ask({bufnr}, {start_line}, {end_line}, {message})     *sg.cody.ask()*
+commands.ask({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands.ask()*
     Ask Cody about the selected code
 
 
@@ -152,7 +152,7 @@ commands.ask({bufnr}, {start_line}, {end_line}, {message})     *sg.cody.ask()*
         {message}    (string)
 
 
-commands.autocomplete({request}, {callback})          *sg.cody.autocomplete()*
+commands.autocomplete({request}, {callback}) *sg.cody.commands.autocomplete()*
     Send an autocomplete request
 
 
@@ -161,7 +161,7 @@ commands.autocomplete({request}, {callback})          *sg.cody.autocomplete()*
         {callback} (function(data: CodyAutocompleteResult))
 
 
-commands.float({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.float()*
+commands.float({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands.float()*
     Ask Cody about the selected code
 
 
@@ -172,7 +172,7 @@ commands.float({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.float()*
         {message}    (string)
 
 
-commands.chat({name})                                         *sg.cody.chat()*
+commands.chat({name})                                *sg.cody.commands.chat()*
     Start a new CodyChat
 
 
@@ -183,7 +183,7 @@ commands.chat({name})                                         *sg.cody.chat()*
         CodyLayoutSplit
 
 
-commands.do_task({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.do_task()*
+commands.do_task({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands.do_task()*
     Ask Cody to preform a task on the selected code.
 
 
@@ -194,12 +194,12 @@ commands.do_task({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.do_task(
         {message}    (string)
 
 
-commands.history()                                         *sg.cody.history()*
+commands.history()                                *sg.cody.commands.history()*
     Open a selection to get an existing Cody conversation
 
 
 
-commands.add_context({start_line}, {end_line}, {state}) *sg.cody.add_context()*
+commands.add_context({start_line}, {end_line}, {state}) *sg.cody.commands.add_context()*
     Add context to an existing state
 
 
@@ -207,6 +207,30 @@ commands.add_context({start_line}, {end_line}, {state}) *sg.cody.add_context()*
         {start_line} (any)
         {end_line}   (any)
         {state}      (CodyState?)
+
+
+commands.focus_history()                    *sg.cody.commands.focus_history()*
+    Focus the currently active history window.
+
+    Can be set to a keymap by:
+    >lua
+      vim.keymap.set('n', '<leader>ch', function()
+        require("sg.cody.commands").focus_history()
+      end)
+<
+
+
+
+commands.focus_prompt()                      *sg.cody.commands.focus_prompt()*
+    Focus the currently active prompt.
+
+    Can be set to a keymap by:
+    >lua
+      vim.keymap.set('n', '<leader>cp', function()
+        require("sg.cody.commands").focus_prompt()
+      end)
+<
+
 
 
 
