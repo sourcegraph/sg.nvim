@@ -91,7 +91,7 @@ vim.api.nvim_create_user_command("CodyTaskNext", function()
   M.tasks[M.active_task_index]:show()
 end, {})
 
----@command :CodyTaskPrev [[
+---@command :CodyTaskPrevious [[
 --- Cycles to the previous CodyTask. Navigates to the appropriate buffer location.
 --- Can also be triggered by pressing '[' while a task is open.
 ---@command ]]
