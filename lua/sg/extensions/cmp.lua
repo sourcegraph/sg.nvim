@@ -68,18 +68,19 @@ source.get_keyword_pattern = function()
   return [[\%(\k\|\.\)\+]]
 end
 
-RESPONSES = {}
-
 --- Completion source
 ---@param self table
 ---@param params cmp.SourceCompletionApiParams
 ---@param callback function(response: lsp.CompletionResponse)
 source.complete = function(self, params, callback)
+  _ = self
+  _ = params
+
   commands.autocomplete(nil, function(data)
-    ---@type lsp.CompletionItem[]
     local items = {}
     for _, item in ipairs(data.items) do
       local trimmed = vim.trim(item.insertText)
+
       ---@type lsp.CompletionItem
       local completion_item = {
         filterText = trimmed,
@@ -99,7 +100,6 @@ source.complete = function(self, params, callback)
         },
       }
 
-      table.insert(RESPONSES, completion_item)
       table.insert(items, completion_item)
     end
 
