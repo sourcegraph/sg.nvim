@@ -154,7 +154,7 @@ Default commands for interacting with Cody
 
 
 ================================================================================
-COMMANDS                                                         *cody.commands*
+LUA-COMMANDS                                                 *cody.lua-commands*
 
 commands.ask({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands.ask()*
     Ask Cody about the selected code

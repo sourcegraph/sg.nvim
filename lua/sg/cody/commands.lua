@@ -1,7 +1,7 @@
 local void = require("plenary.async").void
 local run = require("plenary.async").run
 
----@tag cody.commands
+---@tag cody.lua-commands
 ---@config { module = "sg.cody.commands" }
 ---
 local auth = require "sg.auth"
