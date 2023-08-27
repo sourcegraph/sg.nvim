@@ -31,7 +31,7 @@ You can check that you're logged in by then running `:checkhealth sg`
 Requires:
 
 - nvim 0.9 or nvim nightly
-- Node.js >= 18.17.0 (LTS) at runtime for [`cody-agent.js`](github.com/sourcegraph/cody)
+- Node.js >= 18.17.0 (LTS) at runtime for [`cody-agent.js`](https://github.com/sourcegraph/cody)
 
 (By default, sg.nvim downloads released binaries from Github. If you prefer to build the plugin yourself, you'll need `cargo` to build)
 
