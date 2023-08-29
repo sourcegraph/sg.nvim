@@ -267,7 +267,6 @@ M.execute.code_question = function(message, callback)
 end
 
 M.execute.autocomplete = function(file, line, character)
-    print(file)
   return M.request("autocomplete/execute", { filePath = file, position = { line = line, character = character } })
 end
 
