@@ -1,8 +1,10 @@
 use std::{path::PathBuf, str::FromStr};
 
+use anyhow::Context;
+
 use {
     crate::{get_path_info, normalize_url, PathInfo},
-    anyhow::Result,
+    anyhow::{anyhow, Result},
     gix::discover,
     regex::Regex,
     serde::{Deserialize, Serialize},
@@ -66,10 +68,10 @@ impl Entry {
             d.pop();
             d
         };
-        let repo = discover(&dir)?;
+        let repo = discover(&dir).context("discover repo")?;
         let repo_name = link::get_repo_name(&repo)?;
         let revision = link::current_rev(&repo)?;
-        let path = path.strip_prefix(repo.path())?;
+        let path = path.strip_prefix(repo.work_dir().ok_or(anyhow!("no work dir"))?)?;
         let info = get_path_info(repo_name, revision, path.to_str().unwrap().to_owned()).await?;
         Ok(Self::from_info(info)?)
     }
