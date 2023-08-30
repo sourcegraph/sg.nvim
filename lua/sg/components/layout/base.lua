@@ -174,6 +174,12 @@ function Base:on_submit(bufnr, text, submit_opts)
   self:request_completion()
 end
 
-function Base:set_keymaps() end
+function Base:set_keymaps()
+  if self.prompt then
+    vim.api.nvim_buf_create_user_command(self.prompt.bufnr, "CodySubmit", function()
+      self.prompt:on_submit()
+    end, {})
+  end
+end
 
 return Base

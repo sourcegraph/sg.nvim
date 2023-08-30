@@ -66,6 +66,8 @@ function CodyHover:show(render_opts)
 end
 
 function CodyHover:set_keymaps()
+  self.super.set_keymaps(self)
+
   local bufnr = self.history.bufnr
 
   keymaps.map(bufnr, "i", "<c-c>", "[cody] quit chat", function()

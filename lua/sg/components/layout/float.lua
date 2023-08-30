@@ -83,6 +83,8 @@ function CodyFloat.init(opts)
 end
 
 function CodyFloat:set_keymaps()
+  self.super.set_keymaps(self)
+
   keymaps.map(self.prompt.bufnr, "n", "<CR>", "[cody] submit message", function()
     self.prompt:on_submit()
   end)
