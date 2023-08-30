@@ -42,7 +42,7 @@ mod sg_read {
 
 #[tokio::main]
 async fn main() -> Result<()> {
-    let file_path = "/Users/camdencheek/.cache/nvim/sg-lsp.log";
+    let file_path = "/home/tjdevries/.cache/nvim/sg-lsp.log";
 
     // TODO: Make logging work for everyone and configurable,
     // but for now I don't want to write to other people's systems
