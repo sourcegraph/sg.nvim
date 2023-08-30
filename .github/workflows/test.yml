@@ -62,3 +62,5 @@ jobs:
         run: |
           nvim --version
           nvim -l scripts/test.lua
+        env:
+          SRC_ACCESS_TOKEN: ${{ secrets.SRC_ACCESS_TOKEN }}
