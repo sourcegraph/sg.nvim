@@ -1,10 +1,9 @@
 use std::{path::PathBuf, str::FromStr};
 
-use gix::{discover, open, repository};
-
 use {
     crate::{get_path_info, normalize_url, PathInfo},
-    anyhow::{anyhow, Result},
+    anyhow::Result,
+    gix::discover,
     regex::Regex,
     serde::{Deserialize, Serialize},
     sg_types::*,
