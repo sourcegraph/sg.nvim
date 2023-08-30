@@ -1,12 +1,10 @@
 use std::{path::PathBuf, str::FromStr};
 
-use gix::open;
+use gix::{discover, open, repository};
 
 use {
-    crate::browse,
     crate::{get_path_info, normalize_url, PathInfo},
     anyhow::{anyhow, Result},
-    gix_discover::repository::Path,
     regex::Regex,
     serde::{Deserialize, Serialize},
     sg_types::*,
@@ -69,14 +67,10 @@ impl Entry {
             d.pop();
             d
         };
-        let repo_path = match gix_discover::upwards(&dir) {
-            Ok((Path::WorkTree(p), _)) => p,
-            _ => return Err(anyhow!("worktrees are unsupported")),
-        };
-        let repo = open(&repo_path)?;
+        let repo = discover(&dir)?;
         let repo_name = link::get_repo_name(&repo)?;
         let revision = link::current_rev(&repo)?;
-        let path = path.strip_prefix(&repo_path)?;
+        let path = path.strip_prefix(repo.path())?;
         let info = get_path_info(repo_name, revision, path.to_str().unwrap().to_owned()).await?;
         Ok(Self::from_info(info)?)
     }

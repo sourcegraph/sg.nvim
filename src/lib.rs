@@ -3,7 +3,6 @@ use {
     regex::Regex, reqwest::Client, sg_types::*,
 };
 
-pub mod browse;
 pub mod entry;
 pub mod nvim;
 

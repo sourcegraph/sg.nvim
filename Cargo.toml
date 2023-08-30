@@ -29,9 +29,7 @@ once_cell = "1"
 sg-gql = { path  = "crates/sg-gql" }
 sg-types = { path  = "crates/sg-types" }
 jsonrpc = { path = "crates/jsonrpc" }
-gix-url = "0.21.0"
 gix = "0.52.0"
-gix-discover = "0.23.0"
 
 [workspace.dependencies]
 anyhow = "1"
