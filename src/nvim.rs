@@ -207,10 +207,6 @@ impl Request {
                 Ok(Response::new(id, ResponseData::SourcegraphInfo(value)))
             }
             RequestData::SourcegraphLink { path, line, col } => {
-                // TODO: It would be cool to try and get the current location
-                // in your file but with an sg permalink even if you're not currently
-                // in a sourcegraph buffer.
-
                 let link = match Entry::new(&path).await? {
                     Entry::File(file) => {
                         let endpoint = get_endpoint();
