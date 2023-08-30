@@ -1,6 +1,12 @@
+use std::{path::PathBuf, str::FromStr};
+
+use gix::open;
+
 use {
+    crate::browse,
     crate::{get_path_info, normalize_url, PathInfo},
-    anyhow::Result,
+    anyhow::{anyhow, Result},
+    gix_discover::repository::Path,
     regex::Regex,
     serde::{Deserialize, Serialize},
     sg_types::*,
@@ -16,6 +22,9 @@ pub enum Entry {
 
 impl Entry {
     pub async fn new(uri: &str) -> Result<Self> {
+        if !uri.starts_with("sg://") {
+            return Self::from_local_path(uri).await;
+        }
         let uri = normalize_url(uri);
 
         let (remote_with_commit, path) = match uri.split_once("/-/") {
@@ -49,6 +58,27 @@ impl Entry {
 
         let info = get_path_info(remote.to_string(), commit.to_string(), path.to_string()).await?;
         Self::from_info(info)
+    }
+
+    pub async fn from_local_path(path: &str) -> Result<Self> {
+        let path = PathBuf::from_str(path)?;
+
+        // gix_discover expects a directory, not a file
+        let dir = {
+            let mut d = path.clone();
+            d.pop();
+            d
+        };
+        let repo_path = match gix_discover::upwards(&dir) {
+            Ok((Path::WorkTree(p), _)) => p,
+            _ => return Err(anyhow!("worktrees are unsupported")),
+        };
+        let repo = open(&repo_path)?;
+        let repo_name = browse::get_repo_name(&repo)?;
+        let revision = browse::current_rev(&repo)?;
+        let path = path.strip_prefix(&repo_path)?;
+        let info = get_path_info(repo_name, revision, path.to_str().unwrap().to_owned()).await?;
+        Ok(Self::from_info(info)?)
     }
 
     pub fn typename(&self) -> &'static str {

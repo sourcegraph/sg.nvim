@@ -1,3 +1,5 @@
+use std::{fs::File, io::Write};
+
 use {anyhow::Result, sg::nvim, tokio::io::BufReader};
 
 #[tokio::main]
@@ -13,9 +15,13 @@ async fn main() -> Result<()> {
             Ok(Some(nvim::Message::Request(message))) => {
                 // got some messages
                 eprintln!("Recieved a message: {message:?}");
+                let mut f = File::create("/tmp/test.txt").unwrap();
                 match message.respond().await {
                     Ok(response) => jsonrpc::write_msg(&mut stdout, response).await?,
-                    Err(err) => eprintln!("Failed to respond: {err:?}"),
+                    Err(err) => {
+                        write!(f, "failure: {:?}", err).unwrap();
+                        eprintln!("Failed to respond: {err:?}");
+                    }
                 };
             }
             Ok(Some(message)) => {
