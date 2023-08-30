@@ -1,3 +1,5 @@
+use jsonrpc::RPCErr;
+
 use {anyhow::Result, sg::nvim, tokio::io::BufReader};
 
 #[tokio::main]
@@ -16,7 +18,14 @@ async fn main() -> Result<()> {
                 match message.respond().await {
                     Ok(response) => jsonrpc::write_msg(&mut stdout, response).await?,
                     Err(err) => {
-                        eprintln!("Failed to respond: {err:?}");
+                        jsonrpc::write_err(
+                            &mut stdout,
+                            RPCErr {
+                                code: 1,
+                                message: err.to_string(),
+                            },
+                        )
+                        .await?
                     }
                 };
             }

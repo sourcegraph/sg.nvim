@@ -1,3 +1,5 @@
+use serde::Deserialize;
+
 use {
     anyhow::Result,
     serde::{de::DeserializeOwned, Serialize},
@@ -13,6 +15,25 @@ pub async fn write_msg(
     use tokio::io::AsyncWriteExt;
 
     let msg = serde_json::to_string(&req)?;
+
+    let header = format!("Content-Length: {}\r\n\r\n", msg.len());
+    out.write_all(header.as_bytes()).await?;
+    out.write_all(msg.as_bytes()).await?;
+    out.flush().await?;
+
+    Ok(())
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+pub struct RPCErr {
+    pub code: i32,
+    pub message: String,
+}
+
+pub async fn write_err(mut out: impl tokio::io::AsyncWrite + Unpin, err: RPCErr) -> Result<()> {
+    use tokio::io::AsyncWriteExt;
+
+    let msg = serde_json::to_string(&err)?;
 
     let header = format!("Content-Length: {}\r\n\r\n", msg.len());
     out.write_all(header.as_bytes()).await?;
