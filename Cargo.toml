@@ -30,7 +30,6 @@ sg-gql = { path  = "crates/sg-gql" }
 sg-types = { path  = "crates/sg-types" }
 jsonrpc = { path = "crates/jsonrpc" }
 gix-url = "0.21.0"
-bstr = "1.6.2"
 gix = "0.52.0"
 gix-discover = "0.23.0"
 
