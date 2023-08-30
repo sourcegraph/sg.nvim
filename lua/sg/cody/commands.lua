@@ -19,12 +19,21 @@ local protocol = require "sg.cody.protocol"
 
 local commands = {}
 
+--- Ask Cody a question, without any selection
+---@param message string
+commands.ask = function(message)
+  local layout = CodySplit.init {}
+
+  local contents = vim.tbl_flatten(message)
+  layout:request_user_message(contents)
+end
+
 --- Ask Cody about the selected code
 ---@param bufnr number
 ---@param start_line number
 ---@param end_line number
 ---@param message string
-commands.ask = function(bufnr, start_line, end_line, message)
+commands.ask_range = function(bufnr, start_line, end_line, message)
   local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
   local layout = CodySplit.init {}
 
