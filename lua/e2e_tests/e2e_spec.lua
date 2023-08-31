@@ -10,6 +10,10 @@ local async_util = require "plenary.async.util"
 local cody_commands = require "sg.cody.commands"
 local rpc = assert(require "sg.cody.rpc", "able to load cody rpc")
 
+-- Create a temp directory for the stable testing data used by these tests..
+local tmp_dir = vim.loop.fs_mkdtemp(string.format("%s/cody-nvim-e2e-XXXXXXX", vim.loop.os_tmpdir()))
+os.execute(string.format("git clone https://github.com/sourcegraph/e2e-sg.nvim %s", tmp_dir))
+
 local find_initialized = function()
   return vim.tbl_filter(function(msg)
     return msg.type == "notify" and msg.method == "initialized"
@@ -24,8 +28,9 @@ describe("cody e2e", function()
     end
 
     vim.wait(5000, find_initialized)
+    vim.cmd.cd(tmp_dir)
     async_util.scheduler()
-    vim.cmd.edit [[lua/sg/auth.lua]]
+    vim.cmd.edit [[pool/pool.go]]
     async_util.scheduler()
     bufnr = vim.api.nvim_get_current_buf()
 
@@ -46,6 +51,6 @@ describe("cody e2e", function()
     local joinedLines = table.concat(lines, "\n")
     -- This is not necessary, but it helps to understand why it possibly failed.
     print(joinedLines)
-    assert(string.find(joinedLines, "sg.nvim/lua/sg/auth.lua"), "Cody told us the path to the current file")
+    assert(string.find(joinedLines, string.format("/pool/pool.go", tmp_dir)), "Cody told us the path to the current file")
   end)
 end)
