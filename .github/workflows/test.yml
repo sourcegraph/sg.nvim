@@ -62,5 +62,61 @@ jobs:
         run: |
           nvim --version
           nvim -l scripts/test.lua
+  e2e_tests:
+    name: e2e tests
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            rev: nightly/nvim-linux64.tar.gz
+          - os: ubuntu-22.04
+            rev: v0.9.0/nvim-linux64.tar.gz
+          - os: macos-latest
+            rev: nightly/nvim-macos.tar.gz
+    steps:
+      - uses: actions/checkout@v3
+      - run: date +%F > todays-date
+      - name: Restore from todays cache
+        uses: actions/cache@v3
+        with:
+          path: _neovim
+          key: ${{ runner.os }}-${{ matrix.rev }}-${{ hashFiles('todays-date') }}
+
+      - name: Cache rust items
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.rustup/
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
+      - name: Prepare
+        run: |
+          # ${{ matrix.manager }} update
+          # ${{ matrix.manager }} install ${{ matrix.packages }}
+          test -d _neovim || {
+            mkdir -p _neovim
+            curl -sL "https://github.com/neovim/neovim/releases/download/${{ matrix.rev }}" | tar xzf - --strip-components=1 -C "${PWD}/_neovim"
+          }
+          mkdir -p ~/.local/share/nvim/site/pack/vendor/start
+          git clone --depth 1 https://github.com/nvim-lua/plenary.nvim ~/.local/share/nvim/site/pack/vendor/start/plenary.nvim
+          ln -s $(pwd) ~/.local/share/nvim/site/pack/vendor/start
+          echo "${PWD}/_neovim/bin:${PATH}" >> $GITHUB_PATH
+          echo VIM="${PWD}/_neovim/share/nvim/runtime" >> $GITHUB_ENV
+
+      - name: Run build scripts
+        run: |
+          nvim -u scripts/init.lua -l build/init.lua
+
+      - name: Run tests
+        run: |
+          nvim --version
+          nvim -l scripts/e2e_test.lua
         env:
           SRC_ACCESS_TOKEN: ${{ secrets.SRC_ACCESS_TOKEN }}
