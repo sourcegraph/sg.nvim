@@ -18,6 +18,11 @@ end
 
 describe("cody e2e", function()
   a.it("should ask through chat what file we are in", function()
+    if string.sub(vim.env.SRC_ACCESS_TOKEN, 1, 4) ~= "sgp_" then
+      print("\n⚠️  You need a real token to run this tests\n")
+      error("Need a real token to run e2e test suite")
+    end
+
     vim.wait(5000, find_initialized)
     async_util.scheduler()
     vim.cmd.edit [[lua/sg/auth.lua]]
