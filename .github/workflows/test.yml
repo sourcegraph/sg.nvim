@@ -120,3 +120,4 @@ jobs:
           nvim -l scripts/e2e_test.lua
         env:
           SRC_ACCESS_TOKEN: ${{ secrets.SRC_ACCESS_TOKEN }}
+          SG_NVIM_E2E: true
