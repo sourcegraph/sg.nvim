@@ -51,6 +51,6 @@ describe("cody e2e", function()
     local joinedLines = table.concat(lines, "\n")
     -- This is not necessary, but it helps to understand why it possibly failed.
     print(joinedLines)
-    assert(string.find(joinedLines, string.format("/pool/pool.go", tmp_dir)), "Cody told us the path to the current file")
+    assert(string.find(joinedLines, "/pool/pool.go"), "Cody told us the path to the current file")
   end)
 end)
