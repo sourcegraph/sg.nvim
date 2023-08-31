@@ -7,7 +7,6 @@ require("plenary.async").tests.add_to_env()
 
 local async_util = require "plenary.async.util"
 
-local cody_commands = require "sg.cody.commands"
 local rpc = assert(require "sg.cody.rpc", "able to load cody rpc")
 
 local filter_msg = function(pred)
@@ -89,6 +88,7 @@ describe("cody", function()
     eq({ "inserted" }, vim.api.nvim_buf_get_lines(0, 0, 1, false))
     assert(string.find(changed.params.filePath, "Cargo.toml"), "Did not update correct filename")
   end)
+<<<<<<< HEAD
 
   a.it("should ask through chat what file we are in", function()
     vim.wait(5000, find_initialized)
@@ -116,4 +116,34 @@ describe("cody", function()
     print(joinedLines)
     assert(string.find(joinedLines, "sg.nvim/lua/sg/auth.lua"), "Cody told us the path to the current file")
   end)
+||||||| parent of 068689b (Extract the e2e poc test in diff test suite)
+
+  a.it("should ask through chat what file we are in", function()
+    vim.wait(5000, find_initialized)
+    async_util.scheduler()
+    vim.cmd.edit [[lua/sg/auth.lua]]
+    async_util.scheduler()
+    bufnr = vim.api.nvim_get_current_buf()
+
+    vim.cmd [[CodyChat]]
+    cody_commands.focus_prompt()
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, {"What file am I looking at"})
+
+    vim.cmd.CodySubmit()
+    cody_commands.focus_history()
+    history_bufnr = vim.api.nvim_get_current_buf()
+
+    vim.wait(20000, function()
+      local lines = vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false)
+      return #lines > 5
+    end)
+
+    local lines = vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false)
+    local joinedLines = table.concat(lines, "\n")
+    -- This is not necessary, but it helps to understand why it possibly failed.
+    print(joinedLines)
+    assert(string.find(joinedLines, "sg.nvim/lua/sg/auth.lua"), "Cody told us the path to the current file")
+  end)
+=======
+>>>>>>> 068689b (Extract the e2e poc test in diff test suite)
 end)
