@@ -108,12 +108,11 @@ end, {})
 --- Get a sourcegraph link to the current repo + file + line.
 --- Automatically adds it to your '+' register
 ---@command ]]
-vim.api.nvim_create_user_command("SourcegraphLink", function()
-  local cursor = vim.api.nvim_win_get_cursor(0)
+vim.api.nvim_create_user_command("SourcegraphLink", function(command)
   void(function()
     print "requesting link..."
 
-    local err, link = require("sg.rpc").get_link(vim.api.nvim_buf_get_name(0), cursor[1], cursor[2] + 1)
+    local err, link = require("sg.rpc").get_link(vim.api.nvim_buf_get_name(0), command.line1, command.line2)
     if err or not link then
       print("Failed to get link:", link)
       return
@@ -124,6 +123,7 @@ vim.api.nvim_create_user_command("SourcegraphLink", function()
   end)()
 end, {
   desc = "Get a sourcegraph link to the current location",
+  range = 2,
 })
 
 ---@command SourcegraphSearch [[

@@ -213,7 +213,7 @@ impl Request {
                         let remote = file.remote.0;
                         let path = file.path;
 
-                        format!("{endpoint}/{remote}/-/blob/{path}?L{line}:{col}")
+                        format!("{endpoint}/{remote}/-/blob/{path}?L{line}-{col}")
                     }
                     Entry::Directory(dir) => {
                         let endpoint = get_endpoint();
