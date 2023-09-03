@@ -7,6 +7,7 @@ local config = require "sg.config"
 local debounce = require "sg.vendored.debounce"
 local document = require "sg.document"
 local protocol = require "sg.cody.protocol"
+local void = require("plenary.async").void
 
 local notify = rpc.notify
 local debounce_handles = {}
@@ -44,8 +45,48 @@ aucmd {
       return
     end
 
-    local doc = protocol.get_text_document(data.buf, { content = false })
-    notify("textDocument/didFocus", doc)
+    local reponame = vim.api.nvim_buf_get_name(data.buf)
+
+    local creds = require("sg.auth").get()
+    if not creds then
+      require("sg.notify").NO_AUTH()
+      creds = {}
+    end
+
+    void(function()
+      if reponame:find "sg://" then
+        reponame = reponame:sub(6)
+        local atIndex = reponame:find "@"
+        if atIndex then
+          reponame = reponame:sub(1, atIndex - 1)
+        else
+          atIndex = reponame:find "-"
+          reponame = reponame:sub(1, atIndex - 2)
+        end
+      else
+        void(function()
+          reponame = require("sg.cody.context").get_origin(data.buf)
+        end)()
+        notify("extensionConfiguration/didChange", {
+          accessToken = creds.token,
+          serverEndpoint = creds.endpoint,
+          codebase = reponame,
+        })
+
+        local doc = protocol.get_text_document(data.buf, { content = false })
+        notify("textDocument/didFocus", doc)
+        return
+      end
+
+      notify("extensionConfiguration/didChange", {
+        accessToken = creds.token,
+        serverEndpoint = creds.endpoint,
+        codebase = reponame,
+      })
+
+      local doc = protocol.get_text_document(data.buf, { content = false })
+      notify("textDocument/didFocus", doc)
+    end)()
   end,
 }
 
