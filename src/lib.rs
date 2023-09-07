@@ -83,6 +83,9 @@ pub fn get_endpoint() -> &'static str {
 }
 
 pub async fn get_path_info(remote: String, revision: String, path: String) -> Result<PathInfo> {
+    // Get rid of double slashes, since that messes up Sourcegraph API
+    let remote = remote.replace("//", "/");
+
     wrap_request!(
         sg_gql::path_info,
         Variables {

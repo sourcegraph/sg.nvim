@@ -1,9 +1,11 @@
 use {
     crate::{get_path_info, normalize_url, PathInfo},
-    anyhow::Result,
+    anyhow::{anyhow, Context, Result},
+    gix::discover,
     regex::Regex,
     serde::{Deserialize, Serialize},
     sg_types::*,
+    std::{path::PathBuf, str::FromStr},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -16,6 +18,9 @@ pub enum Entry {
 
 impl Entry {
     pub async fn new(uri: &str) -> Result<Self> {
+        if !uri.starts_with("sg://") {
+            return Self::from_local_path(uri).await;
+        }
         let uri = normalize_url(uri);
 
         let (remote_with_commit, path) = match uri.split_once("/-/") {
@@ -48,6 +53,18 @@ impl Entry {
         let (path, _) = path.split_once('?').unwrap_or((&path, ""));
 
         let info = get_path_info(remote.to_string(), commit.to_string(), path.to_string()).await?;
+        Self::from_info(info)
+    }
+
+    pub async fn from_local_path(path: &str) -> Result<Self> {
+        let path = PathBuf::from_str(path)?;
+        let dir = path.parent().context("Valid parent for path")?;
+        let repo = discover(dir).context("Discover repo")?;
+        let repo_name = link::get_repo_name(&repo)?;
+        let revision = link::current_rev(&repo)?;
+        let path = path.strip_prefix(repo.work_dir().context("Working directory")?)?;
+        let info = get_path_info(repo_name, revision, path.to_str().unwrap().to_owned()).await?;
+
         Self::from_info(info)
     }
 
@@ -200,5 +217,44 @@ pub struct Repo {
 impl Repo {
     fn bufname(&self) -> String {
         make_bufname(&self.remote, &self.oid, None)
+    }
+}
+
+mod link {
+    use {
+        anyhow::{anyhow, Result},
+        gix::{remote::Direction, Repository, Url},
+    };
+
+    pub(crate) fn current_rev(repo: &Repository) -> Result<String> {
+        match repo.head()?.kind {
+            gix::head::Kind::Symbolic(r) => Ok(r.name.to_string()),
+            gix::head::Kind::Detached { target, .. } => Ok(target.to_string()),
+            gix::head::Kind::Unborn(_) => Err(anyhow!("pointing to an uninitialized repo")),
+        }
+    }
+
+    pub(crate) fn get_repo_name(repo: &Repository) -> Result<String> {
+        let remote_url = read_remote_url(repo)?;
+        let name = extract_repo_name(&remote_url)?;
+        Ok(name)
+    }
+
+    fn extract_repo_name(remote_url: &Url) -> Result<String> {
+        let git_host = remote_url.host().ok_or(anyhow!("remote has no host"))?;
+        let path = remote_url.path.to_string();
+        let path = path.trim_end_matches(".git");
+
+        Ok(format!("{git_host}/{path}"))
+    }
+
+    fn read_remote_url(repo: &Repository) -> Result<Url> {
+        let default_remote = repo
+            .find_default_remote(Direction::Push)
+            .ok_or(anyhow!("no default repo"))??;
+        Ok(default_remote
+            .url(Direction::Push)
+            .ok_or(anyhow!("no default repo"))?
+            .clone())
     }
 }
