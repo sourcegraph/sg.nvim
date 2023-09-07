@@ -156,7 +156,15 @@ Default commands for interacting with Cody
 ================================================================================
 LUA-COMMANDS                                                 *cody.lua-commands*
 
-commands.ask({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands.ask()*
+commands.ask({message})                               *sg.cody.commands.ask()*
+    Ask Cody a question, without any selection
+
+
+    Parameters: ~
+        {message} (string)
+
+
+commands.ask_range({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands.ask_range()*
     Ask Cody about the selected code
 
 

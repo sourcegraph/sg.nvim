@@ -18,8 +18,12 @@ M.tasks = {}
 --- Use from visual mode to pass the current selection
 ---@command ]]
 vim.api.nvim_create_user_command("CodyAsk", function(command)
-  local bufnr = vim.api.nvim_get_current_buf()
-  cody_commands.ask(bufnr, command.line1 - 1, command.line2, command.args)
+  if command.range == 0 then
+    cody_commands.ask(command.args)
+  else
+    local bufnr = vim.api.nvim_get_current_buf()
+    cody_commands.ask_range(bufnr, command.line1 - 1, command.line2, command.args)
+  end
 end, { range = 2, nargs = 1 })
 
 -- TODO: This isn't ready yet, but we should explore how to expose this
