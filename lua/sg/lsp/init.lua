@@ -45,6 +45,7 @@ M.get_client_id = function()
   end
 
   M._client = vim.lsp.start_client {
+    name = "sourcegraph",
     cmd = { cmd },
     cmd_env = {
       SRC_ENDPOINT = auth.endpoint,
