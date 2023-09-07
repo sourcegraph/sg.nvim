@@ -1,14 +1,11 @@
-use std::{path::PathBuf, str::FromStr};
-
-use anyhow::Context;
-
 use {
     crate::{get_path_info, normalize_url, PathInfo},
-    anyhow::{anyhow, Result},
+    anyhow::{anyhow, Context, Result},
     gix::discover,
     regex::Regex,
     serde::{Deserialize, Serialize},
     sg_types::*,
+    std::{path::PathBuf, str::FromStr},
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -61,19 +58,14 @@ impl Entry {
 
     pub async fn from_local_path(path: &str) -> Result<Self> {
         let path = PathBuf::from_str(path)?;
-
-        // gix_discover expects a directory, not a file
-        let dir = {
-            let mut d = path.clone();
-            d.pop();
-            d
-        };
-        let repo = discover(&dir).context("discover repo")?;
+        let dir = path.parent().context("Valid parent for path")?;
+        let repo = discover(dir).context("Discover repo")?;
         let repo_name = link::get_repo_name(&repo)?;
         let revision = link::current_rev(&repo)?;
-        let path = path.strip_prefix(repo.work_dir().ok_or(anyhow!("no work dir"))?)?;
+        let path = path.strip_prefix(repo.work_dir().context("Working directory")?)?;
         let info = get_path_info(repo_name, revision, path.to_str().unwrap().to_owned()).await?;
-        Ok(Self::from_info(info)?)
+
+        Self::from_info(info)
     }
 
     pub fn typename(&self) -> &'static str {
@@ -229,8 +221,10 @@ impl Repo {
 }
 
 mod link {
-    use anyhow::{anyhow, Result};
-    use gix::{remote::Direction, Repository, Url};
+    use {
+        anyhow::{anyhow, Result},
+        gix::{remote::Direction, Repository, Url},
+    };
 
     pub(crate) fn current_rev(repo: &Repository) -> Result<String> {
         match repo.head()?.kind {
