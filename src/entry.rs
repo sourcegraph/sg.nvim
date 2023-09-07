@@ -1,6 +1,6 @@
 use {
     crate::{get_path_info, normalize_url, PathInfo},
-    anyhow::{anyhow, Context, Result},
+    anyhow::{Context, Result},
     gix::discover,
     regex::Regex,
     serde::{Deserialize, Serialize},
