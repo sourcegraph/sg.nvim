@@ -62,6 +62,10 @@ if ok then
   utils.async_system = async.wrap(function(cmd, opts, on_exit)
     return utils.system(cmd, opts, vim.schedule_wrap(on_exit))
   end, 3)
+
+  utils.async_input = async.wrap(function(opts, confirm)
+    return vim.ui.input(opts, confirm)
+  end, 2)
 end
 
 -- From https://gist.github.com/jrus/3197011

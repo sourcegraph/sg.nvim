@@ -9,6 +9,7 @@ local finders = require "telescope.finders"
 local entry_display = require "telescope.pickers.entry_display"
 
 local rpc = require "sg.rpc"
+local utils = require "sg.utils"
 
 local telescope = {}
 
@@ -77,7 +78,11 @@ end
 
 telescope.fuzzy_search_results = void(function(opts)
   opts = opts or {}
-  local input = opts.input or vim.fn.input "Search > "
+  local input = opts.input
+  if not input then
+    input = utils.async_input { prompt = "Search > " }
+  end
+
   if not input or input == "" then
     print "No search specified"
     return
