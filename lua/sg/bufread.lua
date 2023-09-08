@@ -65,7 +65,10 @@ local manage_new_buffer = function(bufnr, bufname, create)
     vim.api.nvim_win_set_buf(0, existing_bufnr)
     vim.api.nvim_buf_delete(bufnr, { force = true })
   else
-    vim.api.nvim_buf_set_name(bufnr, bufname)
+    -- Rename the file, but keep the alternate file.
+    --  It would be really nice if there was an easier way to do this...
+    vim.cmd(string.format("keepalt file! %s", bufname))
+
     create()
   end
 end
@@ -203,7 +206,7 @@ M._open_remote_file = function(bufnr, bufname, data)
       vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
     end)
 
-    vim.cmd [[doautocmd BufRead]]
+    vim.api.nvim_exec_autocmds("BufRead", {})
     vim.bo[bufnr].filetype = vim.filetype.match { filename = data.path, contents = contents }
       or filetype.detect(data.path, {})
   end)

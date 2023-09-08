@@ -18,11 +18,11 @@ pub enum Entry {
 
 impl Entry {
     pub async fn new(uri: &str) -> Result<Self> {
-        if !uri.starts_with("sg://") {
+        if !uri.starts_with("sg://") && !uri.starts_with("https://") {
             return Self::from_local_path(uri).await;
         }
-        let uri = normalize_url(uri);
 
+        let uri = normalize_url(uri);
         let (remote_with_commit, path) = match uri.split_once("/-/") {
             Some(split) => split,
             None => {
