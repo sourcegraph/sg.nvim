@@ -94,6 +94,12 @@ telescope.fuzzy_search_results = void(function(opts)
     return
   end
 
+  if #search_results == 0 then
+    vim.notify "[sg] No search results found"
+    vim.cmd.mode()
+    return
+  end
+
   local displayer = entry_display.create {
     separator = "|",
     items = {
