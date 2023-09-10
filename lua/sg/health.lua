@@ -82,9 +82,13 @@ local report_env = function()
     return err or info
   end)
 
+  if err == nil and info == nil then
+    err = "Timed out waiting for response"
+  end
+
   if err then
     vim.health.error("  Sourcegraph Connection info failed: " .. vim.inspect(err))
-    ok = false
+    return false
   else
     vim.health.ok("  Sourcegraph Connection info: " .. vim.inspect(info))
   end
