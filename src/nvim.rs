@@ -99,8 +99,8 @@ pub enum RequestData {
     #[serde(rename = "sourcegraph/link")]
     SourcegraphLink {
         path: String,
-        line: usize,
-        col: usize,
+        start_line: usize,
+        end_line: usize,
     },
 }
 
@@ -206,14 +206,14 @@ impl Request {
 
                 Ok(Response::new(id, ResponseData::SourcegraphInfo(value)))
             }
-            RequestData::SourcegraphLink { path, line, col } => {
+            RequestData::SourcegraphLink { path, start_line, end_line } => {
                 let link = match Entry::new(&path).await? {
                     Entry::File(file) => {
                         let endpoint = get_endpoint();
                         let remote = file.remote.0;
                         let path = file.path;
 
-                        format!("{endpoint}/{remote}/-/blob/{path}?L{line}-{col}")
+                        format!("{endpoint}/{remote}/-/blob/{path}?L{start_line}-{end_line}")
                     }
                     Entry::Directory(dir) => {
                         let endpoint = get_endpoint();
