@@ -126,6 +126,10 @@ M.set_nvim_auth = function(opts)
   opts.endpoint = opts.endpoint or vim.fn.input "SRC_ENDPOINT > "
   opts.token = opts.token or vim.fn.inputsecret "SRC_ACCESS_TOKEN > "
 
+  if opts.endpoint:sub(1, 4) ~= "http" then
+    opts.endpoint = "https://" .. opts.endpoint
+  end
+
   assert(opts.token, "[sg-cody] Nvim auth must have a token")
   assert(opts.endpoint, "[sg-cody] Nvim auth must have an endpoint")
 
