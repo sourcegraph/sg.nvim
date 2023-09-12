@@ -37,7 +37,7 @@ describe("cody", function()
       return recipe.id == "chat-question"
     end, data)[1]
 
-    eq(chat_question, { id = "chat-question", title = "chat-question" })
+    eq(chat_question, { id = "chat-question", title = "Chat Question" })
   end)
 
   a.it("should handle file lifecycle", function()
