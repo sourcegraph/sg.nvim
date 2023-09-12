@@ -19,6 +19,7 @@
 local types = require "sg.types"
 
 ---@class sg.config
+---@field enable_cody boolean: Enable/disable cody integration
 ---@field download_binaries boolean: Default true, download latest release from Github
 ---@field node_executable string: path to node executable
 ---@field cody_agent string: path to the cody-agent js bundle
@@ -31,6 +32,8 @@ local types = require "sg.types"
 local config = {}
 
 config.download_binaries = true
+
+config.enable_cody = true
 config.node_executable = "node"
 config.cody_agent = vim.api.nvim_get_runtime_file("dist/cody-agent.js", false)[1]
 

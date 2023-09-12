@@ -1,6 +1,7 @@
--- For some reason this doesn't always get loaded?...
-vim.cmd [[runtime! plugin/cody-agent.lua]]
--- local augroup_cody = vim.api.nvim_create_augroup("augroup-cody", { clear = false })
+vim.cmd [[runtime! after/plugin/cody.lua]]
+vim.cmd [[runtime! after/plugin/cody-agent.lua]]
+
+require("sg.cody.rpc").start()
 
 require("plenary.async").tests.add_to_env()
 

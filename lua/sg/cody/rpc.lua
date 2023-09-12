@@ -50,6 +50,10 @@ M.message_callbacks = {}
 ---@param opts { force: boolean? }?
 ---@return VendoredPublicClient?
 M.start = function(opts)
+  if not config.enable_cody then
+    return nil
+  end
+
   opts = opts or {}
 
   if M.client and not opts.force then
@@ -260,6 +264,10 @@ end
 
 --- Shuts down the client by sending a shutdown request and waiting for completion.
 M.shutdown = function()
+  if not M.client then
+    return
+  end
+
   local done = false
   M.client.request("shutdown", {}, function()
     track { type = "shutdown" }
@@ -272,6 +280,10 @@ M.shutdown = function()
 end
 
 M.exit = function()
+  if not M.client then
+    return
+  end
+
   M.notify("exit", {})
 
   -- Force closing the connection.

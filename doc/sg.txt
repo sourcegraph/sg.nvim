@@ -46,6 +46,8 @@ sg.config                                                          *sg.config*
 
 
   Configuration Options: ~
+    {enable_cody}         (boolean)                    Enable/disable cody
+                                                       integration
     {download_binaries}   (boolean)                    Default true, download
                                                        latest release from
                                                        Github
