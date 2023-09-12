@@ -1,7 +1,5 @@
 local rpc = require "sg.cody.rpc"
-if not rpc then
-  return
-end
+rpc.start()
 
 local config = require "sg.config"
 local debounce = require "sg.vendored.debounce"

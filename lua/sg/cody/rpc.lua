@@ -1,17 +1,3 @@
--- Attempt to clear SG_CODY_CLIENT if one is already
--- running currently.
---
--- This should hopefully prevent multiple cody clients from
--- running at a time.
-if SG_CODY_CLIENT then
-  local ok, err = pcall(SG_CODY_CLIENT.terminate)
-  if not ok then
-    vim.notify(string.format("[cody-agent] Attempting to close existing client failed:%s", err))
-  end
-
-  SG_CODY_CLIENT = nil
-end
-
 local async = require "plenary.async"
 local void = async.void
 
@@ -22,9 +8,6 @@ local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
 local utils = require "sg.utils"
 
 local M = {}
-
----@type CodyServerInfo
-M.server_info = {}
 
 --- Whether the current cody connection is ready for requests
 ---     TODO: We should think more about how to use this and structure it.
@@ -47,93 +30,135 @@ local is_ready = function(opts)
   return M.server_info.authenticated and M.server_info.codyEnabled
 end
 
-_SG_CODY_RPC_MESSAGES = _SG_CODY_RPC_MESSAGES or {}
-M.messages = _SG_CODY_RPC_MESSAGES
-
 local track = function(msg)
+  log.trace(msg)
+
   if config.testing then
     table.insert(M.messages, msg)
   end
 end
 
----@type table<string, CodyMessageHandler?>
-M.message_callbacks = {}
-
----@type {["chat/updateMessageInProgress"]: fun(noti: CodyChatUpdateMessageInProgressNoti?)}
-local notification_handlers = {
-  ["chat/updateMessageInProgress"] = function(noti)
-    void(function()
-      if not noti or not noti.data or not noti.data.id then
-        return
-      end
-
-      if not noti.text then
-        M.message_callbacks[noti.data.id] = nil
-        return
-      end
-
-      local callback = M.message_callbacks[noti.data.id]
-      if callback then
-        noti.text = vim.trim(noti.text) -- trim random white space
-        callback(noti)
-      end
-    end)()
-  end,
-  ["debug/message"] = function(noti)
-    void(function()
-      log.debug("[cody-agent] debug:", noti.message)
-    end)()
-  end,
-}
-
-local server_handlers = {
-  ["showQuickPick"] = function(_, params)
-    return function(respond)
-      vim.ui.select(params, nil, function(selected)
-        respond(selected)
-      end)
-    end
-  end,
-}
-
 local cody_args = { config.cody_agent }
-
 -- We can insert node breakpoint to debug the agent if needed
-if false then
-  table.insert(cody_args, 1, "--insert-brk")
-end
+-- table.insert(cody_args, 1, "--insert-brk")
 
-SG_CODY_CLIENT = vendored_rpc.start(config.node_executable, cody_args, {
-  notification = function(method, data)
-    if notification_handlers[method] then
-      notification_handlers[method](data)
-    else
-      log.warn("[cody-agent] unhandled method:", method)
+---@type table<string, CodyMessageHandler?>
+local chat_message_handlers = {}
+
+--- Start the server
+---@param opts { force: boolean? }?
+---@return VendoredPublicClient?
+M.start = function(opts)
+  opts = opts or {}
+
+  if M.client and not opts.force then
+    return M.client
+  end
+
+  if M.client then
+    M.shutdown()
+    M.exit()
+    vim.wait(10)
+  end
+
+  ---@type {["chat/updateMessageInProgress"]: fun(noti: CodyChatUpdateMessageInProgressNoti?)}
+  local notification_handlers = {
+    ["debug/message"] = function(noti)
+      log.debug("[cody-agent] debug:", noti.message)
+    end,
+
+    ["chat/updateMessageInProgress"] = function(noti)
+      void(function()
+        if not noti or not noti.data or not noti.data.id then
+          return
+        end
+
+        if not noti.text then
+          chat_message_handlers[noti.data.id] = nil
+          return
+        end
+
+        local callback = chat_message_handlers[noti.data.id]
+        if callback then
+          noti.text = vim.trim(noti.text) -- trim random white space
+          callback(noti)
+        end
+      end)()
+    end,
+  }
+
+  local server_handlers = {
+    ["showQuickPick"] = function(_, params)
+      return function(respond)
+        vim.ui.select(params, nil, function(selected)
+          respond(selected)
+        end)
+      end
+    end,
+  }
+
+  M.client = vendored_rpc.start(config.node_executable, cody_args, {
+    notification = function(method, data)
+      if notification_handlers[method] then
+        notification_handlers[method](data)
+      else
+        log.warn("[cody-agent] unhandled method:", method)
+      end
+    end,
+    server_request = function(method, params)
+      track {
+        type = "server_request",
+        method = method,
+        params = params,
+      }
+
+      local handler = server_handlers[method]
+      if handler then
+        return handler(method, params)
+      else
+        log.warn("[cody-agent] unhandled server request:", method)
+      end
+    end,
+    on_exit = function(code, signal)
+      log.warn("[cody-agen] closed cody agent", code, signal)
+    end,
+  })
+
+  void(function()
+    -- Run initialize as first message to send
+    local err, data = M.initialize()
+    if err ~= nil then
+      vim.notify("[sg-cody]" .. vim.inspect(err))
+      return nil
     end
-  end,
-  server_request = function(method, params)
-    track {
-      type = "server_request",
-      method = method,
-      params = params,
-    }
 
-    local handler = server_handlers[method]
-    if handler then
-      return handler(method, params)
-    else
-      log.warn("[cody-agent] unhandled server request:", method)
+    if not data then
+      vim.notify "[sg-cody] expected initialize data, but got none"
+      return nil
     end
-  end,
-  on_exit = function(code, signal)
-    log.warn("[cody-agen] closed cody agent", code, signal)
-  end,
-})
 
-local client = SG_CODY_CLIENT
-if not client then
-  vim.notify "[sg.nvim] failed to start cody-agent"
-  return nil
+    -- When not testing, we don't need to check auth
+    -- (this won't work with actual sourcegraph isntance, so it's
+    --  not actually skipping auth on the backend or anything)
+    if not config.testing then
+      if not data.authenticated then
+        require("sg.notify").INVALID_AUTH()
+        return nil
+      end
+
+      if not data.codyEnabled then
+        require("sg.notify").CODY_DISABLED()
+        return nil
+      end
+    end
+
+    M.server_info = data
+
+    -- And then respond that we've initialized
+    local _ = M.notify("initialized", {})
+  end)()
+
+  return M.client
 end
 
 --- Send a notification message to the client.
@@ -147,8 +172,7 @@ M.notify = function(method, params)
     params = params,
   }
 
-  log.trace("notify", method, params)
-  client.notify(method, params)
+  M.client.notify(method, params)
 end
 
 M.request = async.wrap(function(method, params, callback)
@@ -167,8 +191,7 @@ M.request = async.wrap(function(method, params, callback)
     return
   end
 
-  log.trace("request", method, params)
-  return client.request(method, params, function(err, result)
+  return M.client.request(method, params, function(err, result)
     track {
       type = "response",
       method = method,
@@ -216,7 +239,7 @@ end
 --- Shuts down the client by sending a shutdown request and waiting for completion.
 M.shutdown = function()
   local done = false
-  client.request("shutdown", {}, function()
+  M.client.request("shutdown", {}, function()
     track { type = "shutdown" }
     done = true
   end)
@@ -231,8 +254,14 @@ M.exit = function()
 
   -- Force closing the connection.
   -- I think this is good to make sure we don't leave anything running
-  client.terminate()
+  M.client.terminate()
 end
+
+---@type CodyServerInfo
+M.server_info = {}
+
+_SG_CODY_RPC_MESSAGES = _SG_CODY_RPC_MESSAGES or {}
+M.messages = _SG_CODY_RPC_MESSAGES
 
 M.execute = {}
 
@@ -243,16 +272,13 @@ M.execute.list_recipes = function()
 end
 
 --- Execute a chat question and get a streaming response
---- Sadly just puts whatever we get as the response into the currently
---- open window... I will fix this later (needs protocol changes)
 ---@param message string
 ---@param callback CodyMessageHandler
 ---@return table | nil
 ---@return table | nil
 M.execute.chat_question = function(message, callback)
   local message_id = utils.uuid()
-
-  M.message_callbacks[message_id] = callback
+  chat_message_handlers[message_id] = callback
 
   return M.request("recipes/execute", { id = "chat-question", humanChatInput = message, data = { id = message_id } })
 end
@@ -265,8 +291,7 @@ end
 ---@return table | nil
 M.execute.code_question = function(message, callback)
   local message_id = utils.uuid()
-
-  M.message_callbacks[message_id] = callback
+  chat_message_handlers[message_id] = callback
 
   return M.request("recipes/execute", { id = "code-question", humanChatInput = message, data = { id = message_id } })
 end
@@ -274,46 +299,5 @@ end
 M.execute.autocomplete = function(file, line, character)
   return M.request("autocomplete/execute", { filePath = file, position = { line = line, character = character } })
 end
-
--- M.execute.fixup = function(message) end
-
--- M.execute.git_history = function()
---   return M.request("recipes/execute", { id = "git-history", humanChatInput = "" })
--- end
-
--- ===== REQUIRE RUNTIME SIDE EFFECT HERE ======
--- Always attempt to the start the server when loading.
-void(function()
-  -- Run initialize as first message to send
-  local err, data = M.initialize()
-  if err ~= nil then
-    vim.notify("[sg-cody]" .. vim.inspect(err))
-    return
-  end
-
-  if not data then
-    vim.notify "[sg-cody] expected initialize data, but got none"
-    return
-  end
-
-  -- TODO: This feels sad and painful
-  if not config.testing then
-    if not data.authenticated then
-      require("sg.notify").INVALID_AUTH()
-      return
-    end
-
-    if not data.codyEnabled then
-      require("sg.notify").CODY_DISABLED()
-      return
-    end
-  end
-
-  M.server_info = data
-
-  -- And then respond that we've initialized
-  local _ = M.notify("initialized", {})
-end)()
--- =============================================
 
 return M
