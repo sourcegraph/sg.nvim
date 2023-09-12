@@ -45,6 +45,8 @@ local accept_tos = function(opts)
   return cody_data.tos_accepted
 end
 
+--- Setup sourcegraph
+---@param opts sg.config
 M.setup = function(opts)
   opts = opts or {}
 

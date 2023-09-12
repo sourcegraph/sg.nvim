@@ -9,20 +9,6 @@ if not bin_sg_nvim then
   return require("sg.notify").NO_BUILD()
 end
 
--- Attempt to clear SG_SG_CLIENT if one is already
--- running currently.
---
--- This should hopefully prevent multiple cody clients from
--- running at a time.
-if SG_SG_CLIENT then
-  local ok, err = pcall(SG_SG_CLIENT.terminate)
-  if not ok then
-    vim.notify(string.format("[sg-agent] Attempting to close existing client failed:%s", err))
-  end
-
-  SG_SG_CLIENT = nil
-end
-
 local log = require "sg.log"
 local lsp = require "sg.vendored.vim-lsp-rpc"
 
@@ -31,41 +17,59 @@ local M = {}
 local notification_handlers = {}
 local server_handlers = {}
 
-SG_SG_CLIENT = lsp.start(bin_sg_nvim, {}, {
-  notification = function(method, data)
-    if notification_handlers[method] then
-      notification_handlers[method](data)
-    else
-      log.error("[sg-agent] unhandled method:", method)
-    end
-  end,
-  server_request = function(method, params)
-    local handler = server_handlers[method]
-    if handler then
-      return handler(method, params)
-    else
-      log.error("[cody-agent] unhandled server request:", method)
-    end
-  end,
-}, {
-  env = {
-    PATH = vim.env.PATH,
-    SRC_ACCESS_TOKEN = creds.token,
-    SRC_ENDPOINT = creds.endpoint,
-  },
-})
+--- Start the server
+---@param opts { force: boolean? }?
+---@return VendoredPublicClient?
+M.start = function(opts)
+  opts = opts or {}
 
-if not SG_SG_CLIENT then
-  vim.notify "[sg.nvim] failed to start cody-agent"
-  return nil
+  if M.client and not opts.force then
+    return M.client
+  end
+
+  if M.client then
+    M.client.terminate()
+    vim.wait(10)
+  end
+
+  M.client = lsp.start(bin_sg_nvim, {}, {
+    notification = function(method, data)
+      if notification_handlers[method] then
+        notification_handlers[method](data)
+      else
+        log.error("[sg-agent] unhandled method:", method)
+      end
+    end,
+    server_request = function(method, params)
+      local handler = server_handlers[method]
+      if handler then
+        return handler(method, params)
+      else
+        log.error("[cody-agent] unhandled server request:", method)
+      end
+    end,
+  }, {
+    env = {
+      PATH = vim.env.PATH,
+      SRC_ACCESS_TOKEN = creds.token,
+      SRC_ENDPOINT = creds.endpoint,
+    },
+  })
+
+  if not M.client then
+    vim.notify "[sg.nvim] failed to start sg.nvim plugin"
+    return nil
+  end
 end
 
 M.notify = function(...)
-  return SG_SG_CLIENT.notify(...)
+  M.start()
+  return M.client.notify(...)
 end
 
 M.request = require("plenary.async").wrap(function(method, params, callback)
-  return SG_SG_CLIENT.request(method, params, function(err, result)
+  M.start()
+  return M.client.request(method, params, function(err, result)
     return callback(err, result)
   end)
 end, 3)

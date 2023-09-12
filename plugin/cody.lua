@@ -35,7 +35,7 @@ end, { range = 2, nargs = 1 })
 --   cody_commands.recipes(bufnr, command.line1 - 1, command.line2)
 -- end, { range = 2 })
 
----@command :CodyChat {module} [[
+---@command :CodyChat {title} [[
 --- State a new cody chat, with an optional {title}
 ---@command ]]
 vim.api.nvim_create_user_command("CodyChat", function(command)
@@ -54,7 +54,7 @@ vim.api.nvim_create_user_command("CodyToggle", function(_)
   cody_commands.toggle()
 end, {})
 
----@command :CodyTask {module} [[
+---@command :CodyTask {task_description} [[
 --- Instruct Cody to perform a task on selected text.
 ---@command ]]
 vim.api.nvim_create_user_command("CodyTask", function(command)
@@ -144,6 +144,16 @@ vim.api.nvim_create_user_command("CodyTaskNext", function()
     M.active_task_index = 1
   end
   M.tasks[M.active_task_index]:show()
+end, {})
+
+---@command :CodyRestart [[
+--- Restarts Cody and Sourcegraph, clearing all state.
+---
+--- Useful if you've re-authenticated or are testing your config
+---@command ]]
+vim.api.nvim_create_user_command("CodyRestart", function()
+  require("sg.cody.rpc").start { force = true }
+  require("sg.request").start { force = true }
 end, {})
 
 return M
