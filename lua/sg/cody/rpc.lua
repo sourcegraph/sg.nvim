@@ -1,6 +1,8 @@
 local async = require "plenary.async"
 local void = async.void
 
+local document = require "sg.document"
+local protocol = require "sg.cody.protocol"
 local log = require "sg.log"
 local config = require "sg.config"
 local auth = require "sg.auth"
@@ -156,6 +158,14 @@ M.start = function(opts)
 
     -- And then respond that we've initialized
     local _ = M.notify("initialized", {})
+
+    -- Load all buffers
+    for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+      protocol.did_open(bufnr)
+    end
+
+    -- Notify current buffer
+    protocol.did_focus(vim.api.nvim_get_current_buf())
   end)()
 
   return M.client
@@ -166,6 +176,8 @@ end
 ---@param method string: The notification method name.
 ---@param params table: The parameters to send with the notification.
 M.notify = function(method, params)
+  M.start()
+
   track {
     type = "notify",
     method = method,
@@ -176,6 +188,8 @@ M.notify = function(method, params)
 end
 
 M.request = async.wrap(function(method, params, callback)
+  M.start()
+
   track {
     type = "request",
     method = method,

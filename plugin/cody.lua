@@ -153,7 +153,7 @@ end, {})
 ---@command ]]
 vim.api.nvim_create_user_command("CodyRestart", function()
   require("sg.cody.rpc").start { force = true }
-  require("sg.rpc").start { force = true }
+  require("sg.request").start { force = true }
 end, {})
 
 return M

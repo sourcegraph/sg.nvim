@@ -1,13 +1,4 @@
-local rpc = require "sg.cody.rpc"
-rpc.start()
-
-local config = require "sg.config"
-local debounce = require "sg.vendored.debounce"
-local document = require "sg.document"
 local protocol = require "sg.cody.protocol"
-
-local notify = rpc.notify
-local debounce_handles = {}
 
 local augroup_cody = vim.api.nvim_create_augroup("augroup-cody", {})
 local aucmd = function(opts)
@@ -23,90 +14,20 @@ local aucmd = function(opts)
   })
 end
 
-aucmd {
-  "BufReadPost",
-  cb = function(data)
-    if not document.is_useful(data.buf) then
-      return
-    end
-
-    local doc = protocol.get_text_document(data.buf)
-    notify("textDocument/didOpen", doc)
-  end,
-}
-
-aucmd {
-  "BufEnter",
-  cb = function(data)
-    if not document.is_useful(data.buf) then
-      return
-    end
-
-    local doc = protocol.get_text_document(data.buf, { content = false })
-    notify("textDocument/didFocus", doc)
-  end,
-}
-
-aucmd {
-  "BufDelete",
-  cb = function(data)
-    local bufnr = data.buf
-    if debounce_handles[bufnr] then
-      local handle = debounce_handles[bufnr]
-      if not handle:is_closing() then
-        handle:close()
-      end
-    end
-
-    if not document.is_useful(data.buf) then
-      return
-    end
-
-    local doc = protocol.get_text_document(data.buf, { content = false })
-    if not doc.filePath then
-      return
-    end
-
-    notify("textDocument/didClose", doc)
-  end,
-}
-
-aucmd {
-  "BufAdd",
-  cb = function(data)
-    local bufnr = data.buf
-    if debounce_handles[bufnr] then
-      return
-    end
-
-    if not document.is_useful(bufnr) then
-      return
-    end
-
-    local notify_changes, timer = debounce.debounce_trailing(function()
-      local doc = protocol.get_text_document(data.buf)
-      notify("textDocument/didChange", doc)
-    end, config.did_change_debounce)
-
-    debounce_handles[bufnr] = timer
-
-    vim.schedule(function()
-      if vim.api.nvim_buf_is_valid(bufnr) then
-        vim.api.nvim_buf_attach(bufnr, true, {
-          on_lines = notify_changes,
-        })
-      end
-    end)
-  end,
-}
+-- stylua: ignore start
+aucmd { "BufEnter", cb = function(data) protocol.did_focus(data.buf) end }
+aucmd { "BufDelete", cb = function(data) protocol.did_close(data.buf) end }
+aucmd { "BufAdd", "BufReadPost", cb = function(data) protocol.did_open(data.buf) end }
+-- stylua: ignore end
 
 aucmd {
   "VimLeavePre",
   cb = function()
+    local rpc = require "sg.cody.rpc"
     rpc.shutdown()
     rpc.exit()
   end,
 }
 
--- TODO: Should add something in the protocol for changing workspace root
+-- TODO: Should add something in the protocol for changing workspace root?
 -- aucmd { "DirChanged", cb = function() end, }
