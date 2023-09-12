@@ -18,6 +18,14 @@ An alternative to this is to use the environment variables specified for
 
 You can check that you're logged in by then running `:checkhealth sg`
 
+M.setup({opts})                                                    *M.setup()*
+    Setup sourcegraph
+
+
+    Parameters: ~
+        {opts} (sg.config)
+
+
 
 ================================================================================
 SETUP                                                                 *sg.setup*
