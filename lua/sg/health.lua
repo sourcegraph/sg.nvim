@@ -82,13 +82,14 @@ local report_env = function()
     return err or info
   end)
 
-  if err then
+  if err or not info then
     vim.health.error("  Sourcegraph Connection info failed: " .. vim.inspect(err))
     ok = false
   else
     vim.health.ok("  Sourcegraph Connection info: " .. vim.inspect(info))
   end
 
+  info = info or {}
   local expected_cargo_version = require "sg.private.cargo_version"
   if expected_cargo_version ~= info.sg_nvim_version then
     vim.health.error "Mismatched cargo and expected version. Update using :SourcegraphDownloadBinaries or :SourcegraphBuild"
