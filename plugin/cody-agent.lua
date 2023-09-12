@@ -15,19 +15,14 @@ local aucmd = function(opts)
 end
 
 -- stylua: ignore start
+
+-- Connect protocol messages to neovim events
 aucmd { "BufEnter", cb = function(data) protocol.did_focus(data.buf) end }
 aucmd { "BufDelete", cb = function(data) protocol.did_close(data.buf) end }
 aucmd { "BufAdd", "BufReadPost", cb = function(data) protocol.did_open(data.buf) end }
--- stylua: ignore end
-
-aucmd {
-  "VimLeavePre",
-  cb = function()
-    local rpc = require "sg.cody.rpc"
-    rpc.shutdown()
-    rpc.exit()
-  end,
-}
+aucmd { "VimLeavePre", cb = protocol.exit }
 
 -- TODO: Should add something in the protocol for changing workspace root?
 -- aucmd { "DirChanged", cb = function() end, }
+
+-- stylua: ignore end

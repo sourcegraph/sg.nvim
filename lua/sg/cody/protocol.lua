@@ -109,4 +109,15 @@ proto.did_focus = function(bufnr)
   require("sg.cody.rpc").notify("textDocument/didFocus", proto.get_text_document(bufnr, { content = false }))
 end
 
+proto.exit = function()
+  local rpc = require "sg.cody.rpc"
+
+  if not rpc.client then
+    return
+  end
+
+  rpc.shutdown()
+  rpc.exit()
+end
+
 return proto

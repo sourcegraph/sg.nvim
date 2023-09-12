@@ -1,7 +1,6 @@
 local async = require "plenary.async"
 local void = async.void
 
-local document = require "sg.document"
 local protocol = require "sg.cody.protocol"
 local log = require "sg.log"
 local config = require "sg.config"
@@ -45,7 +44,7 @@ local cody_args = { config.cody_agent }
 -- table.insert(cody_args, 1, "--insert-brk")
 
 ---@type table<string, CodyMessageHandler?>
-local chat_message_handlers = {}
+M.message_callbacks = {}
 
 --- Start the server
 ---@param opts { force: boolean? }?
@@ -63,6 +62,10 @@ M.start = function(opts)
     vim.wait(10)
   end
 
+  if 1 ~= vim.fn.executable(config.node_executable) then
+    return require("sg.notify").INVALID_NODE(config.node_executable)
+  end
+
   ---@type {["chat/updateMessageInProgress"]: fun(noti: CodyChatUpdateMessageInProgressNoti?)}
   local notification_handlers = {
     ["debug/message"] = function(noti)
@@ -76,11 +79,11 @@ M.start = function(opts)
         end
 
         if not noti.text then
-          chat_message_handlers[noti.data.id] = nil
+          M.message_callbacks[noti.data.id] = nil
           return
         end
 
-        local callback = chat_message_handlers[noti.data.id]
+        local callback = M.message_callbacks[noti.data.id]
         if callback then
           noti.text = vim.trim(noti.text) -- trim random white space
           callback(noti)
@@ -176,7 +179,9 @@ end
 ---@param method string: The notification method name.
 ---@param params table: The parameters to send with the notification.
 M.notify = function(method, params)
-  M.start()
+  if not M.start() then
+    return
+  end
 
   track {
     type = "notify",
@@ -188,7 +193,10 @@ M.notify = function(method, params)
 end
 
 M.request = async.wrap(function(method, params, callback)
-  M.start()
+  if not M.start() then
+    callback(nil, "RPC client not initialized")
+    return
+  end
 
   track {
     type = "request",
@@ -292,7 +300,7 @@ end
 ---@return table | nil
 M.execute.chat_question = function(message, callback)
   local message_id = utils.uuid()
-  chat_message_handlers[message_id] = callback
+  M.message_callbacks[message_id] = callback
 
   return M.request("recipes/execute", { id = "chat-question", humanChatInput = message, data = { id = message_id } })
 end
@@ -305,7 +313,7 @@ end
 ---@return table | nil
 M.execute.code_question = function(message, callback)
   local message_id = utils.uuid()
-  chat_message_handlers[message_id] = callback
+  M.message_callbacks[message_id] = callback
 
   return M.request("recipes/execute", { id = "code-question", humanChatInput = message, data = { id = message_id } })
 end
