@@ -1,3 +1,7 @@
+if not require("sg.config").enable_cody then
+  return
+end
+
 local protocol = require "sg.cody.protocol"
 
 local augroup_cody = vim.api.nvim_create_augroup("augroup-cody", {})

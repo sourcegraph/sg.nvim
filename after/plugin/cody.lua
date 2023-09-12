@@ -6,6 +6,10 @@
 
 ---@config { ["module"] = "cody" }
 
+if not require("sg.config").enable_cody then
+  return
+end
+
 local cody_commands = require "sg.cody.commands"
 
 local M = {}
