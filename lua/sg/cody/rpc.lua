@@ -79,6 +79,11 @@ local notification_handlers = {
       end
     end)()
   end,
+  ["debug/message"] = function(noti)
+    void(function()
+      log.debug("[cody-agent] debug:", noti.message)
+    end)()
+  end,
 }
 
 local server_handlers = {
@@ -198,7 +203,7 @@ M.initialize = function()
       serverEndpoint = creds.endpoint,
       codebase = remoteurl,
       -- TODO: Custom Headers for neovim
-      -- customHeaders = { "
+      customHeaders = { ["User-Agent"] = "Sourcegraph Cody Neovim Plugin" },
     },
     capabilities = {
       chat = "streaming",
