@@ -54,7 +54,15 @@ local M = {}
 
 local tarfile = joinpath(plugin_root, "dist", fullname)
 local move_to_dist = function(bin)
-  return vim.loop.fs_rename(joinpath(plugin_root, "dist", basename, bin), joinpath(plugin_root, "dist", bin))
+  local destination = joinpath(plugin_root, "dist", bin)
+
+  local ok = vim.loop.fs_rename(joinpath(plugin_root, "dist", basename, bin), destination)
+  if not ok then
+    return ok
+  end
+
+  local new_time = os.time()
+  return vim.loop.fs_utime(destination, new_time, new_time)
 end
 
 M.download = function()
@@ -76,11 +84,29 @@ M.download = function()
   end
   print "[sg] Done downloading"
 
-  local tar = system({ "tar", "-xvf", tarfile, "-C", joinpath(plugin_root, "dist/") }):wait()
-  if tar.code ~= 0 then
-    error("Failed to untar release" .. tar)
+  if sysname == "windows_nt" then
+    local zipfile = joinpath(plugin_root, "dist", fullname)
+
+    local unzip = system({
+      "powershell",
+      "-Command",
+      "Expand-Archive",
+      "-Path",
+      zipfile,
+      "-DestinationPath",
+      joinpath(plugin_root, "dist"),
+    }):wait()
+    if unzip.code ~= 0 then
+      error("Failed to unzip release" .. unzip)
+    end
+    print "[sg] Done extracting"
+  else
+    local tar = system({ "tar", "-xvf", tarfile, "-C", joinpath(plugin_root, "dist/") }):wait()
+    if tar.code ~= 0 then
+      error("Failed to untar release" .. tar)
+    end
+    print "[sg] Done extracting"
   end
-  print "[sg] Done extracting"
 
   local lsp_rename = move_to_dist "sg-lsp"
   if not lsp_rename then
