@@ -56,13 +56,16 @@ local tarfile = joinpath(plugin_root, "dist", fullname)
 local move_to_dist = function(bin)
   local destination = joinpath(plugin_root, "dist", bin)
 
-  local ok = vim.loop.fs_rename(joinpath(plugin_root, "dist", basename, bin), destination)
-  if not ok then
-    return ok
+  if not vim.loop.fs_rename(joinpath(plugin_root, "dist", basename, bin), destination) then
+    return false
   end
 
   local new_time = os.time()
-  return vim.loop.fs_utime(destination, new_time, new_time)
+  if not vim.loop.fs_utime(destination, new_time, new_time) then
+    return false
+  end
+
+  return true
 end
 
 M.download = function()
