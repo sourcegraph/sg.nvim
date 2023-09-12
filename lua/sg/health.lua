@@ -106,6 +106,12 @@ end
 local report_agent = function()
   local config = require "sg.config"
 
+  local ok, reason = require("sg.utils").valid_node_executable(config.node_executable)
+  if not ok then
+    vim.health.error("Invalid node executable: " .. reason)
+    return false
+  end
+
   if 1 ~= vim.fn.executable(config.node_executable) then
     vim.health.error(string.format("config.node_executable (%s) not executable", config.node_executable))
     return false

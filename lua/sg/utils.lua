@@ -95,4 +95,27 @@ utils.json_or_nil = function(file)
   return nil
 end
 
+utils.valid_node_executable = function(executable)
+  if 1 ~= vim.fn.executable(executable) then
+    return false, string.format("invalid executable: %s", executable)
+  end
+
+  local output = vim.fn.systemlist(executable .. " --version")[1]
+  local ok, version = pcall(vim.version.parse, output)
+  if not ok then
+    return false, string.format("invalid node version: %s", output)
+  end
+
+  if not version then
+    return false, string.format("unable to parse node version output: %s", output)
+  end
+
+  local min_node_version = assert(vim.version.parse "v18")
+  if not vim.version.gt(version, min_node_version) then
+    return false, string.format("node version must be >= %s. Got: %s", min_node_version, version)
+  end
+
+  return true
+end
+
 return utils

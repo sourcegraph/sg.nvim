@@ -20,13 +20,8 @@ M.CODY_DISABLED = function()
   vim.notify_once "[sg-cody] Cody is disabled for your current instance. Please talk to site-admins or change authentication"
 end
 
-M.INVALID_NODE = function(node_executable)
-  vim.notify_once(
-    string.format(
-      "[sg-cody] Invalid node configuration ('%s'). Please check your node configuration and restart nvim.",
-      node_executable
-    )
-  )
+M.INVALID_NODE = function(reason)
+  vim.notify_once(string.format("[sg-cody] Invalid node configuration: '%s'", reason))
 
   return nil
 end

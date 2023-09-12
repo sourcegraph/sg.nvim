@@ -66,8 +66,9 @@ M.start = function(opts)
     vim.wait(10)
   end
 
-  if 1 ~= vim.fn.executable(config.node_executable) then
-    return require("sg.notify").INVALID_NODE(config.node_executable)
+  local ok, reason = require("sg.utils").valid_node_executable(config.node_executable)
+  if not ok then
+    return require("sg.notify").INVALID_NODE(reason)
   end
 
   ---@type {["chat/updateMessageInProgress"]: fun(noti: CodyChatUpdateMessageInProgressNoti?)}
