@@ -1,10 +1,10 @@
 -- Force loading plugin files
-vim.cmd [[runtime! plugin/cody-agent.lua]]
-vim.cmd [[runtime! plugin/cody.lua]]
+vim.cmd [[runtime! after/plugin/cody.lua]]
+vim.cmd [[runtime! after/plugin/cody-agent.lua]]
+
+require("sg.cody.rpc").start()
 
 require("plenary.async").tests.add_to_env()
-
-local async_util = require "plenary.async.util"
 
 local cody_commands = require "sg.cody.commands"
 local rpc = assert(require "sg.cody.rpc", "able to load cody rpc")
