@@ -131,4 +131,8 @@ function rpc.get_link(path, line, col)
   return req("sourcegraph/link", { path = path, line = line, col = col })
 end
 
+function rpc.get_remote_url(path)
+  return req("sourcegraph/get_remote_url", { path = path })
+end
+
 return rpc

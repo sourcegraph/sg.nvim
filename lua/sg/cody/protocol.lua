@@ -60,18 +60,18 @@ proto.did_open = function(bufnr)
     return
   end
 
-  -- Open the file
-  require("sg.cody.rpc").notify("textDocument/didOpen", proto.get_text_document(bufnr))
-
-  -- Notify of changes
-  local notify_changes, timer = debounce.debounce_trailing(function()
-    require("sg.cody.rpc").notify("textDocument/didChange", proto.get_text_document(bufnr))
-  end, config.did_change_debounce)
-
-  debounce_handles[bufnr] = timer
-
   vim.schedule(function()
     if vim.api.nvim_buf_is_valid(bufnr) then
+      -- Open the file
+      require("sg.cody.rpc").notify("textDocument/didOpen", proto.get_text_document(bufnr))
+
+      -- Notify of changes
+      local notify_changes, timer = debounce.debounce_trailing(function()
+        require("sg.cody.rpc").notify("textDocument/didChange", proto.get_text_document(bufnr))
+      end, config.did_change_debounce)
+
+      debounce_handles[bufnr] = timer
+
       vim.api.nvim_buf_attach(bufnr, true, {
         on_lines = notify_changes,
       })

@@ -12,29 +12,13 @@ local context = {}
 ---@param bufnr number
 ---@return string|nil
 context.get_origin = function(bufnr)
-  local dir = vim.api.nvim_buf_get_name(bufnr)
-  dir = vim.fn.fnamemodify(dir, ":p:h")
-
-  -- git remote get-url origin
-  local obj = async_system({ "git", "remote", "get-url", "origin" }, {
-    cwd = dir,
-    text = true,
-  })
-
-  local origin = vim.trim(obj.stdout)
-
-  local codehost, repo = origin:match "git@([^:]+):(.+)"
-  if codehost == nil then
-    -- Try http(s)
-    codehost, repo = origin:match "http(s?)://([^/]+)/(.+)"
-  end
-  if not codehost or not repo then
+  local path = vim.fn.fnamemodify(vim.api.nvim_buf_get_name(bufnr), ":p")
+  local err, data = rpc.get_remote_url(path)
+  if err then
     return nil
   end
 
-  repo = repo:gsub(".git$", "")
-
-  return codehost .. "/" .. repo
+  return data
 end
 
 ---@return string|nil

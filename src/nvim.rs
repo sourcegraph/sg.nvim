@@ -1,6 +1,7 @@
 use {
     crate::{
-        entry::Entry, get_cody_completions, get_embeddings_context, get_endpoint, get_repository_id,
+        entry::{link, Entry},
+        get_cody_completions, get_embeddings_context, get_endpoint, get_repository_id,
     },
     anyhow::Result,
     serde::{Deserialize, Serialize},
@@ -101,6 +102,11 @@ pub enum RequestData {
         path: String,
         line: usize,
         col: usize,
+    },
+
+    #[serde(rename = "sourcegraph/get_remote_url")]
+    SourcegraphRemoteURL {
+        path: String,
     },
 }
 
@@ -233,6 +239,13 @@ impl Request {
 
                 Ok(Response::new(id, ResponseData::SourcegraphLink(link)))
             }
+            RequestData::SourcegraphRemoteURL { path } => {
+                let repo = link::repo_from_path(&path)?;
+                Ok(Response::new(
+                    id,
+                    ResponseData::SourcegraphRemoteURL(link::get_repo_name(&repo)?),
+                ))
+            }
         }
     }
 }
@@ -263,6 +276,7 @@ pub enum ResponseData {
     SourcegraphSearch(Vec<SearchResult>),
     SourcegraphInfo(Value),
     SourcegraphLink(String),
+    SourcegraphRemoteURL(String),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

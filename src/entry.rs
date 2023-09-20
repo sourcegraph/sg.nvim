@@ -1,11 +1,10 @@
 use {
     crate::{get_path_info, normalize_url, PathInfo},
     anyhow::{Context, Result},
-    gix::discover,
     regex::Regex,
     serde::{Deserialize, Serialize},
     sg_types::*,
-    std::{path::PathBuf, str::FromStr},
+    std::path::PathBuf,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -57,12 +56,13 @@ impl Entry {
     }
 
     pub async fn from_local_path(path: &str) -> Result<Self> {
-        let path = PathBuf::from_str(path)?;
-        let dir = path.parent().context("Valid parent for path")?;
-        let repo = discover(dir).context("Discover repo")?;
+        let repo = link::repo_from_path(path)?;
         let repo_name = link::get_repo_name(&repo)?;
         let revision = link::current_rev(&repo)?;
+
+        let path = PathBuf::from(path);
         let path = path.strip_prefix(repo.work_dir().context("Working directory")?)?;
+
         let info = get_path_info(repo_name, revision, path.to_str().unwrap().to_owned()).await?;
 
         Self::from_info(info)
@@ -220,11 +220,25 @@ impl Repo {
     }
 }
 
-mod link {
+pub mod link {
     use {
-        anyhow::{anyhow, Result},
+        anyhow::{anyhow, Context, Result},
         gix::{remote::Direction, Repository, Url},
+        std::{path::PathBuf, str::FromStr},
     };
+
+    pub fn repo_from_path(path: &str) -> Result<gix::Repository> {
+        let path = PathBuf::from_str(path)?;
+
+        // gix expects a directory, so transform to directory if needed
+        let dir = if path.is_dir() {
+            path.as_path()
+        } else {
+            path.parent().context("Valid parent for path")?
+        };
+
+        gix::discover(dir).context("Discover repo")
+    }
 
     pub(crate) fn current_rev(repo: &Repository) -> Result<String> {
         match repo.head()?.kind {
@@ -234,9 +248,13 @@ mod link {
         }
     }
 
-    pub(crate) fn get_repo_name(repo: &Repository) -> Result<String> {
+    pub fn get_repo_name(repo: &Repository) -> Result<String> {
         let remote_url = read_remote_url(repo)?;
         let name = extract_repo_name(&remote_url)?;
+
+        // Replace "//" with single slashes.
+        let name = name.replace("//", "/");
+
         Ok(name)
     }
 

@@ -10,6 +10,10 @@ local utils = require "sg.utils"
 
 local M = {}
 
+local is_initialized = function()
+  return M.server_info.authenticated and M.server_info.codyEnabled
+end
+
 --- Whether the current cody connection is ready for requests
 ---     TODO: We should think more about how to use this and structure it.
 ---@return boolean
@@ -28,7 +32,7 @@ local is_ready = function(opts)
     return true
   end
 
-  return M.server_info.authenticated and M.server_info.codyEnabled
+  return is_initialized()
 end
 
 local track = function(msg)
@@ -132,7 +136,15 @@ M.start = function(opts)
     on_exit = function(code, signal)
       log.warn("[cody-agen] closed cody agent", code, signal)
     end,
+  }, {
+    env = {
+      ENABLE_SENTRY = "false",
+    },
   })
+
+  -- Reset the current state
+  M.messages = {}
+  M.server_info = {}
 
   void(function()
     -- Run initialize as first message to send
@@ -176,8 +188,14 @@ M.start = function(opts)
     protocol.did_focus(vim.api.nvim_get_current_buf())
   end)()
 
+  vim.wait(250, function()
+    return is_initialized()
+  end)
+
   return M.client
 end
+
+-- local delay_until_
 
 --- Send a notification message to the client.
 ---
@@ -186,6 +204,21 @@ end
 M.notify = function(method, params)
   if not M.start() then
     return
+  end
+
+  if not is_ready { method = method } then
+    if not vim.wait(1000, function()
+      return is_initialized()
+    end) then
+      track {
+        type = "notify",
+        status = "aborted",
+        method = method,
+        params = params,
+      }
+
+      return
+    end
   end
 
   track {
@@ -210,12 +243,24 @@ M.request = async.wrap(function(method, params, callback)
   }
 
   if not is_ready { method = method } then
-    callback(
-      "Unable to get token and/or endpoint for sourcegraph."
-        .. " Use `:SourcegraphLogin` or `:help sg` for more information",
-      nil
-    )
-    return
+    -- Give server a chance to start if it hasn't
+    if not vim.wait(1000, function()
+      return is_initialized()
+    end) then
+      track {
+        type = "request",
+        status = "aborted",
+        method = method,
+        params = params,
+      }
+
+      callback(
+        "Unable to get token and/or endpoint for sourcegraph."
+          .. " Use `:SourcegraphLogin` or `:help sg` for more information",
+        nil
+      )
+      return
+    end
   end
 
   return M.client.request(method, params, function(err, result)
@@ -246,13 +291,14 @@ M.initialize = function()
   ---@type CodyClientInfo
   local info = {
     name = "neovim",
-    version = "0.1",
-    workspaceRootPath = vim.loop.cwd() or "",
+    -- TODO: Version should come from the info we load via the nvim-agent,
+    -- but that might be complicated to wire up at the moment
+    version = "0.2",
+    workspaceRootUri = vim.uri_from_fname(vim.loop.cwd() or "/"),
     extensionConfiguration = {
       accessToken = creds.token,
       serverEndpoint = creds.endpoint,
       codebase = remoteurl,
-      -- TODO: Custom Headers for neovim
       customHeaders = { ["User-Agent"] = "Sourcegraph Cody Neovim Plugin" },
     },
     capabilities = {
@@ -295,8 +341,7 @@ end
 ---@type CodyServerInfo
 M.server_info = {}
 
-_SG_CODY_RPC_MESSAGES = _SG_CODY_RPC_MESSAGES or {}
-M.messages = _SG_CODY_RPC_MESSAGES
+M.messages = {}
 
 M.execute = {}
 
