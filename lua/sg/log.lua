@@ -11,7 +11,7 @@ end
 
 local logger = require("plenary.log").new {
   plugin = "sg",
-  level = "debug",
+  level = "info",
   info_level = 3,
 }
 

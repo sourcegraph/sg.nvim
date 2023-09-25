@@ -290,6 +290,9 @@ for key, value in pairs(commands) do
       return
     end
 
+    -- Ensure the server has already started
+    require("sg.cody.rpc").start()
+
     return value(...)
   end
 end
