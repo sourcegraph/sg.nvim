@@ -47,35 +47,6 @@ function rpc.repository(name, callback)
   end
 end
 
---- Get embeddings for the a repo & associated query.
----@param repo string: Repo name (github.com/neovim/neovim)
----@param query any: query string (the question you want to ask)
----@param opts table: `code`: number of code results, `text`: number of text results
----@return string?: err, if any
----@return table?: list of embeddings
-function rpc.embeddings(repo, query, opts)
-  opts = opts or {}
-  opts.code = opts.code or 5
-  opts.text = opts.text or 0
-
-  local err, repo_id = rpc.repository(repo)
-  if err then
-    return err, nil
-  end
-
-  local embedding_err, data = req("Embedding", {
-    repo = repo_id,
-    query = query,
-    code = opts.code,
-    text = opts.text,
-  })
-  if not embedding_err then
-    return nil, data.embeddings
-  else
-    return embedding_err, nil
-  end
-end
-
 --- Get an SgEntry based on a path
 ---@param path string
 ---@param callback fun(err: string?, entry: SgEntry?)
@@ -87,10 +58,9 @@ end
 ---@param remote string
 ---@param oid string
 ---@param path string
----@return string?: err, if any
----@return string[]?: contents, if successful
-function rpc.get_file_contents(remote, oid, path)
-  return req("sourcegraph/get_file_contents", { remote = remote, oid = oid, path = path })
+---@param callback fun(err: string?, contents: string[]?): nil
+function rpc.get_file_contents(remote, oid, path, callback)
+  req("sourcegraph/get_file_contents", { remote = remote, oid = oid, path = path }, callback)
 end
 
 --- Get directory contents for a sourcegraph directory

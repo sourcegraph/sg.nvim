@@ -1,11 +1,10 @@
 use {
     crate::{get_path_info, normalize_url, PathInfo},
     anyhow::{Context, Result},
-    gix::discover,
     regex::Regex,
     serde::{Deserialize, Serialize},
     sg_types::*,
-    std::{path::PathBuf, str::FromStr},
+    std::path::PathBuf,
 };
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -238,7 +237,7 @@ pub mod link {
             path.parent().context("Valid parent for path")?
         };
 
-        gix::discover(dir).context("Discover repo")
+        gix::discover(dir).map_err(|e| anyhow!("Failed to discover repo: {}", e))
     }
 
     pub(crate) fn current_rev(repo: &Repository) -> Result<String> {

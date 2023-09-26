@@ -192,29 +192,30 @@ end
 ---@param data SgFile
 M._open_remote_file = function(bufnr, bufname, data)
   manage_new_buffer(bufnr, bufname, function()
-    local err, contents = rpc.get_file_contents(data.remote, data.oid, data.path)
-    if err ~= nil or not contents then
-      local errmsg
-      if type(contents) == "string" then
-        errmsg = vim.split(contents, "\n")
-      else
-        errmsg = vim.split(tostring(contents), "\n")
+    rpc.get_file_contents(data.remote, data.oid, data.path, function(err, contents)
+      if err ~= nil or not contents then
+        local errmsg
+        if type(contents) == "string" then
+          errmsg = vim.split(contents, "\n")
+        else
+          errmsg = vim.split(tostring(contents), "\n")
+        end
+
+        table.insert(errmsg, 1, "failed to get contents")
+
+        return with_modifiable(bufnr, function()
+          vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, errmsg)
+        end)
       end
 
-      table.insert(errmsg, 1, "failed to get contents")
-
-      return with_modifiable(bufnr, function()
-        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, errmsg)
+      with_modifiable(bufnr, function()
+        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
       end)
-    end
 
-    with_modifiable(bufnr, function()
-      vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, contents)
+      vim.api.nvim_exec_autocmds("BufRead", {})
+      vim.bo[bufnr].filetype = vim.filetype.match { filename = data.path, contents = contents }
+        or filetype.detect(data.path, {})
     end)
-
-    vim.api.nvim_exec_autocmds("BufRead", {})
-    vim.bo[bufnr].filetype = vim.filetype.match { filename = data.path, contents = contents }
-      or filetype.detect(data.path, {})
   end)
 
   -- TODO: I don't love calling this directly here...

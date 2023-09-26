@@ -306,11 +306,11 @@ impl Request {
                 Ok(Response::new(id, ResponseData::SourcegraphLink(link)))
             }
             RequestData::SourcegraphRemoteURL { path } => {
-                let repo = link::repo_from_path(&path)?;
-                Ok(Response::new(
-                    id,
-                    ResponseData::SourcegraphRemoteURL(link::get_repo_name(&repo)?),
-                ))
+                let url = match link::repo_from_path(&path) {
+                    Ok(repo) => link::get_repo_name(&repo)?,
+                    _ => path,
+                };
+                Ok(Response::new(id, ResponseData::SourcegraphRemoteURL(url)))
             }
         }
     }

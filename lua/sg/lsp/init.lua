@@ -65,7 +65,7 @@ M.get_client_id = function()
 
           vim.wait(500, function()
             return count == #result
-          end)
+          end, 1)
 
           vim.lsp.handlers["textDocument/definition"](_, result, ctx, config_)
         else

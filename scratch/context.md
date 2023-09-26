@@ -155,3 +155,34 @@ If there are no parameters, just return an empty list.
   end)()
 end
 ```
+
+```lua
+--- Get embeddings for the a repo & associated query.
+---@param repo string: Repo name (github.com/neovim/neovim)
+---@param query any: query string (the question you want to ask)
+---@param opts table: `code`: number of code results, `text`: number of text results
+---@return string?: err, if any
+---@return table?: list of embeddings
+function rpc.embeddings(repo, query, opts)
+  opts = opts or {}
+  opts.code = opts.code or 5
+  opts.text = opts.text or 0
+
+  local err, repo_id = rpc.repository(repo)
+  if err then
+    return err, nil
+  end
+
+  local embedding_err, data = req("Embedding", {
+    repo = repo_id,
+    query = query,
+    code = opts.code,
+    text = opts.text,
+  })
+  if not embedding_err then
+    return nil, data.embeddings
+  else
+    return embedding_err, nil
+  end
+end
+```

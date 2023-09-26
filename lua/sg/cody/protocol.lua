@@ -62,6 +62,7 @@ proto.did_open = function(bufnr)
 
   -- Open the file
   require("sg.cody.rpc").notify("textDocument/didOpen", proto.get_text_document(bufnr))
+  require("sg.cody.rpc").notify("textDocument/didChange", proto.get_text_document(bufnr))
 
   -- Notify of changes
   local notify_changes, timer = debounce.debounce_trailing(function()
