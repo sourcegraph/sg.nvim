@@ -336,35 +336,6 @@ rpc.repository({name})                                   *sg.rpc.repository()*
         string?: The repository ID, if found
 
 
-rpc.embeddings({repo}, {query}, {opts})                  *sg.rpc.embeddings()*
-    Get embeddings for the a repo & associated query.
-
-
-    Parameters: ~
-        {repo}  (string)  Repo name (github.com/neovim/neovim)
-        {query} (any)     query string (the question you want to ask)
-        {opts}  (table)   `code`: number of code results, `text`: number of
-                          text results
-
-    Return: ~
-        string?: err, if any
-        table?: list of embeddings
-
-
-rpc.get_file_contents({remote}, {oid}, {path})    *sg.rpc.get_file_contents()*
-    Get file contents for a sourcegraph file
-
-
-    Parameters: ~
-        {remote} (string)
-        {oid}    (string)
-        {path}   (string)
-
-    Return: ~
-        string?: err, if any
-        string[]?: contents, if successful
-
-
 rpc.get_directory_contents({remote}, {oid}, {path}) *sg.rpc.get_directory_contents()*
     Get directory contents for a sourcegraph directory
 
