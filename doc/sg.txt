@@ -379,28 +379,6 @@ rpc.get_directory_contents({remote}, {oid}, {path}) *sg.rpc.get_directory_conten
         SgEntry[]?: contents, if successful
 
 
-rpc.get_search({query})                                  *sg.rpc.get_search()*
-    Get search results
-
-
-    Parameters: ~
-        {query} (string)
-
-    Return: ~
-        string?: err, if any
-        SgSearchResult[]?: contents, if successful
-
-
-rpc.get_info()                                             *sg.rpc.get_info()*
-    Get info about current sourcegraph info
-
-
-
-rpc.get_link()                                             *sg.rpc.get_link()*
-    Get info about current sourcegraph info
-
-
-
 
 ================================================================================
 COMPLETE                                                         *cody.complete*
