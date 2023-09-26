@@ -16,10 +16,11 @@ M.setup = function()
 end
 
 local preload_file = function(location, callback)
-  -- sg://github.com/tjdevries/simple-ocaml@5d0a2/-/lib/simple.ml
   local bufnr = vim.fn.bufnr(location.uri)
   if bufnr == -1 then
     bufnr = vim.api.nvim_create_buf(true, false)
+    vim.api.nvim_buf_set_name(bufnr, location.uri)
+
     require("sg.bufread").edit(bufnr, location.uri, callback)
   else
     callback()
