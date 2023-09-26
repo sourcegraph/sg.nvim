@@ -1,4 +1,3 @@
-local void = require("plenary.async").void
 local M = {}
 
 local report_nvim = function()
@@ -74,31 +73,32 @@ local report_env = function()
   end
 
   local err, info
-  void(function()
-    err, info = require("sg.rpc").get_info()
-  end)()
+  require("sg.rpc").get_info(function(err_, info_)
+    err = err_
+    info = info_
+
+    if err or not info then
+      vim.health.error("  Sourcegraph Connection info failed: " .. vim.inspect(err))
+      ok = false
+    else
+      vim.health.ok("  Sourcegraph Connection info: " .. vim.inspect(info))
+    end
+
+    info = info or {}
+    local expected_cargo_version = require "sg.private.cargo_version"
+    if expected_cargo_version ~= info.sg_nvim_version then
+      vim.health.error "Mismatched cargo and expected version. Update using :SourcegraphDownloadBinaries or :SourcegraphBuild"
+      vim.health.error(string.format("Exptected: %s | Found: %s", expected_cargo_version, info.sg_nvim_version))
+
+      ok = false
+    else
+      vim.health.ok("Found correct binary versions: " .. expected_cargo_version .. " = " .. info.sg_nvim_version)
+    end
+  end)
 
   vim.wait(10000, function()
     return err or info
   end)
-
-  if err or not info then
-    vim.health.error("  Sourcegraph Connection info failed: " .. vim.inspect(err))
-    ok = false
-  else
-    vim.health.ok("  Sourcegraph Connection info: " .. vim.inspect(info))
-  end
-
-  info = info or {}
-  local expected_cargo_version = require "sg.private.cargo_version"
-  if expected_cargo_version ~= info.sg_nvim_version then
-    vim.health.error "Mismatched cargo and expected version. Update using :SourcegraphDownloadBinaries or :SourcegraphBuild"
-    vim.health.error(string.format("Exptected: %s | Found: %s", expected_cargo_version, info.sg_nvim_version))
-
-    ok = false
-  else
-    vim.health.ok("Found correct binary versions: " .. expected_cargo_version .. " = " .. info.sg_nvim_version)
-  end
 
   return ok
 end

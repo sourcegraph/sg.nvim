@@ -1,6 +1,3 @@
-local async = require "plenary.async"
-local void = async.void
-
 local config = require "sg.config"
 
 local M = {}
@@ -18,13 +15,14 @@ M.setup = function()
   })
 end
 
-local preload_file = function(location)
-  local async_edit = async.wrap(require("sg.bufread").edit, 3)
+local preload_file = function(location, callback)
   -- sg://github.com/tjdevries/simple-ocaml@5d0a2/-/lib/simple.ml
   local bufnr = vim.fn.bufnr(location.uri)
   if bufnr == -1 then
     bufnr = vim.api.nvim_create_buf(true, false)
-    async_edit(bufnr, location.uri)
+    require("sg.bufread").edit(bufnr, location.uri, callback)
+  else
+    callback()
   end
 end
 
@@ -56,17 +54,25 @@ M.get_client_id = function()
       -- have an error when we try to navigate synchronously to the location
       -- via the normal way LSPs navigate
       ["textDocument/definition"] = function(_, result, ctx, config_)
-        void(function()
-          if vim.tbl_islist(result) then
-            for _, res in ipairs(result) do
-              preload_file(res)
-            end
-          else
-            preload_file(result)
+        if vim.tbl_islist(result) then
+          -- Wait for all to complete
+          local count = 0
+          for _, res in ipairs(result) do
+            preload_file(res, function()
+              count = count + 1
+            end)
           end
 
+          vim.wait(500, function()
+            return count == #result
+          end)
+
           vim.lsp.handlers["textDocument/definition"](_, result, ctx, config_)
-        end)()
+        else
+          preload_file(result, function()
+            vim.lsp.handlers["textDocument/definition"](_, result, ctx, config_)
+          end)
+        end
       end,
     },
     on_attach = function(...)

@@ -1,6 +1,3 @@
-local async = require "plenary.async"
-local void = async.void
-
 local protocol = require "sg.cody.protocol"
 local log = require "sg.log"
 local config = require "sg.config"
@@ -49,15 +46,17 @@ M.message_callbacks = {}
 --- Start the server
 ---@param opts { force: boolean? }?
 ---@return VendoredPublicClient?
-M.start = function(opts)
+M.start = function(opts, callback)
+  assert(callback, "Must pass a callback")
+
   if not config.enable_cody then
-    return nil
+    return callback()
   end
 
   opts = opts or {}
 
   if M.client and not opts.force then
-    return M.client
+    return callback(M.client)
   end
 
   if M.client then
@@ -68,7 +67,8 @@ M.start = function(opts)
 
   local ok, reason = require("sg.utils").valid_node_executable(config.node_executable)
   if not ok then
-    return require("sg.notify").INVALID_NODE(reason)
+    require("sg.notify").INVALID_NODE(reason)
+    return callback()
   end
 
   ---@type {["chat/updateMessageInProgress"]: fun(noti: CodyChatUpdateMessageInProgressNoti?)}
@@ -78,22 +78,20 @@ M.start = function(opts)
     end,
 
     ["chat/updateMessageInProgress"] = function(noti)
-      void(function()
-        if not noti or not noti.data or not noti.data.id then
-          return
-        end
+      if not noti or not noti.data or not noti.data.id then
+        return
+      end
 
-        if not noti.text then
-          M.message_callbacks[noti.data.id] = nil
-          return
-        end
+      if not noti.text then
+        M.message_callbacks[noti.data.id] = nil
+        return
+      end
 
-        local callback = M.message_callbacks[noti.data.id]
-        if callback then
-          noti.text = vim.trim(noti.text) -- trim random white space
-          callback(noti)
-        end
-      end)()
+      local callback = M.message_callbacks[noti.data.id]
+      if callback and noti.text then
+        noti.text = vim.trim(noti.text) -- trim random white space
+        callback(noti)
+      end
     end,
   }
 
@@ -134,9 +132,8 @@ M.start = function(opts)
     end,
   })
 
-  void(function()
-    -- Run initialize as first message to send
-    local err, data = M.initialize()
+  -- Run initialize as first message to send
+  M.initialize(function(err, data)
     if err ~= nil then
       vim.notify("[sg-cody]" .. vim.inspect(err))
       return nil
@@ -174,9 +171,9 @@ M.start = function(opts)
 
     -- Notify current buffer
     protocol.did_focus(vim.api.nvim_get_current_buf())
-  end)()
 
-  return M.client
+    callback(M.client)
+  end)
 end
 
 --- Send a notification message to the client.
@@ -184,83 +181,90 @@ end
 ---@param method string: The notification method name.
 ---@param params table: The parameters to send with the notification.
 M.notify = function(method, params)
-  if not M.start() then
-    return
-  end
+  M.start({}, function(client)
+    if not client then
+      return
+    end
 
-  track {
-    type = "notify",
-    method = method,
-    params = params,
-  }
-
-  M.client.notify(method, params)
-end
-
-M.request = async.wrap(function(method, params, callback)
-  if not M.start() then
-    callback(nil, "RPC client not initialized")
-    return
-  end
-
-  track {
-    type = "request",
-    method = method,
-    params = params,
-  }
-
-  if not is_ready { method = method } then
-    callback(
-      "Unable to get token and/or endpoint for sourcegraph."
-        .. " Use `:SourcegraphLogin` or `:help sg` for more information",
-      nil
-    )
-    return
-  end
-
-  return M.client.request(method, params, function(err, result)
     track {
-      type = "response",
+      type = "notify",
       method = method,
-      result = result or "none",
-      err = err,
+      params = params,
     }
 
-    return callback(err, result)
+    client.notify(method, params)
   end)
-end, 3)
+end
+
+--- Send a request to cody
+---@param method string
+---@param params any
+---@param callback fun(E, R)
+M.request = function(method, params, callback)
+  M.start({}, function(client)
+    if not client then
+      return callback(nil, "RPC client not initialized")
+    end
+
+    track {
+      type = "request",
+      method = method,
+      params = params,
+    }
+
+    if not is_ready { method = method } then
+      callback(
+        "Unable to get token and/or endpoint for sourcegraph."
+          .. " Use `:SourcegraphLogin` or `:help sg` for more information",
+        nil
+      )
+      return
+    end
+
+    return client.request(method, params, function(err, result)
+      track {
+        type = "response",
+        method = method,
+        result = result or "none",
+        err = err,
+      }
+
+      return callback(err, result)
+    end)
+  end)
+end
 
 --- Initialize the client by sending initialization info to the server.
 --- This must be called before any other requests.
 ---@return string?
 ---@return CodyServerInfo?
-M.initialize = function()
+M.initialize = function(callback)
   local creds = auth.get()
   if not creds then
     require("sg.notify").NO_AUTH()
     creds = {}
   end
 
-  local remoteurl = require("sg.cody.context").get_origin(0)
+  require("sg.cody.context").get_origin(0, function(remote_url)
+    ---@type CodyClientInfo
+    local info = {
+      name = "neovim",
+      version = "0.1",
+      workspaceRootPath = vim.loop.cwd() or "",
+      extensionConfiguration = {
+        accessToken = creds.token,
+        serverEndpoint = creds.endpoint,
+        codebase = remote_url,
+        -- TODO: Custom Headers for neovim
+        customHeaders = { ["User-Agent"] = "Sourcegraph Cody Neovim Plugin" },
+      },
+      capabilities = {
+        chat = "streaming",
+      },
+    }
 
-  ---@type CodyClientInfo
-  local info = {
-    name = "neovim",
-    version = "0.1",
-    workspaceRootPath = vim.loop.cwd() or "",
-    extensionConfiguration = {
-      accessToken = creds.token,
-      serverEndpoint = creds.endpoint,
-      codebase = remoteurl,
-      -- TODO: Custom Headers for neovim
-      customHeaders = { ["User-Agent"] = "Sourcegraph Cody Neovim Plugin" },
-    },
-    capabilities = {
-      chat = "streaming",
-    },
-  }
-
-  return M.request("initialize", info)
+    M.request("initialize", info, callback)
+  end)
 end
 
 --- Shuts down the client by sending a shutdown request and waiting for completion.
@@ -301,9 +305,8 @@ M.messages = _SG_CODY_RPC_MESSAGES
 M.execute = {}
 
 --- List currently available messages
-M.execute.list_recipes = function()
-  local err, data = M.request("recipes/list", {})
-  return err, data
+M.execute.list_recipes = function(callback)
+  M.request("recipes/list", {}, callback)
 end
 
 --- Execute a chat question and get a streaming response
@@ -315,7 +318,11 @@ M.execute.chat_question = function(message, callback)
   local message_id = utils.uuid()
   M.message_callbacks[message_id] = callback
 
-  return M.request("recipes/execute", { id = "chat-question", humanChatInput = message, data = { id = message_id } })
+  return M.request(
+    "recipes/execute",
+    { id = "chat-question", humanChatInput = message, data = { id = message_id } },
+    callback
+  )
 end
 
 --- Execute a code question and get a streaming response
@@ -328,11 +335,19 @@ M.execute.code_question = function(message, callback)
   local message_id = utils.uuid()
   M.message_callbacks[message_id] = callback
 
-  return M.request("recipes/execute", { id = "code-question", humanChatInput = message, data = { id = message_id } })
+  return M.request(
+    "recipes/execute",
+    { id = "code-question", humanChatInput = message, data = { id = message_id } },
+    callback
+  )
 end
 
-M.execute.autocomplete = function(file, line, character)
-  return M.request("autocomplete/execute", { filePath = file, position = { line = line, character = character } })
+M.execute.autocomplete = function(file, line, character, callback)
+  return M.request(
+    "autocomplete/execute",
+    { filePath = file, position = { line = line, character = character } },
+    callback
+  )
 end
 
 return M

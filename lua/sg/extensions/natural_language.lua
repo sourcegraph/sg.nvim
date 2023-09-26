@@ -1,3 +1,7 @@
+if true then
+  error "NOT YET FIXED, NEED TO DO ASYNC"
+end
+
 local pickers = require "telescope.pickers"
 local finders = require "telescope.finders"
 local previewers = require "telescope.previewers"
@@ -14,7 +18,10 @@ natural.search = function(opts)
   opts.bufnr = opts.bufnr or vim.api.nvim_get_current_buf()
 
   void(function()
-    opts.repo = opts.repo or context.get_origin(opts.bufnr)
+    opts.repo = opts.repo or context.get_origin(opts.bufnr, function()
+      error "OH NO"
+    end)
+
     if not opts.repo then
       vim.notify "Failed to determine the repo for your current query"
       return
@@ -22,6 +29,7 @@ natural.search = function(opts)
 
     opts.query = opts.query or vim.fn.input "Search for > "
 
+    error "did not rewrite embeddings"
     local _, embeds = context.embeddings(opts.repo, opts.query, { code = 25 })
 
     pickers

@@ -1,3 +1,5 @@
+local log = require "sg.log"
+
 local Message = require "sg.cody.message"
 local Speaker = require "sg.cody.speaker"
 
@@ -114,7 +116,21 @@ function CodySplit:request_completion()
   vim.api.nvim_buf_set_lines(self.prompt.bufnr, 0, -1, false, {})
 
   return self.state:complete(self.history.bufnr, self.history.win, function(id)
-    return function(msg)
+    log.trace("requesting a completion", self.history.bufnr, self.history.win, id)
+
+    -- TODO: THis seems wrong...
+    return function(msg, err)
+      log.trace("received completion", err, msg)
+
+      if err then
+        vim.notify(vim.inspect(err))
+        return
+      end
+
+      if not msg then
+        return
+      end
+
       self.state:update_message(id, Message.init(Speaker.cody, vim.split(msg.text, "\n"), msg.contextFiles))
       self:render()
     end

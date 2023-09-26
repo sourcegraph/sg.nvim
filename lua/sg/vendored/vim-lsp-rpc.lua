@@ -660,7 +660,7 @@ local function start(cmd, cmd_args, dispatchers, extra_spawn_params)
 
   local stderr_handler = function(_, chunk)
     if chunk then
-      _ = log.debug("[cody] stderr", cmd, "stderr", chunk)
+      _ = log.trace("[cody] stderr", cmd, "stderr", chunk)
     end
   end
 

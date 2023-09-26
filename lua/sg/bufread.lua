@@ -1,5 +1,4 @@
 local filetype = require "plenary.filetype"
-local void = require("plenary.async").void
 
 local log = require "sg.log"
 local rpc = require "sg.rpc"
@@ -28,8 +27,7 @@ M.edit = function(bufnr, path, callback)
   vim.bo[bufnr].buftype = "nofile"
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "Loading..." })
 
-  void(function()
-    local err, entry = rpc.get_entry(path)
+  rpc.get_entry(path, function(err, entry)
     if err ~= nil then
       vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, vim.split(vim.inspect(err), "\n"))
       return
@@ -53,7 +51,7 @@ M.edit = function(bufnr, path, callback)
     if callback then
       callback()
     end
-  end)()
+  end)
 end
 
 local manage_new_buffer = function(bufnr, bufname, create)
@@ -129,27 +127,31 @@ M._open_remote_folder = function(bufnr, bufname, data)
       local current_line = vim.api.nvim_buf_get_lines(bufnr, row, row + 1, false)[1]
       local indent = #(string.match(current_line, "^(%s+)") or "") / 2
 
-      void(function()
-        local err, children = rpc.get_directory_contents(selected.data.remote, selected.data.oid, selected.data.path)
-        if err ~= nil or not children then
-          print "Failed to load directory"
-          return
-        end
-
-        with_modifiable(bufnr, function()
-          for idx, entry in ipairs(children) do
-            -- TODO: Highlights
-            local line, highlights = transform_path(entry.data.path, entry.type == "directory")
-            line = string.rep("  ", indent + 1) .. line
-
-            local idx_row = row + idx - 1
-            vim.api.nvim_buf_set_lines(bufnr, idx_row, idx_row, false, { line })
-            vim.api.nvim_buf_add_highlight(bufnr, ns, highlights, idx_row, 1 + indent * 2, 3 + indent * 2)
-
-            table.insert(entries, row + idx, entry)
+      rpc.get_directory_contents(
+        selected.data.remote,
+        selected.data.oid,
+        selected.data.path,
+        function(rpc_error, children)
+          if rpc_error ~= nil or not children then
+            print "Failed to load directory"
+            return
           end
-        end)
-      end)()
+
+          with_modifiable(bufnr, function()
+            for idx, entry in ipairs(children) do
+              -- TODO: Highlights
+              local line, highlights = transform_path(entry.data.path, entry.type == "directory")
+              line = string.rep("  ", indent + 1) .. line
+
+              local idx_row = row + idx - 1
+              vim.api.nvim_buf_set_lines(bufnr, idx_row, idx_row, false, { line })
+              vim.api.nvim_buf_add_highlight(bufnr, ns, highlights, idx_row, 1 + indent * 2, 3 + indent * 2)
+
+              table.insert(entries, row + idx, entry)
+            end
+          end)
+        end
+      )
     end)
 
     -- Sets <S-tab> to collapse a directory
@@ -162,20 +164,24 @@ M._open_remote_folder = function(bufnr, bufname, data)
       -- TODO: Could possibly do this only using indents, but it's fine
       local row = get_row()
 
-      void(function()
-        local err, children = rpc.get_directory_contents(selected.data.remote, selected.data.oid, selected.data.path)
-        if err ~= nil or not children then
-          print "unable to load directory contents"
-          return
-        end
-
-        with_modifiable(bufnr, function()
-          for _ in ipairs(children) do
-            vim.api.nvim_buf_set_lines(bufnr, row, row + 1, false, {})
-            table.remove(entries, row + 1)
+      rpc.get_directory_contents(
+        selected.data.remote,
+        selected.data.oid,
+        selected.data.path,
+        function(rpc_err, children)
+          if rpc_err ~= nil or not children then
+            print "unable to load directory contents"
+            return
           end
-        end)
-      end)()
+
+          with_modifiable(bufnr, function()
+            for _ in ipairs(children) do
+              vim.api.nvim_buf_set_lines(bufnr, row, row + 1, false, {})
+              table.remove(entries, row + 1)
+            end
+          end)
+        end
+      )
     end)
   end)
 end

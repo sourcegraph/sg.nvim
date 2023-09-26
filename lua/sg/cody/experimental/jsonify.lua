@@ -1,3 +1,7 @@
+if true then
+  error "NOT YET FIXED, NEED TO DO ASYNC"
+end
+
 local void = require("plenary.async").void
 local wrap = require("plenary.async").wrap
 
