@@ -105,10 +105,9 @@ end
 
 --- Get search results
 ---@param query string
----@return string?: err, if any
----@return SgSearchResult[]?: contents, if successful
-function rpc.get_search(query)
-  return req("sourcegraph/search", { query = query })
+---@param callback fun(err: string?, res: SgSearchResult[]?): nil
+function rpc.get_search(query, callback)
+  req("sourcegraph/search", { query = query }, callback)
 end
 
 --- Get info about current sourcegraph info

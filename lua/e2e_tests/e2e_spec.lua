@@ -12,13 +12,13 @@ local tmp_dir = vim.loop.fs_mkdtemp(string.format("%s/cody-nvim-e2e-XXXXXXX", vi
 os.execute(string.format("git clone https://github.com/sourcegraph/e2e-sg.nvim %s", tmp_dir))
 
 local initialized = false
-
 local find_initialized = function()
   return initialized
     and vim.tbl_filter(function(msg)
       return msg.type == "notify" and msg.method == "initialized"
     end, rpc.messages)[1]
 end
+
 describe("cody e2e", function()
   before_each(function()
     if string.sub(vim.env.SRC_ACCESS_TOKEN, 1, 4) ~= "sgp_" then
