@@ -85,7 +85,9 @@ describe("cody", function()
     -- Wait til we get the notificaiton (it's debounced, so won't happen right away)
     vim.wait(10000, function()
       local changed = filter_msg(function(msg)
-        return msg.type == "notify" and msg.method == "textDocument/didChange"
+        return msg.type == "notify"
+          and msg.method == "textDocument/didChange"
+          and string.find(msg.params.filePath, "Cargo.toml")
       end)[1]
 
       return changed ~= nil
@@ -93,10 +95,17 @@ describe("cody", function()
     vim.wait(10)
 
     local changed = filter_msg(function(msg)
-      return msg.type == "notify" and msg.method == "textDocument/didChange"
+      return msg.type == "notify"
+        and msg.method == "textDocument/didChange"
+        and string.find(msg.params.filePath, "Cargo.toml")
     end)[1]
 
+    assert(changed, "Did not receive didChange notification: " .. vim.inspect(rpc.messages))
+
     eq({ "inserted" }, vim.api.nvim_buf_get_lines(0, 0, 1, false))
-    assert(string.find(changed.params.filePath, "Cargo.toml"), "Did not update correct filename")
+    assert(
+      string.find(changed.params.filePath, "Cargo.toml"),
+      "Did not update correct filename: " .. vim.inspect(changed)
+    )
   end)
 end)
