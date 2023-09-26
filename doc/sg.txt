@@ -177,7 +177,7 @@ commands.ask({message})                               *sg.cody.commands.ask()*
 
 
     Parameters: ~
-        {message} (string)
+        {message} (string[])
 
 
 commands.ask_range({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands.ask_range()*
@@ -351,18 +351,6 @@ rpc.embeddings({repo}, {query}, {opts})                  *sg.rpc.embeddings()*
         table?: list of embeddings
 
 
-rpc.get_entry({path})                                     *sg.rpc.get_entry()*
-    Get an SgEntry based on a path
-
-
-    Parameters: ~
-        {path} (string)
-
-    Return: ~
-        string?: err, if any
-        SgEntry?: entry, if any
-
-
 rpc.get_file_contents({remote}, {oid}, {path})    *sg.rpc.get_file_contents()*
     Get file contents for a sourcegraph file
 
@@ -407,18 +395,10 @@ rpc.get_info()                                             *sg.rpc.get_info()*
     Get info about current sourcegraph info
 
 
-    Return: ~
-        string?: err, if any
-        table?: contents, if successful
-
 
 rpc.get_link()                                             *sg.rpc.get_link()*
     Get info about current sourcegraph info
 
-
-    Return: ~
-        string?: err, if any
-        table?: contents, if successful
 
 
 
