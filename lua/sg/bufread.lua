@@ -27,6 +27,7 @@ M.edit = function(bufnr, path, callback)
   callback = callback or function() end
 
   vim.bo[bufnr].buftype = "nofile"
+  vim.bo[bufnr].modifiable = true
   vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "Loading..." })
 
   rpc.get_entry(path, function(err, entry)
