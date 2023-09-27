@@ -1,6 +1,3 @@
-local void = require("plenary.async").void
-local wrap = require("plenary.async").wrap
-
 local utils = require "sg.utils"
 
 local M = {}
@@ -34,8 +31,7 @@ M.execute = function(opts, cb)
   prompt = prompt .. "Reply with JSON that meets the following specification:\n"
   prompt = prompt .. opts.interface .. "\n"
 
-  void(function()
-    local err, completed = require("sg.rpc").complete(prompt, { prefix = opts.response_prefix, temperature = 0.1 })
+  require("sg.rpc").complete(prompt, { prefix = opts.response_prefix, temperature = 0.1 }, function(err, completed)
     if err ~= nil then
       return cb({ failure = "sg.rpc.complete", err = err }, nil)
     end
@@ -55,12 +51,7 @@ M.execute = function(opts, cb)
     end
 
     cb(nil, parsed)
-  end)()
+  end)
 end
-
---- Asynchronous version of execute.
----@return any?: The error, if any
----@return any?: The data, if successful
-M.async_execute = wrap(M.execute, 2)
 
 return M

@@ -1,7 +1,3 @@
-local void = require("plenary.async").void
-
-local shared = require "sg.components.shared"
-
 local CodyPrompt = require "sg.components.cody_prompt"
 local CodyHistory = require "sg.components.cody_history"
 local Message = require "sg.cody.message"
@@ -70,7 +66,7 @@ function Base:toggle()
 end
 
 function Base:run(cb)
-  void(cb)()
+  cb()
 end
 
 --- Asynchronously request a new message from a user.
@@ -101,13 +97,11 @@ function Base:create()
     -- TODO: Do the other options as well
     local prompt_opts = assert(vim.deepcopy(self.opts.prompt))
     prompt_opts.on_submit = function(bufnr, text, submit_opts)
-      void(function()
-        if self.opts.prompt.on_submit then
-          self.opts.prompt.on_submit(bufnr, text, submit_opts)
-        end
+      if self.opts.prompt.on_submit then
+        self.opts.prompt.on_submit(bufnr, text, submit_opts)
+      end
 
-        self:on_submit(bufnr, text, submit_opts)
-      end)()
+      self:on_submit(bufnr, text, submit_opts)
     end
 
     prompt_opts.on_close = function()

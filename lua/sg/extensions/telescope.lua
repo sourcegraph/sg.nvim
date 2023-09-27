@@ -1,5 +1,3 @@
-local void = require("plenary.async").void
-
 local defaulter = require("telescope.utils").make_default_callable
 local from_entry = require "telescope.from_entry"
 local previewers = require "telescope.previewers"
@@ -9,7 +7,6 @@ local finders = require "telescope.finders"
 local entry_display = require "telescope.pickers.entry_display"
 
 local rpc = require "sg.rpc"
-local utils = require "sg.utils"
 
 local telescope = {}
 
@@ -48,7 +45,7 @@ telescope.sg_previewer = defaulter(function(opts)
         return
       end
 
-      local bufnr = vim.fn.bufnr(p)
+      local bufnr = assert(vim.fn.bufnr(p), "must have some buffer number")
       if bufnr > 0 then
         vim.api.nvim_win_set_buf(status.preview_win, bufnr)
       else
@@ -76,80 +73,71 @@ telescope.sg_references = function(opts)
   }
 end
 
-telescope.fuzzy_search_results = void(function(opts)
+telescope.fuzzy_search_results = function(opts)
+  local search = function(input)
+    if not input or input == "" then
+      print "No search specified"
+      return
+    end
+
+    rpc.get_search(input, function(err, search_results)
+      if err or not search_results then
+        print("Got an error:", err, search_results)
+        return
+      end
+
+      if #search_results == 0 then
+        vim.notify "[sg] No search results found"
+        vim.cmd.mode()
+        return
+      end
+
+      local displayer = entry_display.create {
+        separator = "|",
+        items = {
+          { width = 20 },
+          { width = 20 },
+          { remaining = true },
+        },
+      }
+
+      local display = function(entry)
+        entry = entry.value
+
+        return displayer {
+          { entry.repo, "TelescopeResultsLineNr" },
+          { entry.file, "TelescopeResultsIdentifier" },
+          entry.preview,
+        }
+      end
+
+      require("telescope.pickers")
+        .new({
+          sorter = conf.file_sorter(opts),
+          finder = finders.new_table {
+            results = search_results,
+            entry_maker = function(entry)
+              return {
+                value = entry,
+                ordinal = string.format("%s %s", entry.file, entry.preview),
+                display = display,
+                filename = string.format("sg://%s/-/%s", entry.repo, entry.file),
+                row = entry.line + 1,
+              }
+            end,
+          },
+        }, {})
+        :find()
+    end)
+  end
+
   opts = opts or {}
   local input = opts.input
-  if not input then
-    input = utils.async_input { prompt = "Search > " }
+  if input then
+    search(input)
+  else
+    vim.ui.input({ prompt = "Search > " }, search)
   end
-
-  if not input or input == "" then
-    print "No search specified"
-    return
-  end
-
-  local err, search_results = rpc.get_search(input)
-  if err or not search_results then
-    print("Got an error:", err, search_results)
-    return
-  end
-
-  if #search_results == 0 then
-    vim.notify "[sg] No search results found"
-    vim.cmd.mode()
-    return
-  end
-
-  local displayer = entry_display.create {
-    separator = "|",
-    items = {
-      { width = 20 },
-      { width = 20 },
-      { remaining = true },
-    },
-  }
-
-  local display = function(entry)
-    entry = entry.value
-
-    return displayer {
-      { entry.repo, "TelescopeResultsLineNr" },
-      { entry.file, "TelescopeResultsIdentifier" },
-      entry.preview,
-    }
-  end
-
-  require("telescope.pickers")
-    .new({
-      sorter = conf.file_sorter(opts),
-
-      finder = finders.new_table {
-        results = search_results,
-        entry_maker = function(entry)
-          -- TODO: We seem to be dropping the `://` from the URI when we do this
-          -- in telescope, I'll need to figure out why that is
-          return {
-            value = entry,
-            ordinal = string.format("%s %s", entry.file, entry.preview),
-            display = display,
-            filename = string.format("sg://%s/-/%s", entry.repo, entry.file),
-            row = entry.line + 1,
-          }
-        end,
-      },
-      attach_mappings = function()
-        --       actions.select_default:replace(function(prompt_bufnr)
-        --         local selection = action_state.get_selected_entry()
-        --         local entry = selection.value
-        --         local uri =
-        -- return action_set.edit(prompt_bufnr, "edit")
-        --         vim.cmd.edit(uri)
-        --       end)
-
-        return true
-      end,
-    }, {})
-    :find()
-end)
+end
 
 return telescope

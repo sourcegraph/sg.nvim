@@ -4,8 +4,6 @@
 --- Default commands for interacting with Sourcegraph
 ---@brief ]]
 
-local void = require("plenary.async").void
-
 ---@command SourcegraphLogin [[
 --- Get prompted for endpoint and access_token if you don't
 --- want to set them via environment variables.
@@ -53,53 +51,23 @@ end, {
   desc = "(Re-)download the sourcegraph binaries",
 })
 
-vim.api.nvim_create_user_command("SourcegraphInfo", function()
-  print "[sg] Attempting to get sourcegraph info..."
-
-  void(function()
-    -- TODO: Would be nice to get the version of the plugin
-    print "[sg] making request"
-    local err, info = require("sg.rpc").get_info()
-    print(err, info)
-    if err or not info then
-      error "Could not get sourcegraph info"
-    end
-
-    local contents = vim.split(vim.inspect(info), "\n")
-
-    table.insert(contents, 1, "Sourcegraph info:")
-
-    vim.cmd.vnew()
-    vim.api.nvim_buf_set_lines(0, 0, -1, false, contents)
-    vim.api.nvim_buf_set_option(0, "buflisted", false)
-    vim.api.nvim_buf_set_option(0, "bufhidden", "wipe")
-    vim.api.nvim_buf_set_option(0, "modifiable", false)
-    vim.api.nvim_buf_set_option(0, "modified", false)
-
-    vim.schedule(function()
-      print "[sg] got sourcegraph info. For more information, see `:checkhealth sg`"
-    end)
-  end)()
-end, {})
-
 ---@command SourcegraphLink [[
 --- Get a sourcegraph link to the current repo + file + line.
 --- Automatically adds it to your '+' register
 ---@command ]]
 vim.api.nvim_create_user_command("SourcegraphLink", function()
   local cursor = vim.api.nvim_win_get_cursor(0)
-  void(function()
-    print "requesting link..."
+  print "requesting link..."
 
-    local err, link = require("sg.rpc").get_link(vim.api.nvim_buf_get_name(0), cursor[1], cursor[2] + 1)
+  require("sg.rpc").get_link(vim.api.nvim_buf_get_name(0), cursor[1], cursor[2] + 1, function(err, link)
     if err or not link then
-      print("Failed to get link:", link)
+      print("[sourcegraph] Failed to get link:", link)
       return
     end
 
-    print("Setting '+' register to:", link)
+    print("[sourcegraph] Setting '+' register to:", link)
     vim.fn.setreg("+", link)
-  end)()
+  end)
 end, {
   desc = "Get a sourcegraph link to the current location",
 })
@@ -117,3 +85,7 @@ vim.api.nvim_create_user_command("SourcegraphSearch", function(args)
 end, {
   desc = "Run a search on your connected Sourcegraph instance",
 })
+
+vim.api.nvim_create_user_command("SourcegraphInfo", function()
+  print "[sourcegraph-info] Use `:checkhealth sg` instead"
+end, {})

@@ -1,6 +1,7 @@
 use {
     crate::{
-        entry::Entry, get_cody_completions, get_embeddings_context, get_endpoint, get_repository_id,
+        entry::{link, Entry},
+        get_cody_completions, get_embeddings_context, get_endpoint, get_repository_id,
     },
     anyhow::Result,
     serde::{Deserialize, Serialize},
@@ -8,6 +9,72 @@ use {
     sg_types::{Embedding, RecipeInfo, SearchResult},
     std::{thread, time::Duration},
 };
+
+// TODO: I would like to explore this idea some more
+macro_rules! generate_request_and_response {
+    ( $( $name:ident { name: $rename:literal, request: $request:tt, response: $response:tt }, )* ) => {
+
+        #[derive(Serialize, Deserialize, Debug, Clone)]
+        pub struct MyRequest {
+            pub id: usize,
+
+            #[serde(flatten)]
+            pub data: RequestData,
+        }
+
+        #[derive(Serialize, Deserialize, Debug, Clone)]
+        #[serde(tag = "method", content = "params")]
+        pub enum MyRequestData {
+            $(
+                #[serde(rename = $rename)]
+                $name $request,
+            )*
+        }
+
+
+        // impl MyRequest {
+        //     pub async fn respond(self) -> Result<MyResponse> {
+        //         let Self { id, data } = self;
+        //         match data {
+        //             $(MyRequestData::$name(data) => {
+        //                 let result = ($blk)(id, data);
+        //                 Ok(MyResponse { id, result })
+        //             })*
+        //         }
+        //     }
+        // }
+
+        #[derive(Serialize, Deserialize, Debug, Clone)]
+        pub struct MyResponse {
+            pub id: usize,
+            pub result: MyResponseData,
+        }
+
+        #[derive(Serialize, Deserialize, Debug, Clone)]
+        #[serde(untagged)]
+        pub enum MyResponseData {
+            $($name $response,)*
+        }
+    };
+}
+
+generate_request_and_response!(
+    Echo {
+        name: "echo",
+        request: { message: String },
+        response: { message: String }
+    },
+
+    Complete {
+        name: "complete",
+        request: {
+            message: String,
+            prefix: Option<String>,
+            temperature: Option<f64>,
+        },
+        response: { completion: String }
+    },
+);
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct ProtoEntry {
@@ -101,6 +168,11 @@ pub enum RequestData {
         path: String,
         line: usize,
         col: usize,
+    },
+
+    #[serde(rename = "sourcegraph/get_remote_url")]
+    SourcegraphRemoteURL {
+        path: String,
     },
 }
 
@@ -233,6 +305,13 @@ impl Request {
 
                 Ok(Response::new(id, ResponseData::SourcegraphLink(link)))
             }
+            RequestData::SourcegraphRemoteURL { path } => {
+                let url = match link::repo_from_path(&path) {
+                    Ok(repo) => link::get_repo_name(&repo)?,
+                    _ => path,
+                };
+                Ok(Response::new(id, ResponseData::SourcegraphRemoteURL(url)))
+            }
         }
     }
 }
@@ -263,6 +342,7 @@ pub enum ResponseData {
     SourcegraphSearch(Vec<SearchResult>),
     SourcegraphInfo(Value),
     SourcegraphLink(String),
+    SourcegraphRemoteURL(String),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

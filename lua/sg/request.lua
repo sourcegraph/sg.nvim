@@ -60,18 +60,28 @@ M.start = function(opts)
     vim.notify "[sg.nvim] failed to start sg.nvim plugin"
     return nil
   end
+
+  return M.client
 end
 
 M.notify = function(...)
-  M.start()
-  return M.client.notify(...)
+  local client = M.start()
+  if not client then
+    return
+  end
+
+  return client.notify(...)
 end
 
-M.request = require("plenary.async").wrap(function(method, params, callback)
-  M.start()
-  return M.client.request(method, params, function(err, result)
+M.request = function(method, params, callback)
+  local client = M.start()
+  if not client then
+    return callback("no available client", nil)
+  end
+
+  return client.request(method, params, function(err, result)
     return callback(err, result)
   end)
-end, 3)
+end
 
 return M

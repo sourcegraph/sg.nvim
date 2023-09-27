@@ -40,7 +40,7 @@ local M = {}
 ---@class CodyClientInfo
 ---@field name string
 ---@field version string
----@field workspaceRootPath string
+---@field workspaceRootUri string
 ---@field extensionConfiguration CodyExtensionConfiguration?
 ---@field capabilities CodyClientCapabilities?
 

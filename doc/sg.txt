@@ -177,7 +177,7 @@ commands.ask({message})                               *sg.cody.commands.ask()*
 
 
     Parameters: ~
-        {message} (string)
+        {message} (string[])
 
 
 commands.ask_range({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands.ask_range()*
@@ -336,47 +336,6 @@ rpc.repository({name})                                   *sg.rpc.repository()*
         string?: The repository ID, if found
 
 
-rpc.embeddings({repo}, {query}, {opts})                  *sg.rpc.embeddings()*
-    Get embeddings for the a repo & associated query.
-
-
-    Parameters: ~
-        {repo}  (string)  Repo name (github.com/neovim/neovim)
-        {query} (any)     query string (the question you want to ask)
-        {opts}  (table)   `code`: number of code results, `text`: number of
-                          text results
-
-    Return: ~
-        string?: err, if any
-        table?: list of embeddings
-
-
-rpc.get_entry({path})                                     *sg.rpc.get_entry()*
-    Get an SgEntry based on a path
-
-
-    Parameters: ~
-        {path} (string)
-
-    Return: ~
-        string?: err, if any
-        SgEntry?: entry, if any
-
-
-rpc.get_file_contents({remote}, {oid}, {path})    *sg.rpc.get_file_contents()*
-    Get file contents for a sourcegraph file
-
-
-    Parameters: ~
-        {remote} (string)
-        {oid}    (string)
-        {path}   (string)
-
-    Return: ~
-        string?: err, if any
-        string[]?: contents, if successful
-
-
 rpc.get_directory_contents({remote}, {oid}, {path}) *sg.rpc.get_directory_contents()*
     Get directory contents for a sourcegraph directory
 
@@ -389,36 +348,6 @@ rpc.get_directory_contents({remote}, {oid}, {path}) *sg.rpc.get_directory_conten
     Return: ~
         string?: err, if any
         SgEntry[]?: contents, if successful
-
-
-rpc.get_search({query})                                  *sg.rpc.get_search()*
-    Get search results
-
-
-    Parameters: ~
-        {query} (string)
-
-    Return: ~
-        string?: err, if any
-        SgSearchResult[]?: contents, if successful
-
-
-rpc.get_info()                                             *sg.rpc.get_info()*
-    Get info about current sourcegraph info
-
-
-    Return: ~
-        string?: err, if any
-        table?: contents, if successful
-
-
-rpc.get_link()                                             *sg.rpc.get_link()*
-    Get info about current sourcegraph info
-
-
-    Return: ~
-        string?: err, if any
-        table?: contents, if successful
 
 
 

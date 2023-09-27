@@ -2,8 +2,6 @@
 vim.cmd [[runtime! after/plugin/cody.lua]]
 vim.cmd [[runtime! after/plugin/cody-agent.lua]]
 
-require("sg.cody.rpc").start()
-
 require("plenary.async").tests.add_to_env()
 
 local cody_commands = require "sg.cody.commands"
@@ -13,10 +11,12 @@ local rpc = assert(require "sg.cody.rpc", "able to load cody rpc")
 local tmp_dir = vim.loop.fs_mkdtemp(string.format("%s/cody-nvim-e2e-XXXXXXX", vim.loop.os_tmpdir()))
 os.execute(string.format("git clone https://github.com/sourcegraph/e2e-sg.nvim %s", tmp_dir))
 
+local initialized = false
 local find_initialized = function()
-  return vim.tbl_filter(function(msg)
-    return msg.type == "notify" and msg.method == "initialized"
-  end, rpc.messages)[1]
+  return initialized
+    and vim.tbl_filter(function(msg)
+      return msg.type == "notify" and msg.method == "initialized"
+    end, rpc.messages)[1]
 end
 
 describe("cody e2e", function()
@@ -26,6 +26,10 @@ describe("cody e2e", function()
     end
 
     vim.cmd.cd(tmp_dir)
+
+    require("sg.cody.rpc").start({}, function()
+      initialized = true
+    end)
   end)
 
   a.it("should ask through chat what file we are in", function()
