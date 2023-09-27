@@ -12,12 +12,12 @@ end
 
 local report_lib = function()
   if 1 ~= vim.fn.executable "cargo" then
-    vim.health.error "Unable to find valid cargo executable. Trying to build sg.nvim will fail. Instead use `:SourcegraphDownloadBinaries`"
-    return false
+    vim.health.warn "Unable to find valid cargo executable. Trying to build sg.nvim locally will fail. Instead use `:SourcegraphDownloadBinaries`"
+    return true
   else
     local result = require("sg.utils").system({ "cargo", "--version" }, { text = true }):wait()
     if result.code ~= 0 then
-      vim.health.error "cargo failed to run `cargo --version`. Instead use `:SourcegraphDownloadBinaries`"
+      vim.health.warn "cargo failed to run `cargo --version`. Instead use `:SourcegraphDownloadBinaries`"
 
       for _, msg in ipairs(vim.split(result.stdout, "\n")) do
         vim.health.info(msg)
@@ -28,7 +28,7 @@ local report_lib = function()
 
       return false
     else
-      vim.health.ok "Found `cargo` is executable"
+      vim.health.ok "Found `cargo` is executable (can still use `:SourcegraphDownloadBinaries` to avoid building locally)"
     end
   end
 
