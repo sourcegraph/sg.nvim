@@ -85,6 +85,11 @@ source.complete = function(self, params, callback)
   end
 
   commands.autocomplete(nil, function(data)
+    if not require("sg.config").enable_cody then
+      callback { items = {}, isIncomplete = false }
+      return
+    end
+
     local items = {}
     for _, item in ipairs(data.items) do
       local trimmed = vim.trim(item.insertText)
