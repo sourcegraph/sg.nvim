@@ -36,6 +36,8 @@ local track = function(msg)
   end
 end
 
+local current_state = {}
+
 local cody_args = { config.cody_agent }
 -- We can insert node breakpoint to debug the agent if needed
 -- table.insert(cody_args, 1, "--insert-brk")
@@ -45,7 +47,8 @@ M.message_callbacks = {}
 
 --- Start the server
 ---@param opts { force: boolean? }?
----@return VendoredPublicClient?
+---@param callback fun(client: VendoredPublicClient?)
+---@return nil
 M.start = function(opts, callback)
   assert(callback, "Must pass a callback")
 
@@ -105,6 +108,19 @@ M.start = function(opts, callback)
     end,
   }
 
+  -- Clear old information before restarting the client
+  M.messages = {}
+  M.server_info = nil
+
+  current_state = {}
+  current_state.user = require("sg.private.data").get_cody_data().user
+  require("sg.rpc").get_info(function(_, info)
+    if info then
+      current_state.version = info.sg_nvim_version
+    end
+  end)
+
+  -- M.client = vendored_rpc.start(config.node_executable, cody_args, {
   M.client = vendored_rpc.start(config.node_executable, cody_args, {
     notification = function(method, data)
       if notification_handlers[method] then
@@ -224,6 +240,30 @@ M.request = function(method, params, callback)
     end
 
     return client.request(method, params, function(err, result)
+      if false and method == "recipes/execute" then
+        client.request("graphql/logEvent", {
+          event = "CodyNeovimPlugin:recipe:chat-question:executed",
+          userCookieID = current_state.user,
+          url = "",
+          source = "IDEEXTENSION",
+          referrer = "NEOVIM",
+          argument = {},
+          publicArgument = {
+            serverEndpoint = current_state.config.extensionConfiguration.serverEndpoint,
+            extensionDetails = {
+              id = "Neovim",
+              ideExtensionType = "Cody",
+              version = current_state.version,
+            },
+          },
+          client = "NEOVIM_CODY_EXTENSION",
+        }, function(err)
+          if err then
+            vim.notify(vim.inspect(err))
+          end
+        end)
+      end
+
       track {
         type = "response",
         method = method,
@@ -265,6 +305,7 @@ M.initialize = function(callback)
       },
     }
 
+    current_state.config = info
     M.request("initialize", info, callback)
   end)
 end

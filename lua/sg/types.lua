@@ -33,6 +33,7 @@ local M = {}
 ---@field content string
 
 ---@class CodyConfig
+---@field user string
 ---@field tos_accepted boolean
 ---@field token string
 ---@field endpoint string
