@@ -112,6 +112,10 @@ function CodyHover:request_completion(code_only, filetype)
 
   return self.state:complete(self.history.bufnr, self.history.win, function(id)
     return function(msg)
+      if not msg then
+        return
+      end
+
       local lines = vim.split(msg.text, "\n")
       local render_lines = {}
       for _, line in ipairs(lines) do

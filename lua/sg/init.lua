@@ -42,6 +42,11 @@ local accept_tos = function(opts)
     data.write_cody_data(cody_data)
   end
 
+  if not cody_data.user then
+    cody_data.user = require("sg.utils").uuid()
+    data.write_cody_data(cody_data)
+  end
+
   return cody_data.tos_accepted
 end
 

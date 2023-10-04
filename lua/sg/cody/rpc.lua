@@ -45,7 +45,8 @@ M.message_callbacks = {}
 
 --- Start the server
 ---@param opts { force: boolean? }?
----@return VendoredPublicClient?
+---@param callback fun(client: VendoredPublicClient?)
+---@return nil
 M.start = function(opts, callback)
   assert(callback, "Must pass a callback")
 
@@ -87,10 +88,10 @@ M.start = function(opts, callback)
         return
       end
 
-      local callback = M.message_callbacks[noti.data.id]
-      if callback and noti.text then
+      local notification_callback = M.message_callbacks[noti.data.id]
+      if notification_callback and noti.text then
         noti.text = vim.trim(noti.text) -- trim random white space
-        callback(noti)
+        notification_callback(noti)
       end
     end,
   }
@@ -104,6 +105,10 @@ M.start = function(opts, callback)
       end
     end,
   }
+
+  -- Clear old information before restarting the client
+  M.messages = {}
+  M.server_info = nil
 
   M.client = vendored_rpc.start(config.node_executable, cody_args, {
     notification = function(method, data)
@@ -244,7 +249,13 @@ M.initialize = function(callback)
   local creds = auth.get()
   if not creds then
     require("sg.notify").NO_AUTH()
-    creds = {}
+
+    creds = {
+      ---@diagnostic disable-next-line: assign-type-mismatch
+      endpoint = nil,
+      ---@diagnostic disable-next-line: assign-type-mismatch
+      token = nil,
+    }
   end
 
   require("sg.cody.context").get_origin(0, function(remote_url)
@@ -257,8 +268,13 @@ M.initialize = function(callback)
         accessToken = creds.token,
         serverEndpoint = creds.endpoint,
         codebase = remote_url,
-        -- TODO: Custom Headers for neovim
         customHeaders = { ["User-Agent"] = "Sourcegraph Cody Neovim Plugin" },
+        eventProperties = {
+          anonymousUserID = require("sg.private.data").get_cody_data().user,
+          prefix = "CodyNeovimPlugin",
+          client = "NEOVIM_CODY_EXTENSION",
+          source = "IDEEXTENSION",
+        },
       },
       capabilities = {
         chat = "streaming",
@@ -299,7 +315,11 @@ M.exit = function()
 end
 
 ---@type CodyServerInfo
-M.server_info = {}
+M.server_info = {
+  name = "",
+  authenticated = false,
+  codyEnabled = false,
+}
 
 _SG_CODY_RPC_MESSAGES = _SG_CODY_RPC_MESSAGES or {}
 M.messages = _SG_CODY_RPC_MESSAGES
