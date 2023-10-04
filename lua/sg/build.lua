@@ -54,7 +54,18 @@ local M = {}
 
 local tarfile = joinpath(plugin_root, "dist", fullname)
 local move_to_dist = function(bin)
-  return vim.loop.fs_rename(joinpath(plugin_root, "dist", basename, bin), joinpath(plugin_root, "dist", bin))
+  local destination = joinpath(plugin_root, "dist", bin)
+
+  if not vim.loop.fs_rename(joinpath(plugin_root, "dist", basename, bin), destination) then
+    return false
+  end
+
+  local new_time = os.time()
+  if not vim.loop.fs_utime(destination, new_time, new_time) then
+    return false
+  end
+
+  return true
 end
 
 M.download = function()
@@ -76,22 +87,40 @@ M.download = function()
   end
   print "[sg] Done downloading"
 
-  local tar = system({ "tar", "-xvf", tarfile, "-C", joinpath(plugin_root, "dist/") }):wait()
-  if tar.code ~= 0 then
-    error("Failed to untar release" .. tar)
-  end
-  print "[sg] Done extracting"
+  if sysname == "windows_nt" then
+    local zipfile = joinpath(plugin_root, "dist", fullname)
 
-  local lsp_rename = move_to_dist "sg-lsp"
-  if not lsp_rename then
-    error("Failed to rename sg-lsp: " .. vim.inspect(lsp_rename))
-    return
-  end
+    local unzip = system({
+      "powershell",
+      "-Command",
+      "Expand-Archive",
+      "-Path",
+      zipfile,
+      "-DestinationPath",
+      joinpath(plugin_root, "dist"),
+    }):wait()
+    if unzip.code ~= 0 then
+      error("Failed to unzip release" .. unzip)
+    end
+    print "[sg] Done extracting"
+  else
+    local tar = system({ "tar", "-xvf", tarfile, "-C", joinpath(plugin_root, "dist/") }):wait()
+    if tar.code ~= 0 then
+      error("Failed to untar release" .. tar)
+    end
+    print "[sg] Done extracting"
 
-  local agent_rename = move_to_dist "sg-nvim-agent"
-  if not agent_rename then
-    error("Failed to rename sg-nvim-agent" .. vim.inspect(agent_rename))
-    return
+    local lsp_rename = move_to_dist "sg-lsp"
+    if not lsp_rename then
+      error("Failed to rename sg-lsp: " .. vim.inspect(lsp_rename))
+      return
+    end
+
+    local agent_rename = move_to_dist "sg-nvim-agent"
+    if not agent_rename then
+      error("Failed to rename sg-nvim-agent" .. vim.inspect(agent_rename))
+      return
+    end
   end
 
   vim.notify "[sg] Download complete. Restart nvim"

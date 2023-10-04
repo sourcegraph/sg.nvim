@@ -7,6 +7,9 @@ local M = {}
 local artifact_file = require("plenary.debug_utils").sourced_filepath()
 local sg_root = vim.fn.fnamemodify(artifact_file, ":p:h:h:h:h")
 
+local os_uname = vim.loop.os_uname()
+local sysname = os_uname.sysname:lower()
+
 local sort_by_time = function(candidates)
   table.sort(candidates, function(a, b)
     return a.stat.mtime.sec > b.stat.mtime.sec
@@ -25,12 +28,23 @@ M.find_rust_bin = function(cmd)
     "/bin/",
   }
 
+  -- On windows, we have `.exe` attached to the files,
+  -- but on other systems we don't. We'll still check
+  -- for both just in case
+  local postfixes = { "" }
+  if sysname == "windows_nt" then
+    table.insert(postfixes, ".exe")
+  end
+
   local candidates = {}
-  for _, dir in ipairs(directories) do
-    local path = utils.joinpath(sg_root, dir, cmd)
-    local stat = uv.fs_stat(path)
-    if stat then
-      table.insert(candidates, { stat = stat, path = path })
+  for _, suffix in ipairs(postfixes) do
+    local potential_command = cmd .. suffix
+    for _, dir in ipairs(directories) do
+      local path = utils.joinpath(sg_root, dir, potential_command)
+      local stat = uv.fs_stat(path)
+      if stat then
+        table.insert(candidates, { stat = stat, path = path })
+      end
     end
   end
 
