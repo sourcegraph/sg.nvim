@@ -39,8 +39,10 @@ end, { range = 2, nargs = 1 })
 --   cody_commands.recipes(bufnr, command.line1 - 1, command.line2)
 -- end, { range = 2 })
 
----@command :CodyChat {title} [[
+---@command :CodyChat{!} {title} [[
 --- State a new cody chat, with an optional {title}
+---
+--- If {!} is passed, will reset the chat and start a new chat conversation.
 ---@command ]]
 vim.api.nvim_create_user_command("CodyChat", function(command)
   local name = nil
@@ -48,8 +50,8 @@ vim.api.nvim_create_user_command("CodyChat", function(command)
     name = table.concat(command.fargs, " ")
   end
 
-  cody_commands.chat(name)
-end, { nargs = "*" })
+  cody_commands.chat(name, { reset = command.bang })
+end, { nargs = "*", bang = true })
 
 ---@command :CodyToggle [[
 --- Toggles the current Cody Chat window.

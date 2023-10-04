@@ -352,4 +352,10 @@ M.execute.autocomplete = function(file, line, character, callback)
   )
 end
 
+M.transcript = {}
+
+M.transcript.reset = function()
+  return M.notify("transcript/reset", {})
+end
+
 return M

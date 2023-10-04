@@ -29,28 +29,25 @@ local types = require "sg.types"
 ---  Default { "environment-variables", "nvim", "sourcegraph-app" }
 
 ---@type sg.config
-local config = {}
+local config = {
+  download_binaries = true,
+  enable_cody = true,
+  node_executable = "node",
+  cody_agent = vim.api.nvim_get_runtime_file("dist/cody-agent.js", false)[1],
+  testing = (vim.env.SG_NVIM_TESTING or "") == "true",
 
-config.download_binaries = true
+  auth_strategy = { types.auth_strategy.env, types.auth_strategy.nvim, types.auth_strategy.app },
 
-config.enable_cody = true
-config.node_executable = "node"
-config.cody_agent = vim.api.nvim_get_runtime_file("dist/cody-agent.js", false)[1]
+  get_nvim_agent = function()
+    return require("sg.private.find_artifact").find_rust_bin "sg-nvim-agent"
+  end,
 
-config.on_attach = function(_, bufnr)
-  vim.keymap.set("n", "gd", vim.lsp.buf.definition, { buffer = bufnr })
-  vim.keymap.set("n", "gr", vim.lsp.buf.references, { buffer = bufnr })
-  vim.keymap.set("n", "K", vim.lsp.buf.hover, { buffer = bufnr })
-end
-
-config.testing = (vim.env.SG_NVIM_TESTING or "") == "true"
-
-config.did_change_debounce = 500
-
-config.get_nvim_agent = function()
-  return require("sg.private.find_artifact").find_rust_bin "sg-nvim-agent"
-end
-
-config.auth_strategy = { types.auth_strategy.env, types.auth_strategy.nvim, types.auth_strategy.app }
+  did_change_debounce = 500,
+  on_attach = function(_, bufnr)
+    vim.keymap.set("n", "gd", vim.lsp.buf.definition, { buffer = bufnr })
+    vim.keymap.set("n", "gr", vim.lsp.buf.references, { buffer = bufnr })
+    vim.keymap.set("n", "K", vim.lsp.buf.hover, { buffer = bufnr })
+  end,
+}
 
 return config
