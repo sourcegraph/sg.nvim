@@ -262,7 +262,7 @@ M.initialize = function(callback)
     ---@type CodyClientInfo
     local info = {
       name = "neovim",
-      version = "0.1",
+      version = require("sg.private.data").version,
       workspaceRootUri = vim.uri_from_fname(vim.loop.cwd() or ""),
       extensionConfiguration = {
         accessToken = creds.token,
