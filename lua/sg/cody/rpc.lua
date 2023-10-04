@@ -110,7 +110,6 @@ M.start = function(opts, callback)
   M.messages = {}
   M.server_info = nil
 
-  -- M.client = vendored_rpc.start(config.node_executable, cody_args, {
   M.client = vendored_rpc.start(config.node_executable, cody_args, {
     notification = function(method, data)
       if notification_handlers[method] then
@@ -251,9 +250,10 @@ M.initialize = function(callback)
   if not creds then
     require("sg.notify").NO_AUTH()
 
-    ---@diagnostic disable-next-line: assign-type-mismatch
     creds = {
+      ---@diagnostic disable-next-line: assign-type-mismatch
       endpoint = nil,
+      ---@diagnostic disable-next-line: assign-type-mismatch
       token = nil,
     }
   end
