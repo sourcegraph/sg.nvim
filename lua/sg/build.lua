@@ -126,6 +126,4 @@ M.download = function()
   vim.notify "[sg] Download complete. Restart nvim"
 end
 
-M.download()
-
 return M
