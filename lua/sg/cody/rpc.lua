@@ -36,8 +36,6 @@ local track = function(msg)
   end
 end
 
-local current_state = {}
-
 local cody_args = { config.cody_agent }
 -- We can insert node breakpoint to debug the agent if needed
 -- table.insert(cody_args, 1, "--insert-brk")
@@ -90,10 +88,10 @@ M.start = function(opts, callback)
         return
       end
 
-      local callback = M.message_callbacks[noti.data.id]
-      if callback and noti.text then
+      local notification_callback = M.message_callbacks[noti.data.id]
+      if notification_callback and noti.text then
         noti.text = vim.trim(noti.text) -- trim random white space
-        callback(noti)
+        notification_callback(noti)
       end
     end,
   }
@@ -111,14 +109,6 @@ M.start = function(opts, callback)
   -- Clear old information before restarting the client
   M.messages = {}
   M.server_info = nil
-
-  current_state = {}
-  current_state.user = require("sg.private.data").get_cody_data().user
-  require("sg.rpc").get_info(function(_, info)
-    if info then
-      current_state.version = info.sg_nvim_version
-    end
-  end)
 
   -- M.client = vendored_rpc.start(config.node_executable, cody_args, {
   M.client = vendored_rpc.start(config.node_executable, cody_args, {
@@ -240,30 +230,6 @@ M.request = function(method, params, callback)
     end
 
     return client.request(method, params, function(err, result)
-      if false and method == "recipes/execute" then
-        client.request("graphql/logEvent", {
-          event = "CodyNeovimPlugin:recipe:chat-question:executed",
-          userCookieID = current_state.user,
-          url = "",
-          source = "IDEEXTENSION",
-          referrer = "NEOVIM",
-          argument = {},
-          publicArgument = {
-            serverEndpoint = current_state.config.extensionConfiguration.serverEndpoint,
-            extensionDetails = {
-              id = "Neovim",
-              ideExtensionType = "Cody",
-              version = current_state.version,
-            },
-          },
-          client = "NEOVIM_CODY_EXTENSION",
-        }, function(err)
-          if err then
-            vim.notify(vim.inspect(err))
-          end
-        end)
-      end
-
       track {
         type = "response",
         method = method,
@@ -284,7 +250,12 @@ M.initialize = function(callback)
   local creds = auth.get()
   if not creds then
     require("sg.notify").NO_AUTH()
-    creds = {}
+
+    ---@diagnostic disable-next-line: assign-type-mismatch
+    creds = {
+      endpoint = nil,
+      token = nil,
+    }
   end
 
   require("sg.cody.context").get_origin(0, function(remote_url)
@@ -297,15 +268,19 @@ M.initialize = function(callback)
         accessToken = creds.token,
         serverEndpoint = creds.endpoint,
         codebase = remote_url,
-        -- TODO: Custom Headers for neovim
         customHeaders = { ["User-Agent"] = "Sourcegraph Cody Neovim Plugin" },
+        eventProperties = {
+          anonymousUserID = require("sg.private.data").get_cody_data().user,
+          prefix = "CodyNeovimPlugin",
+          client = "NEOVIM_CODY_EXTENSION",
+          source = "IDEEXTENSION",
+        },
       },
       capabilities = {
         chat = "streaming",
       },
     }
 
-    current_state.config = info
     M.request("initialize", info, callback)
   end)
 end
@@ -340,7 +315,11 @@ M.exit = function()
 end
 
 ---@type CodyServerInfo
-M.server_info = {}
+M.server_info = {
+  name = "",
+  authenticated = false,
+  codyEnabled = false,
+}
 
 _SG_CODY_RPC_MESSAGES = _SG_CODY_RPC_MESSAGES or {}
 M.messages = _SG_CODY_RPC_MESSAGES

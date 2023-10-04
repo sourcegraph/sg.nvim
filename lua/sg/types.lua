@@ -50,6 +50,13 @@ local M = {}
 ---@field accessToken string
 ---@field codebase string?
 ---@field customHeaders table<string, string>
+---@field eventProperties CodyEventProperties
+
+---@class CodyEventProperties
+---@field anonymousUserID string
+---@field prefix string
+---@field client string
+---@field source string
 
 ---@class CodyClientCapabilities
 ---@field completions 'none'?
