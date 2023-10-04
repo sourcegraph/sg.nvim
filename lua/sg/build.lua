@@ -109,21 +109,23 @@ M.download = function()
       error("Failed to untar release" .. tar)
     end
     print "[sg] Done extracting"
-  end
 
-  local lsp_rename = move_to_dist "sg-lsp"
-  if not lsp_rename then
-    error("Failed to rename sg-lsp: " .. vim.inspect(lsp_rename))
-    return
-  end
+    local lsp_rename = move_to_dist "sg-lsp"
+    if not lsp_rename then
+      error("Failed to rename sg-lsp: " .. vim.inspect(lsp_rename))
+      return
+    end
 
-  local agent_rename = move_to_dist "sg-nvim-agent"
-  if not agent_rename then
-    error("Failed to rename sg-nvim-agent" .. vim.inspect(agent_rename))
-    return
+    local agent_rename = move_to_dist "sg-nvim-agent"
+    if not agent_rename then
+      error("Failed to rename sg-nvim-agent" .. vim.inspect(agent_rename))
+      return
+    end
   end
 
   vim.notify "[sg] Download complete. Restart nvim"
 end
+
+M.download()
 
 return M
