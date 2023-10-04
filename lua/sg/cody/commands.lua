@@ -85,10 +85,13 @@ end
 
 --- Start a new CodyChat
 ---@param name string?
+---@param opts { reset: boolean }?
 ---@return CodyLayoutSplit
-commands.chat = function(name)
+commands.chat = function(name, opts)
+  opts = opts or {}
+
   -- TODO: Config for this :)
-  local layout = CodySplit.init { name = name }
+  local layout = CodySplit.init { name = name, reset = opts.reset }
   layout:show()
 
   return layout

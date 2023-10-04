@@ -6,6 +6,7 @@ local State = require "sg.cody.state"
 
 ---@class CodyBaseLayoutOpts
 ---@field name string?
+---@field reset boolean?
 ---@field state CodyState?
 ---@field prompt CodyPromptOpts?
 ---@field history CodyHistoryOpts
@@ -27,11 +28,18 @@ Base.__index = Base
 ---@param opts CodyBaseLayoutOpts
 ---@return CodyBaseLayout
 function Base.init(opts)
+  local state = opts.state
+  if opts.reset then
+    state = State.init { name = opts.name }
+  else
+    if not state then
+      state = State.last() or State.init { name = opts.name }
+    end
+  end
+
   return setmetatable({
     opts = opts,
-    state = opts.state or State.last() or State.init {
-      name = opts.name,
-    },
+    state = state,
   }, Base)
 end
 
@@ -116,6 +124,11 @@ function Base:create()
   end
 
   self.created = true
+
+  -- Reset the chat
+  if self.opts.reset then
+    require("sg.cody.rpc").transcript.reset()
+  end
 end
 
 --- Show the layout
