@@ -61,7 +61,7 @@ function CodySplit.init(opts)
     shared.make_win_minimal(prompt.win)
     shared.make_buf_minimal(prompt.bufnr)
 
-    vim.wo[prompt.win].winbar = "Cody Prompt%=%#Comment#(press ? for keymaps)"
+    vim.wo[prompt.win].winbar = "Cody Prompt%=%#Comment#(`?` for help)"
   end
 
   local object = Base.init(opts)
