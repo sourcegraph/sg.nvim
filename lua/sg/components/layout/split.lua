@@ -61,10 +61,12 @@ function CodySplit.init(opts)
     shared.make_win_minimal(prompt.win)
     shared.make_buf_minimal(prompt.bufnr)
 
-    vim.wo[prompt.win].winbar = "%=Cody Prompt%="
+    vim.wo[prompt.win].winbar = "Cody Prompt%=%#Comment#(press ? for keymaps)"
   end
 
   local object = Base.init(opts)
+
+  ---@diagnostic disable-next-line: inject-field
   object.super = Base
   return setmetatable(object, CodySplit) --[[@as CodyLayoutSplit]]
 end
