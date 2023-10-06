@@ -2,7 +2,11 @@
 ---@config { ["module"] = "sg.rpc" }
 
 if not require "sg.request" then
-  return {}
+  return {
+    get_info = function(callback)
+      callback("Unable to check current sg version", nil)
+    end,
+  }
 end
 
 local req = require("sg.request").request

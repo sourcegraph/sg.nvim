@@ -37,11 +37,11 @@ end
 
 local report_nvim_agent = function()
   local ok, nvim_agent = pcall(require("sg.config").get_nvim_agent)
-  if ok then
-    vim.health.ok("Found `sg-nvim-agent`: " .. nvim_agent)
+  if ok and nvim_agent then
+    vim.health.ok("Found `sg-nvim-agent`: " .. vim.inspect(nvim_agent))
     return true
   else
-    vim.health.error("Unable to find `sg-nvim-agent`: " .. nvim_agent)
+    vim.health.error("Unable to find `sg-nvim-agent`: " .. vim.inspect(nvim_agent))
     return false
   end
 end
@@ -92,7 +92,12 @@ local report_env = function()
 
       ok = false
     else
-      vim.health.ok("Found correct binary versions: " .. expected_cargo_version .. " = " .. info.sg_nvim_version)
+      vim.health.ok(
+        "Found correct binary versions: "
+          .. vim.inspect(expected_cargo_version)
+          .. " = "
+          .. vim.inspect(info.sg_nvim_version)
+      )
     end
   end)
 
@@ -108,7 +113,7 @@ local report_agent = function()
 
   local ok, reason = require("sg.utils").valid_node_executable(config.node_executable)
   if not ok then
-    vim.health.error("Invalid node executable: " .. reason)
+    vim.health.error("Invalid node executable: " .. vim.inspect(reason))
     return false
   end
 
