@@ -4,7 +4,7 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     pre-commit-nix.url = "github:cachix/pre-commit-hooks.nix";
     rust-overlay.url = "github:oxalica/rust-overlay";
-    crane.url = "github:ipetkov/crane";
+    nci.url = "github:yusdacra/nix-cargo-integration";
   };
 
   outputs = {
@@ -14,68 +14,55 @@
   } @ inputs:
     flake-parts.lib.mkFlake {inherit inputs;} {
       imports = [
+        inputs.nci.flakeModule
         inputs.pre-commit-nix.flakeModule
       ];
-
-      flake = {
-        overlays.default = final: prev: {
-          sg-nvim = self.packages."${prev.system}".default;
-        };
-        # HACK: both nixpkgs.lib and pkgs.lib contain licenses
-        # Technically impossible to do `callPackage` without proper `${system}`
-        meta = import ./contrib/meta.nix {inherit (inputs.nixpkgs) lib;};
-      };
 
       systems = ["x86_64-darwin" "x86_64-linux" "aarch64-darwin"];
       perSystem = {
         config,
-        system,
-        inputs',
+        lib,
+        pkgs,
         self',
         ...
       }: let
-        pkgs = import inputs.nixpkgs {
-          inherit system;
-          overlays = [
-            inputs.rust-overlay.overlays.default
-          ];
+        inherit (config.nci) outputs;
+        withOpenSSL = {
+          mkDerivation = {
+            nativeBuildInputs = with pkgs; [pkg-config];
+            buildInputs = with pkgs; [openssl] ++ lib.optionals pkgs.stdenv.isDarwin [darwin.apple_sdk.frameworks.Security];
+          };
         };
-        toolchain = pkgs.rust-bin.fromRustupToolchainFile ./rust-toolchain.toml;
       in {
-        devShells.default = pkgs.mkShell {
-          name = "sg.nvim";
-          buildInputs = with pkgs;
-            [
-              openssl
-              pkg-config
-              toolchain
-            ]
-            ++ lib.optionals stdenv.isDarwin [darwin.apple_sdk.frameworks.Security];
-          shellHook = ''
-            ${config.pre-commit.installationScript}
-          '';
+        nci = {
+          toolchainConfig = ./rust-toolchain.toml;
+          projects."sg.nvim" = {
+            path = ./.;
+            drvConfig = withOpenSSL;
+            depsDrvConfig = withOpenSSL;
+          };
+
+          crates = {
+            jsonrpc = {};
+            sg-gql = {};
+            sg-types = {};
+            sg = {};
+          };
         };
 
-        formatter = pkgs.alejandra;
-
-        packages.workspace = pkgs.callPackage ./contrib/workspace-drv.nix {
-          craneLib = inputs.crane.lib.${system}.overrideToolchain toolchain;
-          proj_root = inputs.self;
-          inherit (self) meta;
+        devShells.default = outputs."sg.nvim".devShell;
+        packages = {
+          default = outputs.sg.packages.release;
+          sg-nvim = pkgs.vimUtils.buildVimPlugin {
+            name = "sg.nvim";
+            inherit (self'.packages.default) version;
+            src = ./.;
+            propagatedBuildInputs = [self'.packages.default];
+            # Some package managers, like lazy.nvim, have some nifty features that depend on plugin directories being full fledged git repositories.
+            # So we'll leave .git lying around just for them :)
+            leaveDotGit = true;
+          };
         };
-
-        packages.plugin = pkgs.callPackage ./contrib/plugin-drv.nix {
-          proj_root = inputs.self;
-          inherit (self) meta;
-        };
-
-        packages.all = pkgs.callPackage ./contrib/default.nix {
-          sg-workspace = self'.packages.workspace;
-          sg-plugin = self'.packages.plugin;
-          inherit (self) meta;
-        };
-
-        packages.default = self'.packages.all;
 
         pre-commit = {
           settings = {

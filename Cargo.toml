@@ -69,6 +69,6 @@ name = "sg"
 resolver = "2"
 members = [
     "crates/jsonrpc",
-    "crates/sg-gql/",
-    "crates/sg-types/",
+    "crates/sg-gql",
+    "crates/sg-types",
 ]
