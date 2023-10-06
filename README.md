@@ -141,21 +141,11 @@ Sourcegraph Browsing:
 
 ### Nix(OS)
 
-The project is packaged as a [Nix Flake][nix-flakes]. Consume it as you normally would. In your Nix configuration,
-*make sure* that sg-nvim is included *both* as a Neovim plugin *and* as an environment/user package
-(because `sg-lsp` needs to be on your PATH).
+The project is packaged as a [Nix Flake][nix-flakes]. Consume it as you normally would.
+For reference, see:
 
-See [Neovim guide on NixOS wiki](https://nixos.wiki/wiki/Neovim) for more details on configuration
-See [gh:willruggiano/neovim.drv](https://github.com/willruggiano/neovim.drv) for a practical configuration.
-
-For Nix contributors and maintainers:
-
-- Feel free to `nix flake update` every once in a while to make sure `flake.lock` is up-to-date
-- [ ] Minimal `sg.nvim`-integrated neovim package for testing and example
-- [ ] Integrate `sg.nvim` + Cody onto [nixpkgs:vimPlugins](https://github.com/NixOS/nixpkgs/tree/fe2fb24a00ec510d29ccd4e36af72a0c55d81ec0/pkgs/applications/editors/vim/plugins)
-
-You will also need to add the built `.cdylib` onto `package.cpath`. Here is one example
-using [gh:willruggiano/neovim.nix](https://github.com/willruggiano/neovim.nix):
+- [Neovim guide on NixOS wiki](https://nixos.wiki/wiki/Neovim)
+- [gh:willruggiano/neovim.drv](https://github.com/willruggiano/neovim.drv)
 
 ```nix
 sg = let
@@ -167,13 +157,18 @@ in {
     name = "sg.lua";
     text = ''
       return function()
-        package.cpath = package.cpath .. ";" .. "${package}/lib/?.so;${package}/lib/?.dylib"
+        package.cpath = package.cpath .. ";" .. "${package}/lib/?.so"
       end
     '';
   };
 };
 ```
 
+For Nix contributors and maintainers:
+
+- Feel free to `nix flake update` every once in a while to make sure `flake.lock` is up-to-date
+- [ ] Minimal `sg.nvim`-integrated neovim package for testing and example
+- [ ] Integrate `sg.nvim` + Cody onto [nixpkgs:vimPlugins](https://github.com/NixOS/nixpkgs/tree/fe2fb24a00ec510d29ccd4e36af72a0c55d81ec0/pkgs/applications/editors/vim/plugins)
+
 [nix-flakes]: https://nixos.wiki/wiki/Flakes
-[crate2nix]: https://github.com/kolloch/crate2nix
 
