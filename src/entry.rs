@@ -270,6 +270,7 @@ pub mod link {
         let default_remote = repo
             .find_default_remote(Direction::Push)
             .ok_or(anyhow!("no default repo"))??;
+
         Ok(default_remote
             .url(Direction::Push)
             .ok_or(anyhow!("no default repo"))?
