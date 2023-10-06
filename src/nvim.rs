@@ -307,8 +307,8 @@ impl Request {
             }
             RequestData::SourcegraphRemoteURL { path } => {
                 let url = match link::repo_from_path(&path) {
-                    Ok(repo) => link::get_repo_name(&repo)?,
-                    _ => path,
+                    Ok(repo) => link::get_repo_name(&repo).ok(),
+                    _ => Some(path),
                 };
                 Ok(Response::new(id, ResponseData::SourcegraphRemoteURL(url)))
             }
@@ -342,7 +342,7 @@ pub enum ResponseData {
     SourcegraphSearch(Vec<SearchResult>),
     SourcegraphInfo(Value),
     SourcegraphLink(String),
-    SourcegraphRemoteURL(String),
+    SourcegraphRemoteURL(Option<String>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
