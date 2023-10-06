@@ -104,6 +104,22 @@ M.get({ordering})                                              *sg.auth.get()*
         SourcegraphAuthStrategy?
 
 
+M.reload()                                                  *sg.auth.reload()*
+    Can force reload
+
+
+
+M.valid({opts})                                              *sg.auth.valid()*
+    Gets whether the current configuration is valid.
+
+
+    Parameters: ~
+        {opts} ({ cached: boolean }?)
+
+    Return: ~
+        boolean
+
+
 M.set_nvim_auth({opts})                              *sg.auth.set_nvim_auth()*
     Set the nvim auth. Will optionally prompt user for auth if nothing is
     passed.
