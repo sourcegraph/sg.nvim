@@ -63,9 +63,9 @@ local M = {}
 ---@field chat 'none' | 'streaming' | nil
 
 ---@class CodyServerInfo
----@field name string
----@field authenticated boolean
----@field codyEnabled boolean
+---@field name string?
+---@field authenticated boolean?
+---@field codyEnabled boolean?
 ---@field codyVersion string?
 ---@field capabilities CodyServerCapabilities?
 

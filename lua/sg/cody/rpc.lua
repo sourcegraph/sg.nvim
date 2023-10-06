@@ -25,6 +25,7 @@ local is_ready = function(opts)
     return true
   end
 
+  ---@diagnostic disable-next-line: return-type-mismatch
   return M.server_info.authenticated and M.server_info.codyEnabled
 end
 
@@ -108,7 +109,7 @@ M.start = function(opts, callback)
 
   -- Clear old information before restarting the client
   M.messages = {}
-  M.server_info = nil
+  M.server_info = {}
 
   M.client = vendored_rpc.start(config.node_executable, cody_args, {
     notification = function(method, data)
@@ -166,7 +167,8 @@ M.start = function(opts, callback)
       end
     end
 
-    M.server_info = data
+    -- Clear or reset the server information
+    M.server_info = data or {}
 
     -- And then respond that we've initialized
     local _ = M.notify("initialized", {})
