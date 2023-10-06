@@ -84,12 +84,13 @@ source.complete = function(self, params, callback)
     return
   end
 
-  commands.autocomplete(nil, function(data)
-    if not require("sg.config").enable_cody then
-      callback { items = {}, isIncomplete = false }
-      return
-    end
+  -- Don't trigger completions when cody is disabled or if we have invalid auth
+  if not require("sg.config").enable_cody or not require("sg.auth").valid { cached = true } then
+    callback { items = {}, isIncomplete = false }
+    return
+  end
 
+  commands.autocomplete(nil, function(data)
     local items = {}
     for _, item in ipairs(data.items) do
       local trimmed = vim.trim(item.insertText)

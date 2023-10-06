@@ -17,7 +17,7 @@ local is_ready = function(opts)
   end
 
   opts = opts or {}
-  if not auth.valid() then
+  if not auth.valid { cached = true } then
     return false
   end
 

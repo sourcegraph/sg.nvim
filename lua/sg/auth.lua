@@ -115,15 +115,41 @@ M.get_all_valid = function(ordering)
   return results
 end
 
-M.valid = function()
-  return M.get() ~= nil
+local cached_valid_conf = nil
+
+--- Can force reload
+M.reload = function()
+  cached_valid_conf = nil
+  return M.valid()
+end
+
+--- Gets whether the current configuration is valid.
+---@param opts { cached: boolean }?
+---@return boolean
+M.valid = function(opts)
+  opts = opts or {}
+
+  if not opts.cached or cached_valid_conf == nil then
+    require("sg").accept_tos()
+
+    cached_valid_conf = M.get() ~= nil
+  end
+
+  return cached_valid_conf
 end
 
 --- Set the nvim auth. Will optionally prompt user for auth if nothing is passed.
 ---@param opts SourcegraphAuthConfig?
 M.set_nvim_auth = function(opts)
+  cached_valid_conf = nil
+
   opts = opts or {}
-  opts.endpoint = opts.endpoint or vim.fn.input "SRC_ENDPOINT > "
+  opts.endpoint = opts.endpoint
+    or vim.fn.input {
+      prompt = "SRC_ENDPOINT > ",
+      default = "https://sourcegraph.com",
+    }
+
   opts.token = opts.token or vim.fn.inputsecret "SRC_ACCESS_TOKEN > "
 
   if opts.endpoint:sub(1, 4) ~= "http" then
