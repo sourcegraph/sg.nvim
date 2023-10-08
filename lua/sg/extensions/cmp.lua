@@ -101,8 +101,10 @@ source.complete = function(self, params, callback)
         detail = trimmed,
         label = trimmed,
 
-        -- Mark as snippet, not text.
-        kind = cmp_types.CompletionItemKind.Snippet,
+        cmp = {
+          kind_hl_group = "CmpItemKindCody",
+          kind_text = "Cody",
+        },
 
         -- Attempt to adjust indentation
         insertTextMode = cmp_types.InsertTextMode.AdjustIndentation,
@@ -124,6 +126,6 @@ source.complete = function(self, params, callback)
   end)
 end
 
-cmp.register_source("cody", source.new())
+cmp.register_source("cody", source)
 
 return M
