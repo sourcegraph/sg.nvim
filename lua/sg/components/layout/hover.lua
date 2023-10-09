@@ -116,7 +116,7 @@ function CodyHover:request_completion(code_only, filetype)
         return
       end
 
-      local lines = vim.split(msg.text, "\n")
+      local lines = vim.split(msg.text or "", "\n")
       local render_lines = {}
       for _, line in ipairs(lines) do
         if code_only then

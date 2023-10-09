@@ -142,7 +142,11 @@ function CodyFloat:request_completion()
   -- I wonder if we can change this or just parameterize in a new way.
   return self.state:complete(self.history.bufnr, self.history.win, function(id)
     return function(msg)
-      self.state:update_message(id, Message.init(Speaker.cody, vim.split(msg.text, "\n"), {}))
+      if not msg then
+        return
+      end
+
+      self.state:update_message(id, Message.init(Speaker.cody, vim.split(msg.text or "", "\n"), {}))
       self:render()
     end
   end)
