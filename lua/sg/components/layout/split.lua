@@ -133,7 +133,7 @@ function CodySplit:request_completion()
         return
       end
 
-      self.state:update_message(id, Message.init(Speaker.cody, vim.split(msg.text, "\n"), msg.contextFiles))
+      self.state:update_message(id, Message.init(Speaker.cody, vim.split(msg.text or "", "\n"), msg.contextFiles))
       self:render()
     end
   end)
