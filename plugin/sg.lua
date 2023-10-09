@@ -1,7 +1,3 @@
-if not require "sg.request" then
-  return
-end
-
 local bufread = require "sg.bufread"
 
 -- TODO: I don't know how to turn off this https://* stuff and not make netrw users mad

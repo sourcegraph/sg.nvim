@@ -28,8 +28,18 @@ M.edit = function(bufnr, path, callback)
 
   vim.bo[bufnr].buftype = "nofile"
   vim.bo[bufnr].modifiable = true
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "Loading..." })
 
+  if not require("sg.auth").valid { cached = true } then
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
+      string.format("Unable to open: '%s'", path),
+      "",
+      "You are not currently logged in to Sourcegraph.",
+      "Please run `:SourcegraphLogin` or check out `:help sg.auth` for other options",
+    })
+    return callback()
+  end
+
+  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "Loading..." })
   rpc.get_entry(path, function(err, entry)
     log.trace("Retrieving entry for path: ", path)
 

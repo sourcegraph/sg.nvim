@@ -190,6 +190,15 @@ end
 ---@param method string: The notification method name.
 ---@param params table: The parameters to send with the notification.
 M.notify = function(method, params)
+  -- TODO: I'm wondering if this should be in start?...
+  --        It feels a bit less likely to cause weird race condition
+  --        problems in the notify and requests compared to in start?
+  --
+  --        We can revisit this later though.
+  if not auth.valid { cached = true } then
+    return
+  end
+
   M.start({}, function(client)
     if not client then
       return
@@ -210,9 +219,13 @@ end
 ---@param params any
 ---@param callback fun(E, R)
 M.request = function(method, params, callback)
+  if not auth.valid { cached = true } then
+    return callback("Invalid auth. Cannot complete cody requeest", nil)
+  end
+
   M.start({}, function(client)
     if not client then
-      return callback(nil, "RPC client not initialized")
+      return callback("RPC client not initialized", nil)
     end
 
     track {
