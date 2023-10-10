@@ -38,6 +38,9 @@ describe("cody e2e", function()
     vim.cmd.edit(opts.file)
     vim.wait(100)
 
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "// Inserting example comment" })
+    vim.wait(100)
+
     if opts.bang then
       vim.cmd [[CodyChat!]]
     else
