@@ -32,12 +32,12 @@ describe("cody e2e", function()
     end)
   end)
 
-  local execute_test_case = function(bang)
+  local execute_test_case = function(opts)
     vim.wait(5000, find_initialized)
 
-    vim.cmd.edit "pool/pool.go"
+    vim.cmd.edit(opts.file)
 
-    if bang then
+    if opts.bang then
       vim.cmd [[CodyChat!]]
     else
       vim.cmd [[CodyChat]]
@@ -57,23 +57,20 @@ describe("cody e2e", function()
     end)
 
     local lines = table.concat(vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false), "\n")
-    assert(
-      string.find(lines, "/pool/pool.go"),
-      string.format("Cody told us the path to the current file:\n\n %s", lines)
-    )
+    assert(string.find(lines, opts.file), string.format("Cody told us the path to the current file:\n\n %s", lines))
   end
 
   a.it("should ask through chat what file we are in", function()
-    execute_test_case(false)
+    execute_test_case { bang = false, file = "pool/pool.go" }
   end)
 
   a.it("should work after restarting", function()
-    execute_test_case(false)
+    execute_test_case { bang = false, file = "pool/pool.go" }
 
     -- Restart the server
     vim.cmd.CodyRestart()
     vim.wait(5000, find_initialized)
 
-    execute_test_case(true)
+    execute_test_case { bang = true, file = "pool/pool_test.go" }
   end)
 end)
