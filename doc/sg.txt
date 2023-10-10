@@ -377,6 +377,26 @@ Completion source for nvim-cmp.
 
 To enable, add `"cody"` to your nvim-cmp sources.
 
+For example:
+
+>lua
+    require("cmp").setup {
+      ...,
+      sources = cmp.config.sources({
+        { name = "cody" },
+        { name = "nvim_lsp" },
+      },
+      ...
+    }
+<
+
+Cody items are highlighted with the `CmpItemKindCody` highlight group. You can
+override the default color using |:highlight|
+
+>lua
+    vim.api.nvim_set_hl(0, "CmpItemKindCody", { fg = "Red" })
+<
+
 Optionally, you can trigger Cody Completions manually by doing:
 
 >lua
@@ -415,7 +435,6 @@ here's how you could configure if you're using `lspkind`:
 <
 
 See |cmp-config.sources| for more information
-
 
 
 
