@@ -23,7 +23,7 @@ end
 -- Connect protocol messages to neovim events
 aucmd { "BufEnter", cb = function(data) protocol.did_focus(data.buf) end }
 aucmd { "BufDelete", cb = function(data) protocol.did_close(data.buf) end }
-aucmd { "BufAdd", "BufReadPost", cb = function(data) protocol.did_open(data.buf) end }
+aucmd { "BufReadPost", cb = function(data) protocol.did_open(data.buf) end }
 aucmd { "VimLeavePre", cb = protocol.exit }
 
 -- TODO: Should add something in the protocol for changing workspace root?
