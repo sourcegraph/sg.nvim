@@ -57,11 +57,15 @@ describe("cody e2e", function()
     local history_bufnr = vim.api.nvim_get_current_buf()
 
     vim.wait(20000, function()
-      return vim.api.nvim_buf_line_count(history_bufnr) > 5
+      local lines = table.concat(vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false), "\n")
+      return vim.api.nvim_buf_line_count(history_bufnr) > 5 and (not not string.find(lines, opts.file))
     end)
 
     local lines = table.concat(vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false), "\n")
-    assert(string.find(lines, opts.file), string.format("Cody told us the path to the current file:\n\n %s", lines))
+    assert(
+      string.find(lines, opts.file),
+      string.format("%s Failed.\nCodyRespone:\n\n %s", opts.message or "<not passed>", lines)
+    )
   end
 
   a.it("should ask through chat what file we are in", function()
@@ -69,13 +73,13 @@ describe("cody e2e", function()
   end)
 
   a.it("should work after restarting", function()
-    execute_test_case { bang = false, file = "pool/pool.go" }
+    execute_test_case { bang = false, file = "pool/pool.go", message = "first" }
 
     -- Restart the server
     vim.cmd.CodyRestart()
     -- Wait for the server to be restarted
     vim.wait(100)
 
-    execute_test_case { bang = true, file = "pool/pool_test.go" }
+    execute_test_case { bang = true, file = "pool/pool_test.go", message = "second" }
   end)
 end)
