@@ -23,7 +23,7 @@ local modes = {
   "info",
   "warn",
   "error",
-  "datal",
+  "fatal",
 }
 
 local filtered_keys = {
