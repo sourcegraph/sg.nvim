@@ -158,8 +158,17 @@ end, {})
 --- Useful if you've re-authenticated or are testing your config
 ---@command ]]
 vim.api.nvim_create_user_command("CodyRestart", function()
-  require("sg.cody.rpc").start { force = true }
-  require("sg.request").start { force = true }
+  -- Restart cody client.
+  require("sg.cody.rpc").start({ force = true }, function(client)
+    -- Restart sg request after this one has started
+    require("sg.request").start { force = true }
+
+    if not client then
+      vim.notify "Failed to load client"
+    else
+      vim.notify "Restarted cody client"
+    end
+  end)
 end, {})
 
 return M

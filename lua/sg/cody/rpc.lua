@@ -17,12 +17,12 @@ local is_ready = function(opts)
   end
 
   opts = opts or {}
-  if not auth.valid { cached = true } then
-    return false
-  end
-
   if opts.method == "initialize" then
     return true
+  end
+
+  if not auth.valid { cached = true } then
+    return false
   end
 
   ---@diagnostic disable-next-line: return-type-mismatch
@@ -65,6 +65,8 @@ M.start = function(opts, callback)
     M.shutdown()
     M.exit()
     vim.wait(10)
+
+    M.client = nil
   end
 
   local ok, reason = require("sg.utils").valid_node_executable(config.node_executable)

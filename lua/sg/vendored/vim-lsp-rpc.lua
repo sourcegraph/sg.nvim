@@ -197,7 +197,10 @@ end
 ---@param signal integer: Number describing the signal used to terminate (if
 ---any)
 function default_dispatchers.on_exit(code, signal)
-  local _ = log.info("client_exit", { code = code, signal = signal })
+  -- Only log that client has exited if it wasn't expected
+  if code ~= 0 then
+    local _ = log.info("client_exit", { code = code, signal = signal })
+  end
 end
 ---@private
 --- Default dispatcher for client errors.
