@@ -35,6 +35,8 @@ Requires:
 
 (By default, sg.nvim downloads released binaries from Github. If you prefer to build the plugin yourself, you'll need `cargo` to build)
 
+- Currently uses plenary.nvim and telescope.nvim for some features.
+  - If you would like to use something else for search functionality, please make an issue and I can look into adding support.
 
 ### Install
 
@@ -43,10 +45,11 @@ Requires:
 
 ```lua
 -- Use your favorite package manager to install, for example in lazy.nvim
+--  Optionally, you can also install nvim-telescope/telescope.nvim to use some search functionality.
 return {
   {
     "sourcegraph/sg.nvim",
-    dependencies = { "nvim-lua/plenary.nvim" },
+    dependencies = { "nvim-lua/plenary.nvim", --[[ "nvim-telescope/telescope.nvim ]] },
 
     -- If you have a recent version of lazy.nvim, you don't need to add this!
     build = "nvim -l build/init.lua",
@@ -61,6 +64,12 @@ return {
 ```lua
 -- Packer.nvim, also make sure to install nvim-lua/plenary.nvim
 use { 'sourcegraph/sg.nvim', run = 'nvim -l build/init.lua' }
+
+-- You'll also need plenary.nvim
+use { 'nvim-lua/plenary.nvim' }
+
+-- And optionally, you can install telescope for some search functionality
+--  "nvim-lua/plenary.nvim", --[[ "nvim-telescope/telescope.nvim ]] 
 ```
 </details>
 
@@ -70,6 +79,12 @@ use { 'sourcegraph/sg.nvim', run = 'nvim -l build/init.lua' }
 ```vimrc
 " Using vim-plug
 Plug 'sourcegraph/sg.nvim', { 'do': 'nvim -l build/init.lua' }
+
+" Required for various utilities
+Plug 'nvim-lua/plenary.nvim'
+
+" Required if you want to use some of the search functionality
+Plug 'nvim-telescope/telescope.nvim'
 ```
 </details>
 
