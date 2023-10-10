@@ -80,6 +80,25 @@ M.strategies = {
   },
 }
 
+--- Helps massage data into expected strategies
+local transform_order = function(order)
+  if M.strategies[order] then
+    return order
+  end
+
+  for k, v in pairs(strategy) do
+    if v == order and M.strategies[k] then
+      return k
+    end
+
+    if k == order and M.strategies[k] then
+      return k
+    end
+  end
+
+  error(string.format("Unknown auth strategy: %s", order))
+end
+
 --- Get the highest priority active auth configuration.
 --- By default loads the ordering from the user config.
 ---
@@ -89,6 +108,8 @@ M.strategies = {
 M.get = function(ordering)
   ordering = ordering or config.auth_strategy
   for _, order in ipairs(ordering) do
+    order = transform_order(order)
+
     local f = M.strategies[order]
     if f then
       local result = f.get()
