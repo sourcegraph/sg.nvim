@@ -104,7 +104,7 @@ utils.valid_node_executable = function(executable)
     return false, string.format("node version must be >= %s. Got: %s", min_node_version, version)
   end
 
-  return true
+  return true, version
 end
 
 return utils

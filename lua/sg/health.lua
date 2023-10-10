@@ -2,7 +2,7 @@ local M = {}
 
 local report_nvim = function()
   if vim.version.cmp(vim.version(), { 0, 9, 0 }) >= 0 then
-    vim.health.ok "Valid nvim version"
+    vim.health.ok(string.format("Valid nvim version: %s", vim.version()))
     return true
   else
     vim.health.error "Invalid nvim version. Upgrade to at least 0.9.0"
@@ -28,7 +28,9 @@ local report_lib = function()
 
       return false
     else
-      vim.health.ok "Found `cargo` is executable (can still use `:SourcegraphDownloadBinaries` to avoid building locally)"
+      local version = vim.trim(result.stdout or "")
+      vim.health.ok(string.format("Found `cargo` (%s) is executable", version))
+      vim.health.info "    Use `:SourcegraphDownloadBinaries` to avoid building locally."
     end
   end
 
@@ -138,7 +140,13 @@ local report_agent = function()
         vim.health.info(msg)
       end
     else
-      vim.health.ok(string.format("Found `%s` (config.node_executable) is executable", config.node_executable))
+      vim.health.ok(
+        string.format(
+          "Found `%s` (config.node_executable) is executable.\n    Version: '%s'",
+          config.node_executable,
+          reason
+        )
+      )
     end
   end
 
