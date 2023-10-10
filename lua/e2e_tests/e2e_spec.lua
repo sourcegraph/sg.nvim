@@ -57,4 +57,54 @@ describe("cody e2e", function()
       string.format("Cody told us the path to the current file:\n\n %s", lines)
     )
   end)
+
+  a.it("should work after restarting", function()
+    vim.wait(5000, find_initialized)
+
+    vim.cmd.edit "pool/pool.go"
+
+    vim.cmd.CodyChat()
+    cody_commands.focus_prompt()
+    local prompt_bufnr = vim.api.nvim_get_current_buf()
+
+    vim.api.nvim_buf_set_lines(prompt_bufnr, 0, -1, false, { "What file am I looking at" })
+    vim.cmd.CodySubmit()
+
+    cody_commands.focus_history()
+    local history_bufnr = vim.api.nvim_get_current_buf()
+
+    vim.wait(20000, function()
+      return vim.api.nvim_buf_line_count(history_bufnr) > 5
+    end)
+
+    local lines = table.concat(vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false), "\n")
+    assert(
+      string.find(lines, "/pool/pool.go"),
+      string.format("Cody told us the path to the current file:\n\n %s", lines)
+    )
+
+    vim.cmd.CodyRestart()
+
+    vim.cmd.edit "pool/pool.go"
+
+    vim.cmd [[CodyChat!]]
+    cody_commands.focus_prompt()
+    local prompt_bufnr = vim.api.nvim_get_current_buf()
+
+    vim.api.nvim_buf_set_lines(prompt_bufnr, 0, -1, false, { "What file am I looking at" })
+    vim.cmd.CodySubmit()
+
+    cody_commands.focus_history()
+    local history_bufnr = vim.api.nvim_get_current_buf()
+
+    vim.wait(20000, function()
+      return vim.api.nvim_buf_line_count(history_bufnr) > 5
+    end)
+
+    local lines = table.concat(vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false), "\n")
+    assert(
+      string.find(lines, "/pool/pool.go"),
+      string.format("Cody told us the path to the current file:\n\n %s", lines)
+    )
+  end)
 end)
