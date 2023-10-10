@@ -36,6 +36,7 @@ describe("cody e2e", function()
     vim.wait(5000, find_initialized)
 
     vim.cmd.edit(opts.file)
+    vim.wait(100)
 
     if opts.bang then
       vim.cmd [[CodyChat!]]
@@ -69,7 +70,8 @@ describe("cody e2e", function()
 
     -- Restart the server
     vim.cmd.CodyRestart()
-    vim.wait(5000, find_initialized)
+    -- Wait for the server to be restarted
+    vim.wait(100)
 
     execute_test_case { bang = true, file = "pool/pool_test.go" }
   end)
