@@ -38,7 +38,7 @@ describe("cody e2e", function()
     vim.cmd.edit(opts.file)
     vim.wait(100)
 
-    vim.api.nvim_buf_set_lines(0, 0, -1, false, { "// Inserting example comment" })
+    vim.api.nvim_buf_set_lines(0, 0, 0, false, { "// Inserting example comment" })
     vim.wait(100)
 
     if opts.bang then
@@ -64,7 +64,15 @@ describe("cody e2e", function()
     local lines = table.concat(vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false), "\n")
     assert(
       string.find(lines, opts.file),
-      string.format("%s Failed.\nCodyRespone:\n\n %s", opts.message or "<not passed>", lines)
+      string.format(
+        "%s Failed.\nCodyResponse %s:\n\n %s",
+        opts.message or "<not passed>",
+        vim.inspect {
+          current_file = vim.api.nvim_buf_get_name(0),
+          buffers = vim.api.nvim_list_bufs(),
+        },
+        lines
+      )
     )
   end
 
