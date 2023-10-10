@@ -4,6 +4,26 @@
 ---
 --- To enable, add `"cody"` to your nvim-cmp sources.
 ---
+--- For example:
+---
+--- <code=lua>
+---     require("cmp").setup {
+---       ...,
+---       sources = cmp.config.sources({
+---         { name = "cody" },
+---         { name = "nvim_lsp" },
+---       },
+---       ...
+---     }
+--- </code>
+---
+--- Cody items are highlighted with the `CmpItemKindCody` highlight group.
+--- You can override the default color using |:highlight|
+---
+--- <code=lua>
+---     vim.api.nvim_set_hl(0, "CmpItemKindCody", { fg = "Red" })
+--- </code>
+---
 --- Optionally, you can trigger Cody Completions manually by doing:
 ---
 --- <code=lua>
@@ -43,7 +63,6 @@
 ---
 --- See |cmp-config.sources| for more information
 ---
----
 ---@brief ]]
 
 local cmp = require "cmp"
@@ -55,10 +74,6 @@ local document = require "sg.document"
 local M = {}
 
 local source = {}
-
-source.new = function()
-  return setmetatable({}, { __index = source })
-end
 
 source.get_trigger_characters = function()
   return { "@", ".", "(", "{", " " }
@@ -73,7 +88,7 @@ end
 ---@param self table
 ---@param params cmp.SourceCompletionApiParams
 ---@param callback function(response: lsp.CompletionResponse)
-source.complete = function(self, params, callback)
+function source:complete(params, callback)
   _ = self
   _ = params
 
