@@ -32,12 +32,21 @@ describe("cody e2e", function()
     end)
   end)
 
-  a.it("should ask through chat what file we are in", function()
+  local execute_test_case = function(opts)
     vim.wait(5000, find_initialized)
 
-    vim.cmd.edit "pool/pool.go"
+    vim.cmd.edit(opts.file)
+    vim.wait(100)
 
-    vim.cmd.CodyChat()
+    vim.api.nvim_buf_set_lines(0, 0, 0, false, { "// Inserting example comment" })
+    vim.wait(100)
+
+    if opts.bang then
+      vim.cmd [[CodyChat!]]
+    else
+      vim.cmd [[CodyChat]]
+    end
+
     cody_commands.focus_prompt()
     local prompt_bufnr = vim.api.nvim_get_current_buf()
 
@@ -48,13 +57,48 @@ describe("cody e2e", function()
     local history_bufnr = vim.api.nvim_get_current_buf()
 
     vim.wait(20000, function()
-      return vim.api.nvim_buf_line_count(history_bufnr) > 5
+      local lines = table.concat(vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false), "\n")
+      return vim.api.nvim_buf_line_count(history_bufnr) > 5 and (not not string.find(lines, opts.file))
     end)
 
     local lines = table.concat(vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false), "\n")
+    local bufs = vim.api.nvim_list_bufs()
+    local buffers = {}
+    for _, buf in ipairs(bufs) do
+      buffers[vim.api.nvim_buf_get_name(buf)] = buf
+    end
     assert(
-      string.find(lines, "/pool/pool.go"),
-      string.format("Cody told us the path to the current file:\n\n %s", lines)
+      string.find(lines, opts.file),
+      string.format(
+        "%s Failed.\nCodyResponse %s:\n\n %s",
+        opts.message or "<not passed>",
+        vim.inspect {
+          current_file = vim.api.nvim_buf_get_name(0),
+          buffers = buffers,
+        },
+        lines
+      )
     )
+  end
+
+  a.it("should ask through chat what file we are in", function()
+    execute_test_case { bang = false, file = "pool/pool.go" }
+  end)
+
+  a.it("should work after restarting", function()
+    execute_test_case { bang = false, file = "pool/pool.go", message = "first" }
+
+    -- Restart the server
+    vim.cmd.CodyRestart()
+    -- Wait for the server to be restarted
+    vim.wait(100)
+    -- Close chat window
+    vim.cmd.q()
+
+    execute_test_case {
+      bang = true,
+      file = "pool/pool.go",
+      message = "second",
+    }
   end)
 end)

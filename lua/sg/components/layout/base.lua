@@ -145,6 +145,14 @@ function Base:show(render_opts)
   if self.prompt then
     self.prompt:show()
     vim.api.nvim_set_current_win(self.prompt.win)
+
+    vim.api.nvim_create_autocmd({ "WinClosed", "BufDelete" }, {
+      buffer = self.prompt.bufnr,
+      once = true,
+      callback = function()
+        self.prompt:on_close()
+      end,
+    })
   end
 
   self:set_keymaps()
