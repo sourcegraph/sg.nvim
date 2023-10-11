@@ -87,6 +87,8 @@ describe("cody e2e", function()
     vim.cmd.CodyRestart()
     -- Wait for the server to be restarted
     vim.wait(100)
+    -- Close chat window
+    vim.cmd.q()
 
     execute_test_case { bang = true, file = "pool/pool_test.go", message = "second" }
   end)

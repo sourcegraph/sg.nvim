@@ -82,7 +82,7 @@ function CodySplit:set_keymaps()
     self.prompt:on_submit()
   end)
 
-  keymaps.map(self.prompt.bufnr, "i", "<c-c>", "[cody] quit chat", function()
+  keymaps.map(self.prompt.bufnr, { "i", "n" }, "<c-c>", "[cody] quit chat", function()
     self.prompt:on_close()
   end)
 
