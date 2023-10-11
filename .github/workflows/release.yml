@@ -99,6 +99,9 @@ jobs:
       - uses: swatinem/rust-cache@v2
       - name: Install cargo-dist
         run: ${{ matrix.install_dist }}
+      - name: Install cross-compiling tools
+        if: matrix.runner == 'ubuntu-20.04'
+        run: "sudo apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu"
       - name: Build artifacts
         run: |
           # Actually do builds and make zips and whatnot
