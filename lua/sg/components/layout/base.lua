@@ -146,7 +146,7 @@ function Base:show(render_opts)
     self.prompt:show()
     vim.api.nvim_set_current_win(self.prompt.win)
 
-    vim.api.nvim_create_autocmd({ "WinClosed", "BufDelete", "BufHidden" }, {
+    vim.api.nvim_create_autocmd({ "WinClosed", "BufDelete" }, {
       buffer = self.prompt.bufnr,
       once = true,
       callback = function()
