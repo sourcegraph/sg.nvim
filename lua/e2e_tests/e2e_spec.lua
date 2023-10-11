@@ -97,7 +97,7 @@ describe("cody e2e", function()
 
     execute_test_case {
       bang = true,
-      file = "pool/result_context_pool.go",
+      file = "pool/pool.go",
       message = "second",
     }
   end)
