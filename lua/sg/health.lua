@@ -164,6 +164,9 @@ M.check = function()
 
   local ok = true
 
+  local uname = vim.loop.os_uname()
+  vim.health.info(string.format("Machine: %s, sysname: %s", uname.machine, uname.sysname))
+
   ok = report_nvim() and ok
   ok = report_lib() and ok
   ok = report_nvim_agent() and ok
