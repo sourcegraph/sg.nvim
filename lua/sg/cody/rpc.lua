@@ -137,7 +137,7 @@ M.start = function(opts, callback)
     end,
     on_exit = function(code, signal)
       if code ~= 0 then
-        log.warn("[cody-agen] closed cody agent", code, signal)
+        log.warn("[cody-agent] closed cody agent", code, signal)
       end
     end,
   })
