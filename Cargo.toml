@@ -63,6 +63,7 @@ targets = [
 ]
 # Publish jobs to run in CI
 pr-run-mode = "plan"
+allow-dirty = ["ci"]
 
 # The profile that 'cargo dist' will build with
 [profile.dist]
