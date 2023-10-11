@@ -95,6 +95,10 @@ describe("cody e2e", function()
     -- Close chat window
     vim.cmd.q()
 
-    execute_test_case { bang = true, file = "pool/pool_test.go", message = "second" }
+    execute_test_case {
+      bang = true,
+      file = "pool/result_context_pool.go",
+      message = "second",
+    }
   end)
 end)
