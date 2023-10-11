@@ -62,6 +62,11 @@ describe("cody e2e", function()
     end)
 
     local lines = table.concat(vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false), "\n")
+    local bufs = vim.api.nvim_list_bufs()
+    local buffers = {}
+    for _, buf in ipairs(bufs) do
+      buffers[vim.api.nvim_buf_get_name(buf)] = buf
+    end
     assert(
       string.find(lines, opts.file),
       string.format(
@@ -69,7 +74,7 @@ describe("cody e2e", function()
         opts.message or "<not passed>",
         vim.inspect {
           current_file = vim.api.nvim_buf_get_name(0),
-          buffers = vim.api.nvim_list_bufs(),
+          buffers = buffers,
         },
         lines
       )
