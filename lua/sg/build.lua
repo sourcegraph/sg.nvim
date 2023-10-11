@@ -22,7 +22,11 @@ local machine = os_uname.machine
 
 local basename = (function()
   if sysname == "linux" then
-    return "sg-x86_64-unknown-linux-gnu"
+    if machine == "arm64" then
+      return "sg-aarch64-unknown-linux-gnu"
+    else
+      return "sg-x86_64-unknown-linux-gnu"
+    end
   end
 
   if sysname == "windows_nt" then
