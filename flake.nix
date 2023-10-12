@@ -28,6 +28,8 @@
       }: let
         inherit (config.nci) outputs;
         withOpenSSL = {
+          # Needed to get openssl-sys to use pkgconfig.
+          env.OPENSSL_NO_VENDOR = "1";
           mkDerivation = {
             nativeBuildInputs = with pkgs; [pkg-config];
             buildInputs = with pkgs; [openssl] ++ lib.optionals pkgs.stdenv.isDarwin [darwin.apple_sdk.frameworks.Security];
