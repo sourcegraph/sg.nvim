@@ -1,8 +1,5 @@
 local shared = require "sg.components.shared"
 
----@class CodyPromptSubmitOptions
----@field request_embeddings boolean
-
 ---@class CodyPromptOpts
 ---@field open function(self): Create a buf, win pair
 ---@field split string?
@@ -10,7 +7,7 @@ local shared = require "sg.components.shared"
 ---@field width number|string
 ---@field row number|string
 ---@field col number|string
----@field on_submit function(bufnr: number, text: string[], opts: CodyPromptSubmitOptions): void
+---@field on_submit function(bufnr: number, text: string[]): void
 ---@field on_change function?
 ---@field on_close function?
 ---@field filetype string: The filetype to assign to the prompt buffer
@@ -37,13 +34,10 @@ end
 
 --- On submit
 ---@param self CodyPrompt
----@param opts CodyPromptSubmitOptions?
-function CodyPrompt:on_submit(opts)
-  opts = opts or {}
-
+function CodyPrompt:on_submit()
   local value = vim.api.nvim_buf_get_lines(self.bufnr, 0, -1, false)
   if self.opts.on_submit then
-    self.opts.on_submit(self.bufnr, value, opts)
+    self.opts.on_submit(self.bufnr, value)
   end
 end
 

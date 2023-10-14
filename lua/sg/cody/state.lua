@@ -1,5 +1,9 @@
+local log = require "sg.log"
+
 local Speaker = require "sg.cody.speaker"
 local Message = require "sg.cody.message"
+local Typewriter = require "sg.components.typewriter"
+local Mark = require "sg.mark"
 
 local state_history = {}
 
@@ -8,12 +12,17 @@ local set_last_state = function(state)
   last_state = state
 end
 
+---@class CodyMessageState
+---@field message CodyMessage
+---@field mark CodyMarkWrapper
+---@field typewriter CodyTypewriter?
+
 ---@class CodyStateOpts
 ---@field name string?
 
 ---@class CodyState
 ---@field name string
----@field messages CodyMessage[]
+---@field messages CodyMessageState[]
 local State = {}
 State.__index = State
 
@@ -43,7 +52,12 @@ end
 function State:append(message)
   set_last_state(self)
 
-  table.insert(self.messages, message)
+  table.insert(self.messages, {
+    message = message,
+    extmark = nil,
+    typewriter = Typewriter.init(),
+  })
+
   return #self.messages
 end
 
@@ -53,9 +67,42 @@ end
 function State:update_message(id, message)
   set_last_state(self)
 
-  self.messages[id] = message
+  self.messages[id].message = message
 end
 
+function State:_update_text()
+  local rendered_lines = {}
+  for _, message_state in ipairs(self.messages) do
+    local message = message_state.message
+
+    if #rendered_lines > 0 then
+      table.insert(rendered_lines, "")
+    end
+    for _, line in ipairs(message:render()) do
+      if not vim.tbl_isempty(rendered_lines) or line ~= "" then
+        if message.speaker == Speaker.cody then
+          -- Cody has a tendency to have random trailing white space
+          line = line:gsub("%s+$", "")
+          table.insert(rendered_lines, line)
+        else
+          table.insert(rendered_lines, line)
+        end
+      end
+    end
+  end
+
+  -- if #rendered_lines > 0 then
+  --   local first_line = rendered_lines[1]
+  --   if first_line:sub(1, 3) == "```" then
+  --     local lang = first_line:sub(4)
+  --     vim.bo[bufnr].filetype = lang
+  --     rendered_lines = { unpack(rendered_lines, 2, #rendered_lines - 1) }
+  --   end
+  -- end
+end
+
+-- TODO: I would like to move code_only into the state.
+--          The state cannot switch between code_only and not code_only
 ---@class CompleteOpts
 ---@field code_only boolean
 
@@ -68,7 +115,7 @@ end
 function State:complete(bufnr, win, callback, opts)
   set_last_state(self)
 
-  local snippet = table.concat(self.messages[#self.messages].msg, "\n") .. "\n"
+  local snippet = table.concat(self.messages[#self.messages].message.msg, "\n") .. "\n"
 
   self:render(bufnr, win)
   vim.cmd [[mode]]
@@ -92,48 +139,40 @@ end
 ---@param win number
 ---@param render_opts CodyLayoutRenderOpts?
 function State:render(bufnr, win, render_opts)
-  render_opts = render_opts or {}
+  log.debug "state:render"
 
-  -- TODO: It should be possible to not wipe away the whole buffer, but I think it's fine for now.
-  --       (main reason I mention is cause maybe extmarks would be more effective at maintaing messages)
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
-  local messages = self.messages
-  if render_opts then
-    messages = { unpack(messages, render_opts.start, render_opts.finish) }
-  end
-
-  local rendered_lines = {}
-  for _, message in ipairs(messages) do
-    if #rendered_lines > 0 then
-      table.insert(rendered_lines, "")
+  --- Render a message
+  ---@param message_state CodyMessageState
+  local render_one_message = function(message_state)
+    local message = message_state.message
+    if message.hidden then
+      return
     end
-    for _, line in ipairs(message:render()) do
-      if not vim.tbl_isempty(rendered_lines) or line ~= "" then
-        if message.speaker == Speaker.cody then
-          -- Cody has a tendency to have random trailing white space
-          line = line:gsub("%s+$", "")
-          table.insert(rendered_lines, line)
-        else
-          table.insert(rendered_lines, line)
-        end
+
+    if not message_state.mark then
+      -- Put a new line at the end of the buffer
+      if vim.api.nvim_buf_line_count(bufnr) > 1 then
+        vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "", "" })
       end
+
+      -- Create a new extmark associated in the last line
+      local last_line = vim.api.nvim_buf_line_count(bufnr) - 1
+      message_state.mark = Mark.init {
+        ns = Typewriter.ns,
+        bufnr = bufnr,
+        start_row = last_line,
+        start_col = 0,
+        end_row = last_line,
+        end_col = 0,
+      }
     end
+
+    message_state.typewriter:set_text(table.concat(message:render(), "\n"))
+    message_state.typewriter:render(bufnr, win, message_state.mark)
   end
 
-  if #rendered_lines > 0 then
-    local first_line = rendered_lines[1]
-    if first_line:sub(1, 3) == "```" then
-      local lang = first_line:sub(4)
-      vim.bo[bufnr].filetype = lang
-      rendered_lines = { unpack(rendered_lines, 2, #rendered_lines - 1) }
-    end
-  end
-
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, rendered_lines)
-
-  local linecount = vim.api.nvim_buf_line_count(bufnr)
-  if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == bufnr then
-    vim.api.nvim_win_set_cursor(win, { linecount, 0 })
+  for _, message_state in ipairs(self.messages) do
+    render_one_message(message_state)
   end
 end
 

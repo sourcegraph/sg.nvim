@@ -93,11 +93,6 @@ function CodyFloat:set_keymaps()
     self.prompt:on_submit()
   end)
 
-  -- TODO: We'll add this back after thinking about it a bit more
-  -- keymaps.map(self.prompt.bufnr, "i", "<M-CR>", function()
-  --   self.prompt:on_submit { request_embeddings = true }
-  -- end)
-
   keymaps.map(self.prompt.bufnr, "i", "<c-c>", "[cody] quit chat", function()
     self.prompt:on_close()
   end)

@@ -13,10 +13,14 @@ local Base = require "sg.components.layout.base"
 ---@field bufnr number?
 ---@field start_line number?
 ---@field end_line number?
+---@field code_only boolean?
+---@field code_ft string?
 
 ---@class CodyLayoutHover : CodyBaseLayout
----@field opts CodyLayoutHoverOpts
 ---@field super CodyBaseLayout
+---@field opts CodyLayoutHoverOpts
+---@field code_only boolean
+---@field code_ft string?: TODO: It might be nice to put this in code_only?...
 local CodyHover = setmetatable({}, Base)
 CodyHover.__index = CodyHover
 
@@ -53,9 +57,12 @@ function CodyHover.init(opts)
     })
   end
 
-  local object = Base.init(opts)
+  local object = Base.init(opts) --[[@as CodyLayoutHover]]
   object.super = Base
-  return setmetatable(object, CodyHover) --[[@as CodyLayoutHover]]
+  object.code_only = opts.code_only or false
+  object.code_ft = opts.code_ft or nil
+
+  return setmetatable(object, CodyHover)
 end
 
 --- Show current Hovered layout
@@ -104,10 +111,8 @@ function CodyHover:set_keymaps()
 end
 
 ---Returns the id of the message where the completion will be.
----@param code_only boolean
----@param filetype string
 ---@return number
-function CodyHover:request_completion(code_only, filetype)
+function CodyHover:request_completion()
   self:render()
 
   return self.state:complete(self.history.bufnr, self.history.win, function(id)
@@ -119,7 +124,11 @@ function CodyHover:request_completion(code_only, filetype)
       local lines = vim.split(msg.text or "", "\n")
       local render_lines = {}
       for _, line in ipairs(lines) do
-        if code_only then
+        if self.code_only then
+          -- This is the end of a block like:
+          -- ```lua
+          -- print('some code')
+          -- ```
           if vim.trim(line) == "```" then
             require("sg.cody.rpc").message_callbacks[msg.data.id] = nil
             break
@@ -128,15 +137,15 @@ function CodyHover:request_completion(code_only, filetype)
         table.insert(render_lines, line)
       end
 
-      if code_only then
-        render_lines = { "```" .. filetype, unpack(render_lines) }
+      if self.code_only then
+        render_lines = { "```" .. (self.code_ft or ""), unpack(render_lines) }
         table.insert(render_lines, "```")
       end
 
       self.state:update_message(id, Message.init(Speaker.cody, render_lines, {}))
-      self:render { start = id, finish = id }
+      self:render()
     end
-  end, { code_only = code_only })
+  end, { code_only = self.code_only })
 end
 
 return CodyHover
