@@ -21,7 +21,7 @@ function Message.init(speaker, msg, contextFiles, opts)
     speaker = speaker,
     msg = msg,
     contextFiles = contextFiles,
-    hidden = opts.hidden or false,
+    hidden = opts.hidden,
   }, Message)
 end
 

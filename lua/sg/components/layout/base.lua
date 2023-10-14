@@ -29,7 +29,8 @@ function Base.init(opts)
     state = State.init { name = opts.name }
   else
     if not state then
-      state = State.last() or State.init { name = opts.name }
+      -- state = State.last() or State.init { name = opts.name }
+      state = State.init { name = opts.name }
     end
   end
 
@@ -79,6 +80,8 @@ function Base:request_user_message(contents)
   self:request_completion()
 end
 
+--- Request a completion
+---@return number: The id of the message to be completed
 function Base:request_completion()
   error "Base:request_completion() is an abstract function"
 end

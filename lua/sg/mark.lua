@@ -1,3 +1,7 @@
+---@class CodyNvimPosition
+---@field row number: 0-indexed row
+---@field col number: 0-indexed column
+
 ---@class CodyMarkWrapper
 ---@field bufnr number
 ---@field ns number
@@ -26,15 +30,23 @@ function Mark.init(opts)
   }, Mark)
 end
 
+--- Get the details of the ext mark
+---@return table
 function Mark:details()
   return vim.api.nvim_buf_get_extmark_by_id(self.bufnr, self.ns, self.id, { details = true })
 end
 
+--- Get the start position
+---@param details table?
+---@return CodyNvimPosition
 function Mark:start_pos(details)
   details = details or self:details()
   return { row = details[1], col = details[2] }
 end
 
+--- Get the end position
+---@param details table?
+---@return CodyNvimPosition
 function Mark:end_pos(details)
   details = details or self:details()
   return { row = details[3].end_row, col = details[3].end_col }
@@ -49,7 +61,5 @@ function Mark:text(details)
     "\n"
   )
 end
-
--- function Mark.get(bufnr, ns, id) end
 
 return Mark

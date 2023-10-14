@@ -66,10 +66,13 @@ function CodyHover.init(opts)
 end
 
 --- Show current Hovered layout
----@param render_opts CodyLayoutRenderOpts?
-function CodyHover:show(render_opts)
-  self.super.show(self, render_opts)
+function CodyHover:show()
+  self.super.show(self)
   vim.api.nvim_set_current_win(self.history.win)
+
+  if self.code_ft and self.code_ft ~= "" then
+    vim.bo[self.history.bufnr].filetype = self.code_ft
+  end
 end
 
 function CodyHover:set_keymaps()
@@ -122,27 +125,21 @@ function CodyHover:request_completion()
       end
 
       local lines = vim.split(msg.text or "", "\n")
-      local render_lines = {}
-      for _, line in ipairs(lines) do
-        if self.code_only then
-          -- This is the end of a block like:
-          -- ```lua
-          -- print('some code')
-          -- ```
+      if self.code_only then
+        -- Only get the lines between ```
+        local render_lines = {}
+        for _, line in ipairs(lines) do
           if vim.trim(line) == "```" then
             require("sg.cody.rpc").message_callbacks[msg.data.id] = nil
-            break
+          elseif not vim.startswith(line, "```") then
+            table.insert(render_lines, line)
           end
         end
-        table.insert(render_lines, line)
-      end
 
-      if self.code_only then
-        render_lines = { "```" .. (self.code_ft or ""), unpack(render_lines) }
-        table.insert(render_lines, "```")
+        self.state:update_message(id, Message.init(Speaker.cody, render_lines))
+      else
+        self.state:update_message(id, Message.init(Speaker.cody, lines))
       end
-
-      self.state:update_message(id, Message.init(Speaker.cody, render_lines, {}))
       self:render()
     end
   end, { code_only = self.code_only })

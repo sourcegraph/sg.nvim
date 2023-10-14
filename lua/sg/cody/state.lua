@@ -137,9 +137,11 @@ end
 --- Render the state to a buffer and window
 ---@param bufnr number
 ---@param win number
----@param render_opts CodyLayoutRenderOpts?
-function State:render(bufnr, win, render_opts)
+function State:render(bufnr, win)
   log.debug "state:render"
+
+  -- Keep track of how many messages have been renderd
+  local rendered = 0
 
   --- Render a message
   ---@param message_state CodyMessageState
@@ -151,7 +153,7 @@ function State:render(bufnr, win, render_opts)
 
     if not message_state.mark then
       -- Put a new line at the end of the buffer
-      if vim.api.nvim_buf_line_count(bufnr) > 1 then
+      if rendered >= 1 then
         vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "", "" })
       end
 
@@ -167,8 +169,13 @@ function State:render(bufnr, win, render_opts)
       }
     end
 
-    message_state.typewriter:set_text(table.concat(message:render(), "\n"))
+    local text = vim.trim(table.concat(message:render(), "\n"))
+    -- if self
+
+    message_state.typewriter:set_text(text)
     message_state.typewriter:render(bufnr, win, message_state.mark)
+
+    rendered = rendered + 1
   end
 
   for _, message_state in ipairs(self.messages) do

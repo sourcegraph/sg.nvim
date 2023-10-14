@@ -1,13 +1,9 @@
-use jsonrpc::RPCErr;
-
-use {anyhow::Result, sg::nvim, tokio::io::BufReader};
+use {anyhow::Result, jsonrpc::RPCErr, sg::nvim, tokio::io::BufReader};
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let stdin = tokio::io::stdin();
     let mut reader = BufReader::new(stdin);
-
-    let mut stdout = tokio::io::stdout();
 
     loop {
         let message: Result<Option<nvim::Message>> = jsonrpc::read_msg(&mut reader).await;
