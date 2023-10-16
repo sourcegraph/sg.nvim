@@ -5,6 +5,8 @@ async fn main() -> Result<()> {
     let stdin = tokio::io::stdin();
     let mut reader = BufReader::new(stdin);
 
+    let mut stdout = tokio::io::stdout();
+
     loop {
         let message: Result<Option<nvim::Message>> = jsonrpc::read_msg(&mut reader).await;
         match message {
