@@ -89,22 +89,32 @@ utils.valid_node_executable = function(executable)
     return false, string.format("invalid executable: %s", executable)
   end
 
-  local output = vim.fn.systemlist(executable .. " --version")[1]
-  local ok, version = pcall(vim.version.parse, output)
-  if not ok then
-    return false, string.format("invalid node version: %s", output)
+  local output = vim.fn.systemlist(executable .. " --version") or {}
+  return utils._validate_node_output(output)
+end
+
+utils._validate_node_output = function(output)
+  for _, line in ipairs(output) do
+    local ok, version = pcall(vim.version.parse, line, { strict = true })
+    if not ok then
+      return false, string.format("invalid node version: %s", output)
+    end
+
+    -- Sometimes there is other garbage in the lines, so let's keep reading
+    -- until we find something that looks like a version.
+    --
+    -- Only then will we check if it's valid
+    if version then
+      local min_node_version = assert(vim.version.parse "v18")
+      if not vim.version.gt(version, min_node_version) then
+        return false, string.format("node version must be >= %s. Got: %s", min_node_version, version)
+      end
+
+      return true, version
+    end
   end
 
-  if not version then
-    return false, string.format("unable to parse node version output: %s", output)
-  end
-
-  local min_node_version = assert(vim.version.parse "v18")
-  if not vim.version.gt(version, min_node_version) then
-    return false, string.format("node version must be >= %s. Got: %s", min_node_version, version)
-  end
-
-  return true, version
+  return false, string.format("unable to determine node version: %s", vim.inspect(output))
 end
 
 return utils
