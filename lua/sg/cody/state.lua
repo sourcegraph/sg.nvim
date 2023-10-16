@@ -19,9 +19,11 @@ end
 
 ---@class CodyStateOpts
 ---@field name string?
+---@field code_only boolean?
 
 ---@class CodyState
 ---@field name string
+---@field code_only boolean
 ---@field messages CodyMessageState[]
 local State = {}
 State.__index = State
@@ -29,6 +31,7 @@ State.__index = State
 function State.init(opts)
   local self = setmetatable({
     name = opts.name or tostring(#state_history),
+    code_only = opts.code_only,
     messages = {},
   }, State)
 
@@ -52,10 +55,18 @@ end
 function State:append(message)
   set_last_state(self)
 
+  -- If the message is from the user, then we want to type it out very quickly
+  local interval
+  if message.speaker == Speaker.user then
+    interval = 1
+  end
+
   table.insert(self.messages, {
     message = message,
     extmark = nil,
-    typewriter = Typewriter.init(),
+    typewriter = Typewriter.init {
+      interval = interval,
+    },
   })
 
   return #self.messages
@@ -70,49 +81,12 @@ function State:update_message(id, message)
   self.messages[id].message = message
 end
 
-function State:_update_text()
-  local rendered_lines = {}
-  for _, message_state in ipairs(self.messages) do
-    local message = message_state.message
-
-    if #rendered_lines > 0 then
-      table.insert(rendered_lines, "")
-    end
-    for _, line in ipairs(message:render()) do
-      if not vim.tbl_isempty(rendered_lines) or line ~= "" then
-        if message.speaker == Speaker.cody then
-          -- Cody has a tendency to have random trailing white space
-          line = line:gsub("%s+$", "")
-          table.insert(rendered_lines, line)
-        else
-          table.insert(rendered_lines, line)
-        end
-      end
-    end
-  end
-
-  -- if #rendered_lines > 0 then
-  --   local first_line = rendered_lines[1]
-  --   if first_line:sub(1, 3) == "```" then
-  --     local lang = first_line:sub(4)
-  --     vim.bo[bufnr].filetype = lang
-  --     rendered_lines = { unpack(rendered_lines, 2, #rendered_lines - 1) }
-  --   end
-  -- end
-end
-
--- TODO: I would like to move code_only into the state.
---          The state cannot switch between code_only and not code_only
----@class CompleteOpts
----@field code_only boolean
-
 --- Get a new completion, based on the state
 ---@param bufnr number
 ---@param win number
 ---@param callback CodyChatCallbackHandler
----@param opts CompleteOpts?
 ---@return number: message ID where completion will happen
-function State:complete(bufnr, win, callback, opts)
+function State:complete(bufnr, win, callback)
   set_last_state(self)
 
   local snippet = table.concat(self.messages[#self.messages].message.msg, "\n") .. "\n"
@@ -125,7 +99,7 @@ function State:complete(bufnr, win, callback, opts)
   self:render(bufnr, win)
 
   -- Execute chat question. Will be completed async
-  if opts and opts.code_only then
+  if self.code_only then
     require("sg.cody.rpc").execute.code_question(snippet, callback(id))
   else
     require("sg.cody.rpc").execute.chat_question(snippet, callback(id))
@@ -152,7 +126,7 @@ function State:render(bufnr, win)
     end
 
     if not message_state.mark then
-      -- Put a new line at the end of the buffer
+      -- Put a blank line between different marks
       if rendered >= 1 then
         vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "", "" })
       end
@@ -170,8 +144,6 @@ function State:render(bufnr, win)
     end
 
     local text = vim.trim(table.concat(message:render(), "\n"))
-    -- if self
-
     message_state.typewriter:set_text(text)
     message_state.typewriter:render(bufnr, win, message_state.mark)
 

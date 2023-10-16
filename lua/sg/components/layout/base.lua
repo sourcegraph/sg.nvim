@@ -7,6 +7,7 @@ local State = require "sg.cody.state"
 ---@class CodyBaseLayoutOpts
 ---@field name string?
 ---@field reset boolean?
+---@field code_only boolean?
 ---@field state CodyState?
 ---@field prompt CodyPromptOpts?
 ---@field history CodyHistoryOpts
@@ -16,6 +17,7 @@ local State = require "sg.cody.state"
 ---@field state CodyState
 ---@field history CodyHistory
 ---@field prompt CodyPrompt?
+---@field code_only boolean
 ---@field _active CodyBaseLayout?
 local Base = {}
 Base.__index = Base
@@ -26,11 +28,11 @@ Base.__index = Base
 function Base.init(opts)
   local state = opts.state
   if opts.reset then
-    state = State.init { name = opts.name }
+    state = State.init { name = opts.name, code_only = opts.code_only }
   else
     if not state then
       -- state = State.last() or State.init { name = opts.name }
-      state = State.init { name = opts.name }
+      state = State.init { name = opts.name, code_only = opts.code_only }
     end
   end
 

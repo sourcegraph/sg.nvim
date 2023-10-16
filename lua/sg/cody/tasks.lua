@@ -6,6 +6,7 @@ local Message = require "sg.cody.message"
 local Mark = require "sg.mark"
 
 local ns = vim.api.nvim_create_namespace "sg-nvim-tasks"
+local task_store = {}
 
 ---@class CodyTask
 ---@field bufnr number: buffer where the task was created

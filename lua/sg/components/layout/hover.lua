@@ -142,7 +142,7 @@ function CodyHover:request_completion()
       end
       self:render()
     end
-  end, { code_only = self.code_only })
+  end)
 end
 
 return CodyHover

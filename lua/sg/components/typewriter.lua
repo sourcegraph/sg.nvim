@@ -1,8 +1,13 @@
+local uv = vim.uv or vim.loop
 local log = require "sg.log"
 
-local uv = vim.uv or vim.loop
-
 local ns = vim.api.nvim_create_namespace "cody-chat-messages"
+
+--[[
+TODO:
+-  Would be cool to see how far the ends of the strings match as well, so
+   we fill the text inside without redrawing the last ones every time
+--]]
 
 --- Insert text at the end of the mark
 ---@param mark CodyMarkWrapper
@@ -51,10 +56,22 @@ end
 ---@param bufnr number
 ---@param win number
 ---@param mark CodyMarkWrapper
-function Typewriter:render(bufnr, win, mark)
+---@param opts { interval: number? }?
+function Typewriter:render(bufnr, win, mark, opts)
+  opts = opts or {}
+
   local current_text = mark:text()
   if current_text == self.text then
     log.trace("skipping cause same text...", current_text, self.text)
+    return
+  end
+
+  local interval = opts.interval or self.interval
+  if interval <= 0 then
+    local details = mark:details()
+    local start_pos = mark:start_pos(details)
+    local end_pos = mark:end_pos(details)
+    vim.api.nvim_buf_set_text(bufnr, start_pos.row, start_pos.col, end_pos.row, end_pos.col, vim.split(self.text, "\n"))
     return
   end
 
@@ -69,8 +86,8 @@ function Typewriter:render(bufnr, win, mark)
       return self:stop()
     end
 
-    local interval_jitter = math.floor(self.interval * 0.8)
-    self.timer:set_repeat(self.interval + math.random(-1 * interval_jitter, interval_jitter))
+    local interval_jitter = math.floor(interval * 0.8)
+    self.timer:set_repeat(interval + math.random(-1 * interval_jitter, interval_jitter))
 
     local details = mark:details()
     local start_pos = mark:start_pos(details)
@@ -144,7 +161,7 @@ function Typewriter:render(bufnr, win, mark)
 
   self.timer:start(
     0,
-    self.interval,
+    interval,
     vim.schedule_wrap(function()
       local ok, err = pcall(render_fn)
       if not ok then
