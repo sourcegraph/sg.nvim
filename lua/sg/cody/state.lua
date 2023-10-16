@@ -129,7 +129,7 @@ function State:render(bufnr, win)
       return
     end
 
-    if not message_state.mark or message_state.mark.bufnr ~= bufnr then
+    if not message_state.mark or not message_state.mark:valid(bufnr) then
       -- Put a blank line between different marks
       if rendered >= 1 then
         vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "", "" })

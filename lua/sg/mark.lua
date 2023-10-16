@@ -30,6 +30,18 @@ function Mark.init(opts)
   }, Mark)
 end
 
+function Mark:valid(bufnr)
+  if self.bufnr ~= bufnr then
+    return false
+  end
+
+  if not vim.api.nvim_buf_is_valid(self.bufnr) then
+    return false
+  end
+
+  return true
+end
+
 --- Get the details of the ext mark
 ---@return table
 function Mark:details()
