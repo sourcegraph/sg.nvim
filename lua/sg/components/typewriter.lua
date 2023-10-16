@@ -86,6 +86,10 @@ function Typewriter:render(bufnr, win, mark, opts)
       return self:stop()
     end
 
+    if not self.timer then
+      return
+    end
+
     local interval_jitter = math.floor(interval * 0.8)
     self.timer:set_repeat(interval + math.random(-1 * interval_jitter, interval_jitter))
 
