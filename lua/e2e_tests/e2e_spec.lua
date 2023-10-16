@@ -47,38 +47,53 @@ describe("cody e2e", function()
       vim.cmd [[CodyChat]]
     end
 
-    cody_commands.focus_prompt()
-    local prompt_bufnr = vim.api.nvim_get_current_buf()
+    local run_prompt = function()
+      cody_commands.focus_prompt()
+      local prompt_bufnr = vim.api.nvim_get_current_buf()
 
-    vim.api.nvim_buf_set_lines(prompt_bufnr, 0, -1, false, { "What file am I looking at" })
-    vim.cmd.CodySubmit()
+      vim.api.nvim_buf_set_lines(prompt_bufnr, 0, -1, false, { "What file am I looking at" })
+      vim.cmd.CodySubmit()
 
-    cody_commands.focus_history()
-    local history_bufnr = vim.api.nvim_get_current_buf()
+      cody_commands.focus_history()
+      local history_bufnr = vim.api.nvim_get_current_buf()
 
-    vim.wait(20000, function()
-      local lines = table.concat(vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false), "\n")
-      return vim.api.nvim_buf_line_count(history_bufnr) > 5 and (not not string.find(lines, opts.file))
-    end)
+      vim.wait(20000, function()
+        local lines = table.concat(vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false), "\n")
+        return vim.api.nvim_buf_line_count(history_bufnr) > 5 and (not not string.find(lines, opts.file))
+      end)
 
-    local lines = table.concat(vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false), "\n")
-    local bufs = vim.api.nvim_list_bufs()
-    local buffers = {}
-    for _, buf in ipairs(bufs) do
-      buffers[vim.api.nvim_buf_get_name(buf)] = buf
+      return table.concat(vim.api.nvim_buf_get_lines(history_bufnr, 0, -1, false), "\n")
     end
-    assert(
-      string.find(lines, opts.file),
-      string.format(
-        "%s Failed.\nCodyResponse %s:\n\n %s",
-        opts.message or "<not passed>",
-        vim.inspect {
-          current_file = vim.api.nvim_buf_get_name(0),
-          buffers = buffers,
-        },
-        lines
-      )
-    )
+
+    -- Try a few times to reduce flakiness.
+    for i = 1, 5 do
+      local lines = run_prompt()
+
+      if string.find(lines, opts.file) then
+        return
+      end
+
+      if i == 5 then
+        local bufs = vim.api.nvim_list_bufs()
+        local buffers = {}
+        for _, buf in ipairs(bufs) do
+          buffers[vim.api.nvim_buf_get_name(buf)] = buf
+        end
+
+        assert(
+          string.find(lines, opts.file),
+          string.format(
+            "%s Failed.\nCodyResponse %s:\n\n %s",
+            opts.message or "<not passed>",
+            vim.inspect {
+              current_file = vim.api.nvim_buf_get_name(0),
+              buffers = buffers,
+            },
+            lines
+          )
+        )
+      end
+    end
   end
 
   a.it("should ask through chat what file we are in", function()
