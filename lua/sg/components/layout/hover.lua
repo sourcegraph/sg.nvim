@@ -121,6 +121,7 @@ function CodyHover:request_completion()
   return self.state:complete(self.history.bufnr, self.history.win, function(id)
     return function(msg)
       if not msg then
+        self.state:mark_message_complete(id)
         return
       end
 

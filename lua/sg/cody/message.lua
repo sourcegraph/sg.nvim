@@ -3,8 +3,9 @@ local Speaker = require "sg.cody.speaker"
 ---@class CodyMessage
 ---@field speaker CodySpeaker
 ---@field msg string[]
----@field hidden boolean
 ---@field contextFiles CodyContextFile[]?
+---@field hidden boolean
+---@field completed boolean
 local Message = {}
 Message.__index = Message
 
@@ -22,7 +23,13 @@ function Message.init(speaker, msg, contextFiles, opts)
     msg = msg,
     contextFiles = contextFiles,
     hidden = opts.hidden,
+
+    completed = speaker ~= Speaker.cody,
   }, Message)
+end
+
+function Message:mark_complete()
+  self.completed = true
 end
 
 ---@return string[]

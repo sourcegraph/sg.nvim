@@ -129,6 +129,7 @@ function CodySplit:request_completion()
       end
 
       if not msg then
+        self.state:mark_message_complete(id)
         return
       end
 

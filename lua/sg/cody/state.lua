@@ -81,6 +81,10 @@ function State:update_message(id, message)
   self.messages[id].message = message
 end
 
+function State:mark_message_complete(id)
+  self.messages[id].message:mark_complete()
+end
+
 --- Get a new completion, based on the state
 ---@param bufnr number
 ---@param win number
@@ -125,7 +129,7 @@ function State:render(bufnr, win)
       return
     end
 
-    if not message_state.mark then
+    if not message_state.mark or message_state.mark.bufnr ~= bufnr then
       -- Put a blank line between different marks
       if rendered >= 1 then
         vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "", "" })
@@ -143,9 +147,17 @@ function State:render(bufnr, win)
       }
     end
 
+    -- If the message has already been completed, then we can just display it immediately.
+    --  This prevents typewriter from typing everything out all the time when you do something like
+    --  toggle the previous chat
+    local interval
+    if message.completed then
+      interval = 0
+    end
+
     local text = vim.trim(table.concat(message:render(), "\n"))
     message_state.typewriter:set_text(text)
-    message_state.typewriter:render(bufnr, win, message_state.mark)
+    message_state.typewriter:render(bufnr, win, message_state.mark, { interval = interval })
 
     rendered = rendered + 1
   end
