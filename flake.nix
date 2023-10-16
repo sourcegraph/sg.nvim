@@ -34,7 +34,13 @@
           };
           mkDerivation = {
             nativeBuildInputs = with pkgs; [pkg-config];
-            buildInputs = with pkgs; [openssl] ++ lib.optionals pkgs.stdenv.isDarwin [darwin.apple_sdk.frameworks.Security];
+            buildInputs = with pkgs; [openssl] ++ lib.optionals pkgs.stdenv.isDarwin [
+              darwin.apple_sdk.frameworks.Security
+              darwin.apple_sdk.frameworks.SystemConfiguration
+            ];
+            prePatch = ''
+              rm .cargo/config.toml
+            '';
           };
         };
       in {
