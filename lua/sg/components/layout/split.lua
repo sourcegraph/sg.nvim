@@ -64,9 +64,8 @@ function CodySplit.init(opts)
     vim.wo[prompt.win].winbar = "Cody Prompt%=%#Comment#(`?` for help)"
   end
 
-  local object = Base.init(opts)
+  local object = Base.init(opts) --[[@as CodyLayoutSplit]]
 
-  ---@diagnostic disable-next-line: inject-field
   object.super = Base
   return setmetatable(object, CodySplit) --[[@as CodyLayoutSplit]]
 end
@@ -130,6 +129,7 @@ function CodySplit:request_completion()
       end
 
       if not msg then
+        self.state:mark_message_complete(id)
         return
       end
 

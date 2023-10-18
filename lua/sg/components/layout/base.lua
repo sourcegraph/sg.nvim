@@ -7,19 +7,17 @@ local State = require "sg.cody.state"
 ---@class CodyBaseLayoutOpts
 ---@field name string?
 ---@field reset boolean?
+---@field code_only boolean?
 ---@field state CodyState?
 ---@field prompt CodyPromptOpts?
 ---@field history CodyHistoryOpts
-
----@class CodyLayoutRenderOpts
----@field start number?
----@field finish number?
 
 ---@class CodyBaseLayout
 ---@field opts CodyBaseLayoutOpts
 ---@field state CodyState
 ---@field history CodyHistory
 ---@field prompt CodyPrompt?
+---@field code_only boolean
 ---@field _active CodyBaseLayout?
 local Base = {}
 Base.__index = Base
@@ -30,10 +28,11 @@ Base.__index = Base
 function Base.init(opts)
   local state = opts.state
   if opts.reset then
-    state = State.init { name = opts.name }
+    state = State.init { name = opts.name, code_only = opts.code_only }
   else
     if not state then
-      state = State.last() or State.init { name = opts.name }
+      -- state = State.last() or State.init { name = opts.name }
+      state = State.init { name = opts.name, code_only = opts.code_only }
     end
   end
 
@@ -63,6 +62,7 @@ end
 function Base:toggle()
   local active = self:get_active()
   if not active then
+    ---@diagnostic disable-next-line: missing-fields
     active = self.init {}
   end
 
@@ -73,21 +73,17 @@ function Base:toggle()
   end
 end
 
-function Base:run(cb)
-  cb()
-end
-
 --- Asynchronously request a new message from a user.
 ---@param contents string[]
 ---@return nil: Does not return. Executes async
 function Base:request_user_message(contents)
-  self:run(function()
-    self.state:append(Message.init(Speaker.user, contents))
-    self:show()
-    self:request_completion()
-  end)
+  self.state:append(Message.init(Speaker.user, contents))
+  self:show()
+  self:request_completion()
 end
 
+--- Request a completion
+---@return number: The id of the message to be completed
 function Base:request_completion()
   error "Base:request_completion() is an abstract function"
 end
@@ -104,12 +100,12 @@ function Base:create()
     -- Override prompt options
     -- TODO: Do the other options as well
     local prompt_opts = assert(vim.deepcopy(self.opts.prompt))
-    prompt_opts.on_submit = function(bufnr, text, submit_opts)
+    prompt_opts.on_submit = function(bufnr, text)
       if self.opts.prompt.on_submit then
-        self.opts.prompt.on_submit(bufnr, text, submit_opts)
+        self.opts.prompt.on_submit(bufnr, text)
       end
 
-      self:on_submit(bufnr, text, submit_opts)
+      self:on_submit(bufnr, text)
     end
 
     prompt_opts.on_close = function()
@@ -133,8 +129,7 @@ end
 
 --- Show the layout
 ---@param self CodyBaseLayout
----@param render_opts CodyLayoutRenderOpts?
-function Base:show(render_opts)
+function Base:show()
   if not self.created then
     self:create()
   end
@@ -156,14 +151,13 @@ function Base:show(render_opts)
   end
 
   self:set_keymaps()
-  self:render(render_opts)
+  self:render()
 end
 
 --- Render the layout with the current state
----@param render_opts CodyLayoutRenderOpts?
-function Base:render(render_opts)
+function Base:render()
   if self.created then
-    self.state:render(self.history.bufnr, self.history.win, render_opts)
+    self.state:render(self.history.bufnr, self.history.win)
   end
 end
 
@@ -184,7 +178,7 @@ function Base:delete()
 end
 
 --- Callback for running on submit
-function Base:on_submit(bufnr, text, submit_opts)
+function Base:on_submit(_, text)
   self.state:append(Message.init(Speaker.user, text))
   self:request_completion()
 end

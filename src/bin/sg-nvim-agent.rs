@@ -1,6 +1,4 @@
-use jsonrpc::RPCErr;
-
-use {anyhow::Result, sg::nvim, tokio::io::BufReader};
+use {anyhow::Result, jsonrpc::RPCErr, sg::nvim, tokio::io::BufReader};
 
 #[tokio::main]
 async fn main() -> Result<()> {

@@ -1,5 +1,9 @@
+local log = require "sg.log"
+
 local Speaker = require "sg.cody.speaker"
 local Message = require "sg.cody.message"
+local Typewriter = require "sg.components.typewriter"
+local Mark = require "sg.mark"
 
 local state_history = {}
 
@@ -8,18 +12,26 @@ local set_last_state = function(state)
   last_state = state
 end
 
+---@class CodyMessageState
+---@field message CodyMessage
+---@field mark CodyMarkWrapper
+---@field typewriter CodyTypewriter?
+
 ---@class CodyStateOpts
 ---@field name string?
+---@field code_only boolean?
 
 ---@class CodyState
 ---@field name string
----@field messages CodyMessage[]
+---@field code_only boolean
+---@field messages CodyMessageState[]
 local State = {}
 State.__index = State
 
 function State.init(opts)
   local self = setmetatable({
     name = opts.name or tostring(#state_history),
+    code_only = opts.code_only,
     messages = {},
   }, State)
 
@@ -43,7 +55,20 @@ end
 function State:append(message)
   set_last_state(self)
 
-  table.insert(self.messages, message)
+  -- If the message is from the user, then we want to type it out very quickly
+  local interval
+  if message.speaker == Speaker.user then
+    interval = 1
+  end
+
+  table.insert(self.messages, {
+    message = message,
+    extmark = nil,
+    typewriter = Typewriter.init {
+      interval = interval,
+    },
+  })
+
   return #self.messages
 end
 
@@ -53,22 +78,22 @@ end
 function State:update_message(id, message)
   set_last_state(self)
 
-  self.messages[id] = message
+  self.messages[id].message = message
 end
 
----@class CompleteOpts
----@field code_only boolean
+function State:mark_message_complete(id)
+  self.messages[id].message:mark_complete()
+end
 
 --- Get a new completion, based on the state
 ---@param bufnr number
 ---@param win number
 ---@param callback CodyChatCallbackHandler
----@param opts CompleteOpts?
 ---@return number: message ID where completion will happen
-function State:complete(bufnr, win, callback, opts)
+function State:complete(bufnr, win, callback)
   set_last_state(self)
 
-  local snippet = table.concat(self.messages[#self.messages].msg, "\n") .. "\n"
+  local snippet = table.concat(self.messages[#self.messages].message.msg, "\n") .. "\n"
 
   self:render(bufnr, win)
   vim.cmd [[mode]]
@@ -78,7 +103,7 @@ function State:complete(bufnr, win, callback, opts)
   self:render(bufnr, win)
 
   -- Execute chat question. Will be completed async
-  if opts and opts.code_only then
+  if self.code_only then
     require("sg.cody.rpc").execute.code_question(snippet, callback(id))
   else
     require("sg.cody.rpc").execute.chat_question(snippet, callback(id))
@@ -90,50 +115,55 @@ end
 --- Render the state to a buffer and window
 ---@param bufnr number
 ---@param win number
----@param render_opts CodyLayoutRenderOpts?
-function State:render(bufnr, win, render_opts)
-  render_opts = render_opts or {}
+function State:render(bufnr, win)
+  log.debug "state:render"
 
-  -- TODO: It should be possible to not wipe away the whole buffer, but I think it's fine for now.
-  --       (main reason I mention is cause maybe extmarks would be more effective at maintaing messages)
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
-  local messages = self.messages
-  if render_opts then
-    messages = { unpack(messages, render_opts.start, render_opts.finish) }
-  end
+  -- Keep track of how many messages have been renderd
+  local rendered = 0
 
-  local rendered_lines = {}
-  for _, message in ipairs(messages) do
-    if #rendered_lines > 0 then
-      table.insert(rendered_lines, "")
+  --- Render a message
+  ---@param message_state CodyMessageState
+  local render_one_message = function(message_state)
+    local message = message_state.message
+    if message.hidden then
+      return
     end
-    for _, line in ipairs(message:render()) do
-      if not vim.tbl_isempty(rendered_lines) or line ~= "" then
-        if message.speaker == Speaker.cody then
-          -- Cody has a tendency to have random trailing white space
-          line = line:gsub("%s+$", "")
-          table.insert(rendered_lines, line)
-        else
-          table.insert(rendered_lines, line)
-        end
+
+    if not message_state.mark or not message_state.mark:valid(bufnr) then
+      -- Put a blank line between different marks
+      if rendered >= 1 then
+        vim.api.nvim_buf_set_lines(bufnr, -1, -1, false, { "", "" })
       end
+
+      -- Create a new extmark associated in the last line
+      local last_line = vim.api.nvim_buf_line_count(bufnr) - 1
+      message_state.mark = Mark.init {
+        ns = Typewriter.ns,
+        bufnr = bufnr,
+        start_row = last_line,
+        start_col = 0,
+        end_row = last_line,
+        end_col = 0,
+      }
     end
+
+    -- If the message has already been completed, then we can just display it immediately.
+    --  This prevents typewriter from typing everything out all the time when you do something like
+    --  toggle the previous chat
+    local interval
+    if message.completed then
+      interval = 0
+    end
+
+    local text = vim.trim(table.concat(message:render(), "\n"))
+    message_state.typewriter:set_text(text)
+    message_state.typewriter:render(bufnr, win, message_state.mark, { interval = interval })
+
+    rendered = rendered + 1
   end
 
-  if #rendered_lines > 0 then
-    local first_line = rendered_lines[1]
-    if first_line:sub(1, 3) == "```" then
-      local lang = first_line:sub(4)
-      vim.bo[bufnr].filetype = lang
-      rendered_lines = { unpack(rendered_lines, 2, #rendered_lines - 1) }
-    end
-  end
-
-  vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, rendered_lines)
-
-  local linecount = vim.api.nvim_buf_line_count(bufnr)
-  if vim.api.nvim_win_is_valid(win) and vim.api.nvim_win_get_buf(win) == bufnr then
-    vim.api.nvim_win_set_cursor(win, { linecount, 0 })
+  for _, message_state in ipairs(self.messages) do
+    render_one_message(message_state)
   end
 end
 

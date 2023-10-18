@@ -27,11 +27,11 @@ end
 
 --- Ask Cody about the selected code
 ---@param bufnr number
----@param start_line number
----@param end_line number
+---@param start_row number
+---@param end_row number
 ---@param message string
-commands.ask_range = function(bufnr, start_line, end_line, message)
-  local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
+commands.ask_range = function(bufnr, start_row, end_row, message)
+  local selection = vim.api.nvim_buf_get_lines(bufnr, start_row, end_row, false)
   local layout = CodySplit.init {}
 
   local contents = vim.tbl_flatten {
@@ -57,7 +57,7 @@ commands.autocomplete = function(request, callback)
   require("sg.cody.rpc").notify("textDocument/didChange", doc)
   require("sg.cody.rpc").execute.autocomplete(request.filename, request.row - 1, request.col, function(err, data)
     if err then
-      vim.notify(string.format("Failed to get autocompletions: %s", vim.inspect(err)))
+      -- vim.notify(string.format("Failed to get autocompletions: %s", vim.inspect(err)))
       return
     end
 
@@ -114,8 +114,8 @@ commands.do_task = function(bufnr, start_line, end_line, message)
   return require("sg.cody.tasks").init {
     bufnr = bufnr,
     task = prompt,
-    start_line = start_line,
-    end_line = end_line,
+    start_row = start_line,
+    end_row = end_line,
   }
 end
 

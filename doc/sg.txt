@@ -198,15 +198,15 @@ commands.ask({message})                               *sg.cody.commands.ask()*
         {message} (string[])
 
 
-commands.ask_range({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands.ask_range()*
+commands.ask_range({bufnr}, {start_row}, {end_row}, {message}) *sg.cody.commands.ask_range()*
     Ask Cody about the selected code
 
 
     Parameters: ~
-        {bufnr}      (number)
-        {start_line} (number)
-        {end_line}   (number)
-        {message}    (string)
+        {bufnr}     (number)
+        {start_row} (number)
+        {end_row}   (number)
+        {message}   (string)
 
 
 commands.autocomplete({request}, {callback}) *sg.cody.commands.autocomplete()*
