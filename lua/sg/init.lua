@@ -55,13 +55,15 @@ end
 M.setup = function(opts)
   opts = opts or {}
 
-  accept_tos(opts)
-
   local config = require "sg.config"
   for key, value in pairs(opts) do
     if config[key] ~= nil then
       config[key] = value
     end
+  end
+
+  if config.use_cody then
+    accept_tos(opts)
   end
 
   require("sg.lsp").setup()
