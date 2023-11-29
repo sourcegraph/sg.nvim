@@ -17,6 +17,7 @@ pub mod references;
 pub mod repository_id;
 pub mod search;
 pub mod sourcegraph_version;
+pub mod user;
 
 pub async fn get_graphql<Q: GraphQLQuery>(
     client: &Client,

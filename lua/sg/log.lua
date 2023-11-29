@@ -29,6 +29,7 @@ local modes = {
 local filtered_keys = {
   SRC_ACCESS_TOKEN = true,
   accessToken = true,
+  content = true,
 }
 
 local modified = {}

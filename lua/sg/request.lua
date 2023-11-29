@@ -14,7 +14,15 @@ local lsp = require "sg.vendored.vim-lsp-rpc"
 
 local M = {}
 
-local notification_handlers = {}
+local notification_handlers = {
+  ["display_text"] = function(data)
+    print "========================"
+    print "HELLO WORLD"
+    print("DATA", vim.inspect(data))
+    print "========================"
+  end,
+}
+
 local server_handlers = {}
 
 --- Start the server
@@ -80,6 +88,7 @@ M.request = function(method, params, callback)
   end
 
   return client.request(method, params, function(err, result)
+    print("do we ever get here...?", method, params)
     return callback(err, result)
   end)
 end

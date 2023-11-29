@@ -1,8 +1,9 @@
 use {
     anyhow::Result, graphql_client::GraphQLQuery, lsp_types::Location, once_cell::sync::Lazy,
-    regex::Regex, reqwest::Client, sg_types::*,
+    regex::Regex, reqwest::Client, sg_gql::user::UserInfo, sg_types::*,
 };
 
+pub mod auth;
 pub mod entry;
 pub mod nvim;
 
@@ -259,4 +260,8 @@ pub async fn get_references(uri: String, line: i64, character: i64) -> Result<Ve
 
 pub async fn get_search(query: String) -> Result<Vec<SearchResult>> {
     wrap_request!(sg_gql::search, Variables { query })
+}
+
+pub async fn get_user_info() -> Result<UserInfo> {
+    wrap_request!(sg_gql::user, Variables {})
 }

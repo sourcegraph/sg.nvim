@@ -64,6 +64,7 @@ end
 ---@param path string
 ---@param callback fun(err: string?, contents: string[]?): nil
 function rpc.get_file_contents(remote, oid, path, callback)
+  print "... file contents?"
   req("sourcegraph/get_file_contents", { remote = remote, oid = oid, path = path }, callback)
 end
 

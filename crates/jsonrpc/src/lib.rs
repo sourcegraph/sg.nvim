@@ -1,22 +1,18 @@
-use serde::Deserialize;
-
 use {
     anyhow::Result,
-    serde::{de::DeserializeOwned, Serialize},
+    serde::{de::DeserializeOwned, Deserialize, Serialize},
     std::io,
+    tokio::sync::Mutex,
 };
 
 type MessageReader = dyn tokio::io::AsyncBufRead + Unpin + Send;
 
-pub async fn write_msg(
-    mut out: impl tokio::io::AsyncWrite + Unpin,
-    req: impl Serialize,
-) -> Result<()> {
+pub async fn write_msg(out: &Mutex<tokio::io::Stdout>, req: impl Serialize) -> Result<()> {
     use tokio::io::AsyncWriteExt;
-
     let msg = serde_json::to_string(&req)?;
-
     let header = format!("Content-Length: {}\r\n\r\n", msg.len());
+
+    let out = &mut *out.lock().await;
     out.write_all(header.as_bytes()).await?;
     out.write_all(msg.as_bytes()).await?;
     out.flush().await?;
@@ -30,12 +26,13 @@ pub struct RPCErr {
     pub message: String,
 }
 
-pub async fn write_err(mut out: impl tokio::io::AsyncWrite + Unpin, err: RPCErr) -> Result<()> {
+pub async fn write_err(out: &Mutex<tokio::io::Stdout>, err: RPCErr) -> Result<()> {
     use tokio::io::AsyncWriteExt;
 
     let msg = serde_json::to_string(&err)?;
-
     let header = format!("Content-Length: {}\r\n\r\n", msg.len());
+
+    let out = &mut *out.lock().await;
     out.write_all(header.as_bytes()).await?;
     out.write_all(msg.as_bytes()).await?;
     out.flush().await?;
@@ -47,6 +44,8 @@ pub async fn read_msg<T>(r: &mut MessageReader) -> Result<Option<T>>
 where
     T: DeserializeOwned,
 {
+    eprintln!("Hello... reading a message...");
+
     let text = match read_msg_text(r).await? {
         None => return Ok(None),
         Some(text) => text,

@@ -1,0 +1,8 @@
+query UserQuery {
+  currentUser {
+    id
+    username
+    codyProEnabled
+    # codyProEnabledAt
+  }
+}

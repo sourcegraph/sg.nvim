@@ -6,8 +6,10 @@ use {
     anyhow::Result,
     serde::{Deserialize, Serialize},
     serde_json::{json, Value},
+    sg_gql::user::UserInfo,
     sg_types::{Embedding, RecipeInfo, SearchResult},
     std::{thread, time::Duration},
+    tokio::sync::mpsc::UnboundedSender,
 };
 
 // TODO: I would like to explore this idea some more
@@ -174,12 +176,24 @@ pub enum RequestData {
     SourcegraphRemoteURL {
         path: String,
     },
+
+    #[serde(rename = "sourcegraph/get_user_info")]
+    SourcegraphUserInfo {
+        testing: bool,
+    },
+}
+
+#[derive(Debug)]
+pub enum NeovimTasks {
+    Authentication,
 }
 
 #[allow(unused_variables)]
 impl Request {
-    pub async fn respond(self) -> Result<Response> {
+    pub async fn respond(self, tx: &UnboundedSender<NeovimTasks>) -> Result<Response> {
         let Self { id, data } = self;
+        eprintln!("DATA : {:?}", data);
+
         match data {
             RequestData::Echo { message, delay } => {
                 if let Some(delay) = delay {
@@ -312,6 +326,17 @@ impl Request {
                 };
                 Ok(Response::new(id, ResponseData::SourcegraphRemoteURL(url)))
             }
+            RequestData::SourcegraphUserInfo { .. } => {
+                eprintln!("Got Sg user info request");
+                let user_info = crate::get_user_info().await?;
+
+                tx.send(NeovimTasks::Authentication)?;
+
+                Ok(Response::new(
+                    id,
+                    ResponseData::SourcegraphUserInfo(user_info),
+                ))
+            }
         }
     }
 }
@@ -343,10 +368,22 @@ pub enum ResponseData {
     SourcegraphInfo(Value),
     SourcegraphLink(String),
     SourcegraphRemoteURL(Option<String>),
+    SourcegraphUserInfo(UserInfo),
+    SourcegraphAuth(String),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "method", content = "params")]
 pub enum Notification {
-    UpdateChat { message: String },
-    Hack { json: String },
+    #[serde(rename = "display_text")]
+    DisplayText {
+        message: String,
+    },
+
+    UpdateChat {
+        message: String,
+    },
+    Hack {
+        json: String,
+    },
 }
