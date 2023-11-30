@@ -105,7 +105,16 @@ function source:complete(params, callback)
     return
   end
 
-  commands.autocomplete(nil, function(data)
+  commands.autocomplete(nil, function(err, data)
+    if err then
+      if require("sg.ratelimit").is_ratelimit_err(err) then
+        return
+      end
+
+      -- TODO: Might want to do something else here?...
+      return
+    end
+
     local items = {}
     for _, item in ipairs(data.items) do
       local trimmed = vim.trim(item.insertText)
