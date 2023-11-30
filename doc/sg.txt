@@ -215,7 +215,7 @@ commands.autocomplete({request}, {callback}) *sg.cody.commands.autocomplete()*
 
     Parameters: ~
         {request}  ({ filename: string, row: number, col: number }?)
-        {callback} (function(data: CodyAutocompleteResult))
+        {callback} (function(err: table, data: CodyAutocompleteResult))
 
 
 commands.float({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands.float()*
