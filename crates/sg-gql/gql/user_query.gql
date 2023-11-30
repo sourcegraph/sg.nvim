@@ -3,6 +3,9 @@ query UserQuery {
     id
     username
     codyProEnabled
-    # codyProEnabledAt
+    codyCurrentPeriodCodeUsage
+    codyCurrentPeriodChatUsage
+    codyCurrentPeriodCodeLimit
+    codyCurrentPeriodChatLimit
   }
 }

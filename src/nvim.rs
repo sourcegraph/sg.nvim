@@ -181,6 +181,11 @@ pub enum RequestData {
     SourcegraphUserInfo {
         testing: bool,
     },
+
+    #[serde(rename = "sourcegraph/auth")]
+    SourcegraphAuth {
+        validate: bool,
+    },
 }
 
 #[derive(Debug)]
@@ -337,6 +342,13 @@ impl Request {
                     ResponseData::SourcegraphUserInfo(user_info),
                 ))
             }
+            RequestData::SourcegraphAuth { .. } => {
+                let cody_access_token = crate::auth::get_cody_access_token().await.ok();
+                Ok(Response::new(
+                    id,
+                    ResponseData::SourcegraphAuth(cody_access_token),
+                ))
+            }
         }
     }
 }
@@ -369,7 +381,7 @@ pub enum ResponseData {
     SourcegraphLink(String),
     SourcegraphRemoteURL(Option<String>),
     SourcegraphUserInfo(UserInfo),
-    SourcegraphAuth(String),
+    SourcegraphAuth(Option<String>),
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

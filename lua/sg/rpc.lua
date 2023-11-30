@@ -99,4 +99,8 @@ function rpc.get_remote_url(path, callback)
   req("sourcegraph/get_remote_url", { path = path }, callback)
 end
 
+function rpc.get_auth(callback)
+  req("sourcegraph/auth", {}, callback)
+end
+
 return rpc

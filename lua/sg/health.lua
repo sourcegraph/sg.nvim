@@ -1,5 +1,21 @@
 local M = {}
 
+local blocking = function(req)
+  local results
+
+  local cb = function(...)
+    results = { ... }
+  end
+
+  req(cb)
+
+  vim.wait(10000, function()
+    return results
+  end)
+
+  return unpack(results)
+end
+
 local report_nvim = function()
   if vim.version.cmp(vim.version(), { 0, 9, 0 }) >= 0 then
     vim.health.ok(string.format("Valid nvim version: %s", vim.version()))
@@ -53,59 +69,40 @@ local report_env = function()
 
   local ok = true
 
-  vim.health.info(string.format("Auth strategy order: %s", vim.inspect(require("sg.config").auth_strategy)))
-
-  local all_valid = auth.get_all_valid()
-  if vim.tbl_isempty(all_valid) then
+  local creds, strategy = auth.get()
+  if not creds then
     vim.health.error "No valid auth strategy detected. See `:help sg` for more info."
     ok = false
   else
-    for idx, valid in ipairs(all_valid) do
-      local creds, strategy = unpack(valid)
-      assert(creds, "must have valid credentials")
+    assert(creds, "must have valid credentials")
 
-      if idx == 1 then
-        vim.health.ok(string.format('  Authentication setup correctly ("%s")', strategy))
-        vim.health.ok(string.format("    endpoint set to: %s", creds.endpoint))
-      else
-        vim.health.ok(string.format('  Backup Authentication also available ("%s")', strategy))
-        vim.health.ok(string.format("    endpoint set to: %s", creds.endpoint))
-      end
-    end
+    vim.health.ok(string.format('  Authentication setup correctly ("%s")', strategy))
+    vim.health.ok(string.format("    endpoint set to: %s", creds.endpoint))
   end
 
-  local err, info
-  require("sg.rpc").get_info(function(err_, info_)
-    err = err_
-    info = info_
+  local err, info = blocking(require("sg.rpc").get_info)
+  if err or not info then
+    vim.health.error("  Sourcegraph Connection info failed: " .. vim.inspect(err))
+    ok = false
+  else
+    vim.health.ok("  Sourcegraph Connection info: " .. vim.inspect(info))
+  end
 
-    if err or not info then
-      vim.health.error("  Sourcegraph Connection info failed: " .. vim.inspect(err))
-      ok = false
-    else
-      vim.health.ok("  Sourcegraph Connection info: " .. vim.inspect(info))
-    end
+  info = info or {}
+  local expected_cargo_version = require "sg.private.cargo_version"
+  if expected_cargo_version ~= info.sg_nvim_version then
+    vim.health.error "Mismatched cargo and expected version. Update using :SourcegraphDownloadBinaries or :SourcegraphBuild"
+    vim.health.error(string.format("Exptected: %s | Found: %s", expected_cargo_version, info.sg_nvim_version))
 
-    info = info or {}
-    local expected_cargo_version = require "sg.private.cargo_version"
-    if expected_cargo_version ~= info.sg_nvim_version then
-      vim.health.error "Mismatched cargo and expected version. Update using :SourcegraphDownloadBinaries or :SourcegraphBuild"
-      vim.health.error(string.format("Exptected: %s | Found: %s", expected_cargo_version, info.sg_nvim_version))
-
-      ok = false
-    else
-      vim.health.ok(
-        "Found correct binary versions: "
-          .. vim.inspect(expected_cargo_version)
-          .. " = "
-          .. vim.inspect(info.sg_nvim_version)
-      )
-    end
-  end)
-
-  vim.wait(10000, function()
-    return err or info
-  end)
+    ok = false
+  else
+    vim.health.ok(
+      "Found correct binary versions: "
+        .. vim.inspect(expected_cargo_version)
+        .. " = "
+        .. vim.inspect(info.sg_nvim_version)
+    )
+  end
 
   return ok
 end
@@ -159,6 +156,10 @@ local report_agent = function()
   return true
 end
 
+local report_account = function()
+  return true
+end
+
 M.check = function()
   vim.health.start "sg.nvim report"
 
@@ -172,6 +173,7 @@ M.check = function()
   ok = report_nvim_agent() and ok
   ok = report_agent() and ok
   ok = report_env() and ok
+  ok = report_account() and ok
 
   if ok then
     vim.health.ok "sg.nvim is ready to run"

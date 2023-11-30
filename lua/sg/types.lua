@@ -122,7 +122,7 @@ local M = {}
 ---@field token string: The sourcegraph auth token
 
 ---@enum SourcegraphAuthStrategy
-M.auth_strategy = { app = "cody-app", nvim = "nvim", env = "environment-variables" }
+M.auth_strategy = { nvim = "nvim", env = "environment-variables" }
 
 ---@class SourcegraphAuthObject
 ---@field doc string: Description

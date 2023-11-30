@@ -23,6 +23,10 @@ pub struct UserInfo {
     pub id: String,
     pub username: String,
     pub cody_pro_enabled: bool,
+    pub code_usage: Option<i64>,
+    pub code_limit: Option<i64>,
+    pub chat_usage: Option<i64>,
+    pub chat_limit: Option<i64>,
 }
 
 pub async fn request(
@@ -39,6 +43,10 @@ pub async fn request(
                 id: user.id,
                 username: user.username,
                 cody_pro_enabled: user.cody_pro_enabled,
+                code_usage: user.cody_current_period_code_usage,
+                code_limit: user.cody_current_period_code_limit,
+                chat_usage: user.cody_current_period_chat_usage,
+                chat_limit: user.cody_current_period_chat_limit,
             })
         })
 }

@@ -11,3 +11,12 @@ request.request(
     print("Hello?", vim.inspect { ... })
   end)
 )
+
+request.request(
+  "sourcegraph/auth",
+  { validate = false },
+
+  vim.schedule_wrap(function(...)
+    print("AUTH:: => ", vim.inspect { ... })
+  end)
+)
