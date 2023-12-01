@@ -51,9 +51,10 @@ impl From<Variables> for private::completion_query::Variables {
 
 pub async fn request(
     client: &reqwest::Client,
+    headers: reqwest::header::HeaderMap,
     endpoint: String,
     variables: private::completion_query::Variables,
 ) -> Result<String> {
-    let response = crate::get_graphql::<Query>(client, endpoint, variables).await?;
+    let response = crate::get_graphql::<Query>(client, headers, endpoint, variables).await?;
     Ok(response.completions)
 }

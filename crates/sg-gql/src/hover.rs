@@ -19,10 +19,11 @@ pub use private::{hover_query::Variables, HoverQuery as Query};
 
 pub async fn request(
     client: &reqwest::Client,
+    headers: reqwest::header::HeaderMap,
     endpoint: String,
     variables: Variables,
 ) -> Result<String> {
-    let response = crate::get_graphql::<Query>(client, endpoint, variables).await?;
+    let response = crate::get_graphql::<Query>(client, headers, endpoint, variables).await?;
 
     Ok(response
         .repository

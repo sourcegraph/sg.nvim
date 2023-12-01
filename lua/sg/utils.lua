@@ -121,4 +121,17 @@ utils._validate_node_output = function(output)
   return false, string.format("unable to determine node version: %s", vim.inspect(output))
 end
 
+utils.blocking = function(req, timeout)
+  local results
+  req(function(...)
+    results = { ... }
+  end)
+
+  vim.wait(timeout or 10000, function()
+    return results
+  end, 10, true)
+
+  return unpack(results)
+end
+
 return utils

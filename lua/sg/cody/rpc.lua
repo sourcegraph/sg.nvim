@@ -21,7 +21,7 @@ local is_ready = function(opts)
     return true
   end
 
-  if not auth.valid { cached = true } then
+  if not auth.get() then
     return false
   end
 
@@ -197,7 +197,7 @@ M.notify = function(method, params)
   --        problems in the notify and requests compared to in start?
   --
   --        We can revisit this later though.
-  if not auth.valid { cached = true } then
+  if not auth.get() then
     return
   end
 
@@ -221,7 +221,7 @@ end
 ---@param params any
 ---@param callback fun(E, R)
 M.request = function(method, params, callback)
-  if not auth.valid { cached = true } then
+  if not auth.get() then
     return callback("Invalid auth. Cannot complete cody requeest", nil)
   end
 

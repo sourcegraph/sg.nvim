@@ -1,9 +1,3 @@
--- Verify that the environment is properly configured
-local creds = require("sg.auth").get()
-if not creds then
-  return require("sg.notify").NO_AUTH()
-end
-
 local bin_sg_nvim = require("sg.config").get_nvim_agent()
 if not bin_sg_nvim then
   return require("sg.notify").NO_BUILD()
@@ -16,10 +10,7 @@ local M = {}
 
 local notification_handlers = {
   ["display_text"] = function(data)
-    print "========================"
-    print "HELLO WORLD"
-    print("DATA", vim.inspect(data))
-    print "========================"
+    print("display_text::", vim.inspect(data))
   end,
 }
 
@@ -40,6 +31,7 @@ M.start = function(opts)
     vim.wait(10)
   end
 
+  -- Verify that the environment is properly configured
   M.client = lsp.start(bin_sg_nvim, {}, {
     notification = function(method, data)
       if notification_handlers[method] then
@@ -59,8 +51,8 @@ M.start = function(opts)
   }, {
     env = {
       PATH = vim.env.PATH,
-      SRC_ACCESS_TOKEN = creds.token,
-      SRC_ENDPOINT = creds.endpoint,
+      SRC_ACCESS_TOKEN = vim.env.SRC_ACCESS_TOKEN,
+      SRC_ENDPOINT = vim.env.SRC_ENDPOINT,
     },
   })
 
@@ -88,7 +80,6 @@ M.request = function(method, params, callback)
   end
 
   return client.request(method, params, function(err, result)
-    print("do we ever get here...?", method, params)
     return callback(err, result)
   end)
 end

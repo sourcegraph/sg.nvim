@@ -80,7 +80,7 @@ end
 
 --- Get search results
 ---@param query string
----@param callback fun(err: string?, res: SgSearchResult[]?): nil
+---@param callback function(err: string?, res: SgSearchResult[]?)
 function rpc.get_search(query, callback)
   req("sourcegraph/search", { query = query }, callback)
 end

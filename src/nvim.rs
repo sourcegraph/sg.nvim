@@ -292,7 +292,7 @@ impl Request {
                     "sourcegraph_version": version,
                     "sg_nvim_version": nvim_version,
                     "endpoint": crate::get_endpoint(),
-                    "access_token_set": !crate::get_access_token().is_empty()
+                    "access_token_set": !crate::get_access_token().is_some()
                 });
 
                 Ok(Response::new(id, ResponseData::SourcegraphInfo(value)))
@@ -346,7 +346,10 @@ impl Request {
                 let cody_access_token = crate::auth::get_cody_access_token().await.ok();
                 Ok(Response::new(
                     id,
-                    ResponseData::SourcegraphAuth(cody_access_token),
+                    ResponseData::SourcegraphAuth {
+                        endpoint: Some("https://sourcegraph.com/".to_string()),
+                        token: cody_access_token,
+                    },
                 ))
             }
         }
@@ -368,11 +371,21 @@ impl Response {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum ResponseData {
-    Echo { message: String },
-    Complete { completion: String },
-    Repository { repository: String },
-    Embedding { embeddings: Vec<Embedding> },
-    ListRecipes { recipes: Vec<RecipeInfo> },
+    Echo {
+        message: String,
+    },
+    Complete {
+        completion: String,
+    },
+    Repository {
+        repository: String,
+    },
+    Embedding {
+        embeddings: Vec<Embedding>,
+    },
+    ListRecipes {
+        recipes: Vec<RecipeInfo>,
+    },
     SourcegraphGetEntry(ProtoEntry),
     SourcegraphFileContents(Vec<String>),
     SourcegraphDirectoryContents(Vec<ProtoEntry>),
@@ -381,7 +394,11 @@ pub enum ResponseData {
     SourcegraphLink(String),
     SourcegraphRemoteURL(Option<String>),
     SourcegraphUserInfo(UserInfo),
-    SourcegraphAuth(Option<String>),
+
+    SourcegraphAuth {
+        endpoint: Option<String>,
+        token: Option<String>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]

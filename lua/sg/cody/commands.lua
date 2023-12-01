@@ -206,7 +206,7 @@ end
 -- Wrap all commands with making sure TOS is accepted
 for key, value in pairs(commands) do
   commands[key] = function(...)
-    if not auth.valid { cached = true } then
+    if not auth.get() then
       vim.notify "You are not logged in to Sourcegraph. Use `:SourcegraphLogin` or `:help sg` to log in"
       return
     end

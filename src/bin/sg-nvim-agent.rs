@@ -64,12 +64,12 @@ async fn main() -> Result<()> {
         // TODO: If we have some more, we'll need to do a bit more...
         while let Some(NeovimTasks::Authentication) = rx.recv().await {
             // Save test token
-            sg::auth::set_cody_access_token("testing token".to_string()).await?;
+            // sg::auth::set_cody_access_token("testing token".to_string()).await?;
 
             let _ = jsonrpc::write_msg(
                 &stdout,
                 Notification::DisplayText {
-                    message: "WOW".to_string(),
+                    message: "<message from display text>".to_string(),
                 },
             )
             .await;

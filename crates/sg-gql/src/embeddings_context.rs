@@ -16,10 +16,11 @@ pub use private::{embeddings_context_query::Variables, EmbeddingsContextQuery as
 
 pub async fn request(
     client: &reqwest::Client,
+    headers: reqwest::header::HeaderMap,
     endpoint: String,
     variables: Variables,
 ) -> Result<Vec<Embedding>> {
-    let response = crate::get_graphql::<Query>(client, endpoint, variables).await?;
+    let response = crate::get_graphql::<Query>(client, headers, endpoint, variables).await?;
 
     let mut embeddings = vec![];
     for result in response.embeddings_search.code_results {

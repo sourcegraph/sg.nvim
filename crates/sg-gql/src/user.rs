@@ -31,10 +31,11 @@ pub struct UserInfo {
 
 pub async fn request(
     client: &reqwest::Client,
+    headers: reqwest::header::HeaderMap,
     endpoint: String,
     variables: Variables,
 ) -> Result<UserInfo> {
-    crate::get_graphql::<Query>(client, endpoint, variables)
+    crate::get_graphql::<Query>(client, headers, endpoint, variables)
         .await
         .and_then(|response_body| {
             let user = response_body.current_user.context("no current user")?;

@@ -1,20 +1,6 @@
 local M = {}
 
-local blocking = function(req)
-  local results
-
-  local cb = function(...)
-    results = { ... }
-  end
-
-  req(cb)
-
-  vim.wait(10000, function()
-    return results
-  end)
-
-  return unpack(results)
-end
+local blocking = require("sg.utils").blocking
 
 local report_nvim = function()
   if vim.version.cmp(vim.version(), { 0, 9, 0 }) >= 0 then

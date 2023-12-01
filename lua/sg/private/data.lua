@@ -24,6 +24,10 @@ end
 --- Write cody config to file
 ---@param cody_data CodyConfig
 M.write_cody_data = function(cody_data)
+  -- Clear old data that we don't need anymore
+  cody_data.endpoint = nil
+  cody_data.token = nil
+
   vim.fn.writefile({ vim.json.encode(cody_data) }, M.data_file)
 end
 
