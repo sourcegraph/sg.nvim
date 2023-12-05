@@ -1,7 +1,12 @@
 local request = require "sg.request"
+local rpc = require "sg.rpc"
 assert(request)
 
 vim.print(request)
+
+rpc.get_info(vim.schedule_wrap(function(...)
+  vim.print("INFO:", ...)
+end))
 
 print "requesting..."
 request.request(

@@ -7,5 +7,7 @@ query UserQuery {
     codyCurrentPeriodChatUsage
     codyCurrentPeriodCodeLimit
     codyCurrentPeriodChatLimit
+    completionsQuotaOverride
+    codeCompletionsQuotaOverride
   }
 }

@@ -1,14 +1,6 @@
 ---@tag sg.rpc
 ---@config { ["module"] = "sg.rpc" }
 
-if not require "sg.request" then
-  return {
-    get_info = function(callback)
-      callback("Unable to check current sg version", nil)
-    end,
-  }
-end
-
 local req = require("sg.request").request
 
 local rpc = {}
@@ -101,6 +93,10 @@ end
 
 function rpc.get_auth(callback)
   req("sourcegraph/auth", {}, callback)
+end
+
+function rpc.get_user_info(callback)
+  req("sourcegraph/get_user_info", { testing = false }, callback)
 end
 
 return rpc

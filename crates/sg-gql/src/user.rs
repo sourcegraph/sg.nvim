@@ -27,6 +27,10 @@ pub struct UserInfo {
     pub code_limit: Option<i64>,
     pub chat_usage: Option<i64>,
     pub chat_limit: Option<i64>,
+    pub completion_override: Option<i64>,
+
+    // What? What is code vs completion? These are not clear
+    pub code_override: Option<i64>,
 }
 
 pub async fn request(
@@ -48,6 +52,8 @@ pub async fn request(
                 code_limit: user.cody_current_period_code_limit,
                 chat_usage: user.cody_current_period_chat_usage,
                 chat_limit: user.cody_current_period_chat_limit,
+                completion_override: user.code_completions_quota_override,
+                code_override: user.code_completions_quota_override,
             })
         })
 }

@@ -1,10 +1,7 @@
-local bin_sg_nvim = require("sg.config").get_nvim_agent()
-if not bin_sg_nvim then
-  return require("sg.notify").NO_BUILD()
-end
-
 local log = require "sg.log"
 local lsp = require "sg.vendored.vim-lsp-rpc"
+
+local bin_sg_nvim = require("sg.config").get_nvim_agent()
 
 local M = {}
 
@@ -20,6 +17,15 @@ local server_handlers = {}
 ---@param opts { force: boolean? }?
 ---@return VendoredPublicClient?
 M.start = function(opts)
+  if not bin_sg_nvim then
+    -- Try and check for the bin again
+    bin_sg_nvim = require("sg.config").get_nvim_agent()
+    if not bin_sg_nvim then
+      require("sg.notify").NO_BUILD()
+      return nil
+    end
+  end
+
   opts = opts or {}
 
   if M.client and not opts.force then

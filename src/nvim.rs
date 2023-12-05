@@ -292,7 +292,7 @@ impl Request {
                     "sourcegraph_version": version,
                     "sg_nvim_version": nvim_version,
                     "endpoint": crate::get_endpoint(),
-                    "access_token_set": !crate::get_access_token().is_some()
+                    "access_token_set": crate::get_access_token().is_some()
                 });
 
                 Ok(Response::new(id, ResponseData::SourcegraphInfo(value)))

@@ -129,9 +129,9 @@ utils.blocking = function(req, timeout)
 
   vim.wait(timeout or 10000, function()
     return results
-  end, 10, true)
+  end, 10)
 
-  return unpack(results)
+  return unpack(results or {})
 end
 
 return utils
