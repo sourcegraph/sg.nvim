@@ -1,3 +1,6 @@
+see if i can put secret storage in the agent
+- vscode check to see if i can stub out the secrets stuff
+
 # sg.nvim
 
 **Status**: Beta

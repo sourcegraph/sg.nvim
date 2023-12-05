@@ -68,9 +68,6 @@
 local cmp = require "cmp"
 local cmp_types = require "cmp.types.lsp"
 
-local commands = require "sg.cody.commands"
-local document = require "sg.document"
-
 local M = {}
 
 local source = {}
@@ -89,6 +86,11 @@ end
 ---@param params cmp.SourceCompletionApiParams
 ---@param callback function(response: lsp.CompletionResponse)
 function source:complete(params, callback)
+  -- Delay loading until first complete, this makes sure that
+  -- we can handle auth and everything beforehand
+  local commands = require "sg.cody.commands"
+  local document = require "sg.document"
+
   _ = self
   _ = params
 
@@ -100,7 +102,7 @@ function source:complete(params, callback)
   end
 
   -- Don't trigger completions when cody is disabled or if we have invalid auth
-  if not require("sg.config").enable_cody or not require("sg.auth").valid { cached = true } then
+  if not require("sg.config").enable_cody or not require("sg.auth").get() then
     callback { items = {}, isIncomplete = false }
     return
   end

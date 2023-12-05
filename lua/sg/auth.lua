@@ -22,14 +22,27 @@ local valid = function(s)
   return s and type(s) == "string" and s ~= ""
 end
 
+local endpoint = vim.env.SRC_ENDPOINT
+local token = vim.env.SRC_ACCESS_TOKEN
+
+local timer = vim.loop.new_timer()
+timer:start(
+  0,
+  10000,
+  vim.schedule_wrap(function()
+    endpoint = vim.env.SRC_ENDPOINT
+    token = vim.env.SRC_ACCESS_TOKEN
+  end)
+)
+
 --- Gets authorization from the environment variables.
 ---     It is possible these will be initialized from previous
 ---     session configuration, if not already present.
 ---
 ---@return SourcegraphAuthConfig?
 M.get = function()
-  if valid(vim.env.SRC_ENDPOINT) and valid(vim.env.SRC_ACCESS_TOKEN) then
-    return { endpoint = vim.env.SRC_ENDPOINT, token = vim.env.SRC_ACCESS_TOKEN }
+  if valid(endpoint) and valid(endpoint) then
+    return { endpoint = endpoint, token = token }
   end
 
   return nil
@@ -42,6 +55,10 @@ M.set = function(endpoint, token)
 
   vim.env.SRC_ENDPOINT = endpoint
   vim.env.SRC_ACCESS_TOKEN = token
+
+  -- Update local vars
+  endpoint = vim.env.SRC_ENDPOINT
+  token = vim.env.SRC_ACCESS_TOKEN
 end
 
 return M
