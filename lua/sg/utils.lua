@@ -90,6 +90,10 @@ utils.valid_node_executable = function(executable)
   end
 
   local output = vim.fn.systemlist(executable .. " --version") or {}
+  -- systemlist() leaves CR behind on Windows, fixing inconsistency
+  for i = #output, 1, -1 do
+    output[i] = output[i]:gsub("\r$", "")
+  end
   return utils._validate_node_output(output)
 end
 
