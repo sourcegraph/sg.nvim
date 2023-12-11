@@ -44,8 +44,6 @@ pub async fn read_msg<T>(r: &mut MessageReader) -> Result<Option<T>>
 where
     T: DeserializeOwned,
 {
-    eprintln!("Hello... reading a message...");
-
     let text = match read_msg_text(r).await? {
         None => return Ok(None),
         Some(text) => text,

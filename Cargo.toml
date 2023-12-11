@@ -30,8 +30,10 @@ sg-gql = { path  = "crates/sg-gql" }
 sg-types = { path  = "crates/sg-types" }
 jsonrpc = { path = "crates/jsonrpc" }
 gix = "0.52.0"
-secret-service = { version = "3.0.1", features = ["rt-tokio-crypto-rust"] }
 tiny_http = "0.12.0"
+keyring = "2.1.0"
+whoami = "1.4.1"
+dialoguer = "0.11.0"
 
 [workspace.dependencies]
 anyhow = "1"

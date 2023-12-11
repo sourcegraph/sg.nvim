@@ -68,6 +68,8 @@
 local cmp = require "cmp"
 local cmp_types = require "cmp.types.lsp"
 
+local log = require "sg.log"
+
 local M = {}
 
 local source = {}
@@ -86,6 +88,8 @@ end
 ---@param params cmp.SourceCompletionApiParams
 ---@param callback function(response: lsp.CompletionResponse)
 function source:complete(params, callback)
+  log.trace "entering nvim-cmp complete"
+
   -- Delay loading until first complete, this makes sure that
   -- we can handle auth and everything beforehand
   local commands = require "sg.cody.commands"
@@ -98,11 +102,25 @@ function source:complete(params, callback)
   -- This messes up the state of the agent.
   local bufnr = vim.api.nvim_get_current_buf()
   if not document.is_useful(bufnr) then
+    log.trace "  skipping nvim-cmp complete. not useful"
     return
   end
 
   -- Don't trigger completions when cody is disabled or if we have invalid auth
-  if not require("sg.config").enable_cody or not require("sg.auth").get() then
+  if not require("sg.config").enable_cody then
+    log.trace "  skipping nvim-cmp complete. not enabled"
+    callback { items = {}, isIncomplete = false }
+    return
+  end
+
+  if not require("sg.auth").get() then
+    log.trace "  skipping nvim-cmp complete. not authed"
+    callback { items = {}, isIncomplete = false }
+    return
+  end
+
+  if not require("sg.cody.rpc").client then
+    log.trace "  skipping nvim-cmp complete. no client started"
     callback { items = {}, isIncomplete = false }
     return
   end
@@ -114,6 +132,7 @@ function source:complete(params, callback)
       end
 
       -- TODO: Might want to do something else here?...
+      log.debug("Failed to do autocomplete: ", err)
       return
     end
 

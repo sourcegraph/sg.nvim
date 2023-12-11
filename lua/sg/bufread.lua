@@ -29,13 +29,14 @@ M.edit = function(bufnr, path, callback)
   vim.bo[bufnr].buftype = "nofile"
   vim.bo[bufnr].modifiable = true
 
-  if not require("sg.auth").valid { cached = true } then
+  if not require("sg.auth").get() then
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {
       string.format("Unable to open: '%s'", path),
       "",
       "You are not currently logged in to Sourcegraph.",
       "Please run `:SourcegraphLogin` or check out `:help sg.auth` for other options",
     })
+
     return callback()
   end
 
@@ -54,11 +55,14 @@ M.edit = function(bufnr, path, callback)
     end
 
     if entry.type == "directory" then
-      M._open_remote_folder(bufnr, entry.bufname, entry.data --[[@as SgDirectory]], callback)
+      local data = entry.data --[[@as SgDirectory]]
+      M._open_remote_folder(bufnr, entry.bufname, data, callback)
     elseif entry.type == "file" then
-      M._open_remote_file(bufnr, entry.bufname, entry.data --[[@as SgFile]], callback)
+      local data = entry.data --[[@as SgFile]]
+      M._open_remote_file(bufnr, entry.bufname, data, callback)
     elseif entry.type == "repo" then
-      M._open_remote_repo(bufnr, entry.bufname, entry.data --[[@as SgRepo]], callback)
+      local data = entry.data --[[@as SgRepo]]
+      M._open_remote_repo(bufnr, entry.bufname, data, callback)
     else
       error("unknown path type: " .. entry.type)
     end

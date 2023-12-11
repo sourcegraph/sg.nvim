@@ -1,7 +1,8 @@
 use {
     crate::{
+        auth::{get_access_token, get_endpoint, CodyCredentials},
         entry::{link, Entry},
-        get_cody_completions, get_embeddings_context, get_endpoint, get_repository_id,
+        get_cody_completions, get_embeddings_context, get_repository_id,
     },
     anyhow::Result,
     serde::{Deserialize, Serialize},
@@ -103,6 +104,12 @@ pub enum Message {
     Notification(Notification),
 }
 
+impl Message {
+    pub fn notification(notification: Notification) -> Self {
+        Self::Notification(notification)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Request {
     pub id: usize,
@@ -184,7 +191,8 @@ pub enum RequestData {
 
     #[serde(rename = "sourcegraph/auth")]
     SourcegraphAuth {
-        validate: bool,
+        endpoint: Option<String>,
+        token: Option<String>,
     },
 }
 
@@ -291,8 +299,8 @@ impl Request {
                 let value = json!({
                     "sourcegraph_version": version,
                     "sg_nvim_version": nvim_version,
-                    "endpoint": crate::get_endpoint(),
-                    "access_token_set": crate::get_access_token().is_some()
+                    "endpoint": get_endpoint(),
+                    "access_token_set": get_access_token().is_some()
                 });
 
                 Ok(Response::new(id, ResponseData::SourcegraphInfo(value)))
@@ -342,13 +350,19 @@ impl Request {
                     ResponseData::SourcegraphUserInfo(user_info),
                 ))
             }
-            RequestData::SourcegraphAuth { .. } => {
-                let cody_access_token = crate::auth::get_cody_access_token().await.ok();
+            RequestData::SourcegraphAuth { endpoint, token } => {
+                use crate::auth;
+
+                let credentials = CodyCredentials { endpoint, token };
+                if credentials.token.is_some() || credentials.endpoint.is_some() {
+                    auth::set_credentials(credentials)?;
+                }
+
                 Ok(Response::new(
                     id,
                     ResponseData::SourcegraphAuth {
-                        endpoint: Some("https://sourcegraph.com/".to_string()),
-                        token: cody_access_token,
+                        endpoint: Some(auth::get_endpoint()),
+                        token: auth::get_access_token(),
                     },
                 ))
             }
@@ -404,6 +418,12 @@ pub enum ResponseData {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "method", content = "params")]
 pub enum Notification {
+    #[serde(rename = "initialize")]
+    Initialize {
+        endpoint: Option<String>,
+        token: Option<String>,
+    },
+
     #[serde(rename = "display_text")]
     DisplayText {
         message: String,

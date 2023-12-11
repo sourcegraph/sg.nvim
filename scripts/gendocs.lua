@@ -12,9 +12,9 @@ local input_files = {
   "./lua/sg/init.lua",
   "./lua/sg/config.lua",
   "./lua/sg/auth.lua",
-  "./after/plugin/cody.lua",
+  "./lua/sg/cody/plugin/commands.lua",
   "./lua/sg/cody/commands.lua",
-  "./after/plugin/sg.lua",
+  "./plugin/sg.lua",
   "./lua/sg/rpc.lua",
   "./lua/sg/extensions/cmp.lua",
 }

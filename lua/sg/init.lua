@@ -17,38 +17,7 @@
 --- You can check that you're logged in by then running `:checkhealth sg`
 ---@brief ]]
 
-local data = require "sg.private.data"
-
 local M = {}
-
-local accept_tos = function(opts)
-  opts = opts or {}
-
-  local cody_data = data.get_cody_data()
-  if opts.accept_tos and not cody_data.tos_accepted then
-    cody_data.tos_accepted = true
-    data.write_cody_data(cody_data)
-  end
-
-  if not cody_data.tos_accepted then
-    local choice = vim.fn.inputlist {
-      "By using Cody, you agree to its license and privacy statement:"
-        .. " https://about.sourcegraph.com/terms/cody-notice . Do you wish to proceed? Yes/No: ",
-      "1. Yes",
-      "2. No",
-    }
-
-    cody_data.tos_accepted = choice == 1
-    data.write_cody_data(cody_data)
-  end
-
-  if not cody_data.user then
-    cody_data.user = require("sg.utils").uuid()
-    data.write_cody_data(cody_data)
-  end
-
-  return cody_data.tos_accepted
-end
 
 --- Setup sourcegraph
 ---@param opts sg.config
@@ -62,13 +31,10 @@ M.setup = function(opts)
     end
   end
 
-  if config.use_cody then
-    accept_tos(opts)
-  end
-
   require("sg.lsp").setup()
+  require("sg.request").start()
+  require("sg.cody.plugin.agent").setup(config)
+  require("sg.cody.plugin.commands").setup(config)
 end
-
-M.accept_tos = accept_tos
 
 return M

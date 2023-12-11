@@ -1,8 +1,7 @@
 ---@tag cody.lua-commands
 ---@config { module = "sg.cody.commands" }
----
+
 local auth = require "sg.auth"
-local sg = require "sg"
 local util = require "sg.utils"
 
 local CodyBase = require "sg.components.layout.base"

@@ -1,3 +1,4 @@
+-- Only enable the extension if nvim cmp is installed
 local ok, _ = pcall(require, "cmp")
 if not ok then
   return

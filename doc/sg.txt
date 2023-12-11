@@ -141,6 +141,14 @@ Default commands for interacting with Cody
 
 
 
+M.setup({config})                                               *cody.setup()*
+    Setup Cody
+
+
+    Parameters: ~
+        {config} (sg.config)
+
+
 
 ================================================================================
 LUA-COMMANDS                                                 *cody.lua-commands*

@@ -12,7 +12,7 @@ pub fn normalize_url(url: &str) -> String {
 
     re.replace_all(
         &url.to_string()
-            .replace(&get_endpoint(), "")
+            .replace(&auth::get_endpoint(), "")
             .replace("//gh/", "//github.com/")
             .replace("sg://", ""),
         "",
@@ -30,7 +30,7 @@ mod graphql {
     });
 
     fn get_graphql_endpoint() -> String {
-        let endpoint = get_endpoint();
+        let endpoint = auth::get_endpoint();
         format!("{endpoint}/.api/graphql")
     }
 
@@ -48,26 +48,11 @@ mod graphql {
     }
 }
 
-pub fn get_access_token() -> Option<String> {
-    match std::env::var("SRC_ACCESS_TOKEN") {
-        Ok(token) if token.is_empty() => None,
-        Ok(token) => Some(token),
-        Err(_) => None,
-    }
-}
-
-pub fn get_endpoint() -> String {
-    std::env::var("SRC_ENDPOINT")
-        .unwrap_or_else(|_| "https://sourcegraph.com/".to_string())
-        .trim_end_matches('/')
-        .to_string()
-}
-
 pub fn get_headers() -> reqwest::header::HeaderMap {
     use reqwest::header::*;
 
     let mut x = HeaderMap::new();
-    if let Some(sourcegraph_access_token) = get_access_token() {
+    if let Some(sourcegraph_access_token) = auth::get_access_token() {
         x.insert(
             AUTHORIZATION,
             HeaderValue::from_str(&format!("token {sourcegraph_access_token}"))

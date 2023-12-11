@@ -1,27 +1,34 @@
 local request = require "sg.request"
+
 local rpc = require "sg.rpc"
 assert(request)
 
-vim.print(request)
+-- local creds = require("sg.auth").get()
+local set_auth = function()
+  local creds = require("sg.auth").get()
+  print(vim.inspect(creds))
 
-rpc.get_info(vim.schedule_wrap(function(...)
-  vim.print("INFO:", ...)
-end))
+  request.request(
+    "sourcegraph/auth",
+    creds,
+    vim.schedule_wrap(function(err, data)
+      if not err and data then
+        require("sg.auth").set_auth(data)
+      end
+    end)
+  )
+end
 
-print "requesting..."
-request.request(
-  "sourcegraph/get_user_info",
-  { testing = true },
-  vim.schedule_wrap(function(...)
-    print("Hello?", vim.inspect { ... })
-  end)
-)
+set_auth()
 
-request.request(
-  "sourcegraph/auth",
-  { validate = false },
-
-  vim.schedule_wrap(function(...)
-    print("AUTH:: => ", vim.inspect { ... })
-  end)
-)
+-- rpc.get_info(vim.schedule_wrap(function(...)
+--   vim.print("INFO:", ...)
+-- end))
+--
+-- request.request(
+--   "sourcegraph/get_user_info",
+--   { testing = true },
+--   vim.schedule_wrap(function(...)
+--     print("Hello?", vim.inspect { ... })
+--   end)
+-- )

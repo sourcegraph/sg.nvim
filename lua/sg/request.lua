@@ -6,6 +6,12 @@ local bin_sg_nvim = require("sg.config").get_nvim_agent()
 local M = {}
 
 local notification_handlers = {
+  ["initialize"] = function(data)
+    if data.endpoint and data.token then
+      require("sg.auth").set(data.endpoint, data.token, { from_agent = true })
+    end
+  end,
+
   ["display_text"] = function(data)
     print("display_text::", vim.inspect(data))
   end,
@@ -40,6 +46,7 @@ M.start = function(opts)
   -- Verify that the environment is properly configured
   M.client = lsp.start(bin_sg_nvim, {}, {
     notification = function(method, data)
+      log.info("got notification", method, data)
       if notification_handlers[method] then
         notification_handlers[method](data)
       else
@@ -66,6 +73,19 @@ M.start = function(opts)
     vim.notify "[sg.nvim] failed to start sg.nvim plugin"
     return nil
   end
+
+  -- Schedule getting the auth from neovim, if possible.
+  vim.schedule(function()
+    M.request("sourcegraph/auth", {}, function(err, data)
+      if err then
+        return
+      end
+
+      if data.endpoint and data.token then
+        require("sg.auth").set(data.endpoint, data.token)
+      end
+    end)
+  end)
 
   return M.client
 end

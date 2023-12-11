@@ -37,6 +37,31 @@ local track = function(msg)
   end
 end
 
+--- Gets the server config
+---@return CodyClientInfo
+local get_server_config = function(creds, remote_url)
+  return {
+    name = "neovim",
+    version = require("sg.private.data").version,
+    workspaceRootUri = vim.uri_from_fname(vim.loop.cwd() or ""),
+    extensionConfiguration = {
+      accessToken = creds.token,
+      serverEndpoint = creds.endpoint,
+      codebase = remote_url,
+      customHeaders = { ["User-Agent"] = "Sourcegraph Cody Neovim Plugin" },
+      eventProperties = {
+        anonymousUserID = require("sg.private.data").get_cody_data().user,
+        prefix = "CodyNeovimPlugin",
+        client = "NEOVIM_CODY_EXTENSION",
+        source = "IDEEXTENSION",
+      },
+    },
+    capabilities = {
+      chat = "streaming",
+    },
+  }
+end
+
 local cody_args = { config.cody_agent }
 -- We can insert node breakpoint to debug the agent if needed
 -- table.insert(cody_args, 1, "--insert-brk")
@@ -276,28 +301,7 @@ M.initialize = function(callback)
   end
 
   require("sg.cody.context").get_origin(0, function(remote_url)
-    ---@type CodyClientInfo
-    local info = {
-      name = "neovim",
-      version = require("sg.private.data").version,
-      workspaceRootUri = vim.uri_from_fname(vim.loop.cwd() or ""),
-      extensionConfiguration = {
-        accessToken = creds.token,
-        serverEndpoint = creds.endpoint,
-        codebase = remote_url,
-        customHeaders = { ["User-Agent"] = "Sourcegraph Cody Neovim Plugin" },
-        eventProperties = {
-          anonymousUserID = require("sg.private.data").get_cody_data().user,
-          prefix = "CodyNeovimPlugin",
-          client = "NEOVIM_CODY_EXTENSION",
-          source = "IDEEXTENSION",
-        },
-      },
-      capabilities = {
-        chat = "streaming",
-      },
-    }
-
+    local info = get_server_config(creds, remote_url)
     M.request("initialize", info, callback)
   end)
 end
@@ -329,6 +333,17 @@ M.exit = function()
   -- Force closing the connection.
   -- I think this is good to make sure we don't leave anything running
   M.client.terminate()
+end
+
+M.config_did_change = function()
+  M.initialize(function(err, data)
+    if err then
+      require("sg.log").error(err)
+    end
+
+    -- Clear or reset the server information
+    M.server_info = data or {}
+  end)
 end
 
 ---@type CodyServerInfo

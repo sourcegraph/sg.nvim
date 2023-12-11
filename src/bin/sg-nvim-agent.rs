@@ -2,8 +2,8 @@ use {
     anyhow::Result,
     jsonrpc::RPCErr,
     sg::{
-        nvim,
-        nvim::{NeovimTasks, Notification},
+        auth::{get_access_token, get_endpoint},
+        nvim::{self, NeovimTasks, Notification},
     },
     std::sync::Arc,
     tokio::{io::BufReader, sync::Mutex, task::JoinHandle},
@@ -14,6 +14,19 @@ async fn main() -> Result<()> {
     let stdin = tokio::io::stdin();
     let mut reader = BufReader::new(stdin);
     let stdout = Arc::new(Mutex::new(tokio::io::stdout()));
+
+    // Initialize by letting neovim know if we have a saved token or not
+    eprintln!("Writing initialize notification...");
+    let wrote = jsonrpc::write_msg(
+        &stdout,
+        nvim::Message::notification(Notification::Initialize {
+            endpoint: Some(get_endpoint()),
+            token: get_access_token(),
+        }),
+    )
+    .await;
+    eprintln!("WROTE: {:?}", wrote);
+    eprintln!(">> Done initialize notification...");
 
     let rpc_stdout = stdout.clone();
 
@@ -26,7 +39,6 @@ async fn main() -> Result<()> {
             let message: Result<Option<nvim::Message>> = jsonrpc::read_msg(&mut reader).await;
             match message {
                 Ok(Some(nvim::Message::Request(message))) => {
-                    // got some messages
                     eprintln!("Recieved a message: {message:?}");
                     let sent = match message.respond(&tx).await {
                         Ok(response) => jsonrpc::write_msg(&stdout, response).await,
@@ -56,23 +68,17 @@ async fn main() -> Result<()> {
     });
 
     let notifications: JoinHandle<Result<()>> = tokio::spawn(async move {
-        let stdout = stdout.clone();
+        // let stdout = stdout.clone();
 
         // .auth/github/login?pc=https%3A%2F%2Fgithub.com%2F%3A%3Ae917b2b7fa9040e1edd4
         //  &redirect=/post-sign-up?returnTo=/user/settings/tokens/new/callback?requestFrom=JETBRAINS-$port"
 
-        // TODO: If we have some more, we'll need to do a bit more...
-        while let Some(NeovimTasks::Authentication) = rx.recv().await {
-            // Save test token
-            // sg::auth::set_cody_access_token("testing token".to_string()).await?;
-
-            let _ = jsonrpc::write_msg(
-                &stdout,
-                Notification::DisplayText {
-                    message: "<message from display text>".to_string(),
-                },
-            )
-            .await;
+        while let Some(task) = rx.recv().await {
+            match task {
+                NeovimTasks::Authentication => {
+                    let server = tiny_http::Server::http("0.0.0.0:0").unwrap();
+                }
+            }
         }
 
         Ok(())
