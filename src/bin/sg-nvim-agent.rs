@@ -1,6 +1,7 @@
 use {
-    anyhow::Result,
+    anyhow::{Context, Result},
     jsonrpc::RPCErr,
+    reqwest::Url,
     sg::{
         auth::{get_access_token, get_endpoint},
         nvim::{self, NeovimTasks, Notification},
@@ -75,8 +76,38 @@ async fn main() -> Result<()> {
 
         while let Some(task) = rx.recv().await {
             match task {
-                NeovimTasks::Authentication => {
-                    let server = tiny_http::Server::http("0.0.0.0:0").unwrap();
+                NeovimTasks::Authentication { port } => {
+                    std::thread::spawn(|| {
+                        let server = tiny_http::Server::http(format!("127.0.0.1:{port}")).unwrap();
+                        let addr = server.server_addr();
+                        let ip = match addr {
+                            tiny_http::ListenAddr::IP(ip) => ip,
+                            _ => todo!(),
+                        };
+
+                        // TODO: Get a neovim one (but this is fine for now)
+
+                        let request = server.recv().expect("to launch request");
+
+                        // Create url to parse the parameters, a bit goofy but it is what it is
+                        let url = format!("http://127.0.0.1:{}{}", port, request.url());
+                        let url = Url::parse(&url).expect("to parse URL");
+
+                        if let Some((_, token)) = url.query_pairs().find(|(k, _)| k == "token") {
+                            let response = tiny_http::Response::from_string(
+                                "Credentials have been saved to Neovim. Restart Neovim now.",
+                            );
+
+                            // Ignore response errors
+                            let _ = request.respond(response);
+
+                            sg::auth::set_credentials(sg::auth::CodyCredentials {
+                                endpoint: Some("https://sourcegraph.com/".to_string()),
+                                token: Some(token.to_string()),
+                            })
+                            .expect("to set credentials");
+                        }
+                    });
                 }
             }
         }

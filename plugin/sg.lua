@@ -19,10 +19,7 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
   group = vim.api.nvim_create_augroup("sourcegraph-bufread", { clear = true }),
   pattern = { "sg://*", "https://sourcegraph.com/*" },
   callback = function(event)
-    bufread.edit(
-      event.buf or vim.api.nvim_get_current_buf(),
-      vim.fn.expand "<amatch>" --[[@as string]]
-    )
+    bufread.edit(event.buf or vim.api.nvim_get_current_buf(), vim.fn.expand "<amatch>" --[[@as string]])
   end,
   desc = "Sourcegraph link and protocol handler",
 })
@@ -34,18 +31,35 @@ end, {})
 ---@command SourcegraphLogin [[
 --- Get prompted for endpoint and access_token if you don't
 --- want to set them via environment variables.
+---
+--- For enterprise instances, the only currently supported method
+--- is environment variables.
 ---@command ]]
 vim.api.nvim_create_user_command("SourcegraphLogin", function()
-  local auth = require "sg.auth"
+  local endpoint = vim.fn.input {
+    prompt = "Sourcegraph Endpoint >",
+    default = "https://sourcegraph.com/",
+  }
 
-  print("AUTH BEFORE:", vim.inspect(auth.get()))
-  require("sg.rpc").get_auth(nil, function(err, data)
-    print("AUTHED:", err, vim.inspect(data))
-  end)
-  -- local creds = auth.get()
-  -- TODO: Need to grab the creds stored in rust here first as well...
+  if endpoint == "https://sourcegraph.com/" then
+    local port = 52068
+    local redirect = string.format("user/settings/tokens/new/callback?requestFrom=JETBRAINS-%s", port)
+
+    require("sg.rpc").dotcom_login(port, function(err, _)
+      if err then
+        vim.notify(string.format("Error occurred: %s", vim.inspect(err)))
+        return
+      end
+
+      vim.ui.open(string.format("%s%s", endpoint, redirect))
+    end)
+  else
+    print(string.format("Found endpoint: '%s', which was not `https://sourcegraph.com`", endpoint))
+    print "Sorry, currently for enterprise instances, you'll need to use the environment variable methods"
+    print "Set `SRC_ENDPOINT` and `SRC_ACCESS_TOKEN` in your environment before starting neovim"
+  end
 end, {
-  desc = "Login and store credentials for later use (an alternative to the environment variables",
+  desc = "Login and store credentials for later use (an alternative to using environment variables)",
 })
 
 ---@command SourcegraphBuild [[

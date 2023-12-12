@@ -194,11 +194,16 @@ pub enum RequestData {
         endpoint: Option<String>,
         token: Option<String>,
     },
+
+    #[serde(rename = "sourcegraph/dotcom_login")]
+    SourcegraphDotcomLogin {
+        port: usize,
+    },
 }
 
 #[derive(Debug)]
 pub enum NeovimTasks {
-    Authentication,
+    Authentication { port: usize },
 }
 
 #[allow(unused_variables)]
@@ -343,8 +348,6 @@ impl Request {
                 eprintln!("Got Sg user info request");
                 let user_info = crate::get_user_info().await?;
 
-                tx.send(NeovimTasks::Authentication)?;
-
                 Ok(Response::new(
                     id,
                     ResponseData::SourcegraphUserInfo(user_info),
@@ -363,6 +366,18 @@ impl Request {
                     ResponseData::SourcegraphAuth {
                         endpoint: Some(auth::get_endpoint()),
                         token: auth::get_access_token(),
+                    },
+                ))
+            }
+            RequestData::SourcegraphDotcomLogin { port } => {
+                // Start http server
+                tx.send(NeovimTasks::Authentication { port })?;
+
+                // Send response that we're ready.
+                Ok(Response::new(
+                    id,
+                    ResponseData::Echo {
+                        message: "... Starting Sourcegraph Login in Browser ... ".to_string(),
                     },
                 ))
             }
