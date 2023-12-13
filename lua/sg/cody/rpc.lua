@@ -264,7 +264,8 @@ M.request = function(method, params, callback)
     if not is_ready { method = method } then
       callback(
         "Unable to get token and/or endpoint for sourcegraph."
-          .. " Use `:SourcegraphLogin` or `:help sg` for more information",
+          .. " Use `:SourcegraphLogin` or `:help sg` for more information\n"
+          .. vim.inspect(M.server_info),
         nil
       )
       return
@@ -375,7 +376,25 @@ M.execute.chat_question = function(message, callback)
   return M.request(
     "recipes/execute",
     { id = "chat-question", humanChatInput = message, data = { id = message_id } },
-    callback
+    -- callback
+    function(err, data)
+      local ratelimit = require "sg.ratelimit"
+      if ratelimit.is_ratelimit_err(err) then
+        -- Notify user of error message
+        callback {
+          speaker = "cody",
+          text = err.message,
+          data = { id = message_id },
+        }
+
+        -- Mark callback as "completed"
+        ---@diagnostic disable-next-line: param-type-mismatch
+        callback(nil)
+
+        -- Set notification
+        return ratelimit.notify_ratelimit "chat"
+      end
+    end
   )
 end
 

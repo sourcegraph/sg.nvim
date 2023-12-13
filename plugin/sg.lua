@@ -34,16 +34,35 @@ end, {})
 ---
 --- For enterprise instances, the only currently supported method
 --- is environment variables.
+---
+--- If you want to force a particular endpoint + access token combination to be saved,
+--- use :SourcegraphLogin! and then follow the prompts.
 ---@command ]]
-vim.api.nvim_create_user_command("SourcegraphLogin", function()
+vim.api.nvim_create_user_command("SourcegraphLogin", function(command)
   local endpoint = vim.fn.input {
-    prompt = "Sourcegraph Endpoint >",
+    prompt = "Sourcegraph Endpoint: ",
     default = "https://sourcegraph.com/",
   }
 
+  if command.bang then
+    local token = vim.fn.inputsecret "Sourcegraph Access Token (empty to clear): "
+    if type(token) == "string" then
+      return require("sg.rpc").get_auth({
+        endpoint = endpoint,
+        token = token,
+      }, function(err)
+        if err then
+          vim.notify(string.format("[cody] Failed to update auth: %s", vim.inspect(err)))
+        else
+          vim.notify "[cody] Updated Sourcegraph Auth Information"
+        end
+      end)
+    end
+  end
+
   if endpoint == "https://sourcegraph.com/" then
     local port = 52068
-    local redirect = string.format("user/settings/tokens/new/callback?requestFrom=JETBRAINS-%s", port)
+    local redirect = string.format("user/settings/tokens/new/callback?requestFrom=NEOVIM-%s", port)
 
     require("sg.rpc").dotcom_login(port, function(err, _)
       if err then
@@ -59,7 +78,8 @@ vim.api.nvim_create_user_command("SourcegraphLogin", function()
     print "Set `SRC_ENDPOINT` and `SRC_ACCESS_TOKEN` in your environment before starting neovim"
   end
 end, {
-  desc = "Login and store credentials for later use (an alternative to using environment variables)",
+  desc = "Login and store credentials for later use (an alternative to using environment variables). Use <bang> to store a password",
+  bang = true,
 })
 
 ---@command SourcegraphBuild [[

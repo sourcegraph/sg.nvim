@@ -128,6 +128,7 @@ function source:complete(params, callback)
   commands.autocomplete(nil, function(err, data)
     if err then
       if require("sg.ratelimit").is_ratelimit_err(err) then
+        require("sg.ratelimit").notify_ratelimit "autocomplete"
         return
       end
 
