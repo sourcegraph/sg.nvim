@@ -118,6 +118,15 @@ pub struct Request {
     pub data: RequestData,
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SecretString(String);
+
+impl std::fmt::Debug for SecretString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<redacted>")
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(tag = "method", content = "params")]
 pub enum RequestData {
@@ -192,7 +201,7 @@ pub enum RequestData {
     #[serde(rename = "sourcegraph/auth")]
     SourcegraphAuth {
         endpoint: Option<String>,
-        token: Option<String>,
+        token: Option<SecretString>,
     },
 
     #[serde(rename = "sourcegraph/dotcom_login")]
@@ -356,7 +365,10 @@ impl Request {
             RequestData::SourcegraphAuth { endpoint, token } => {
                 use crate::auth;
 
-                let credentials = CodyCredentials { endpoint, token };
+                let credentials = CodyCredentials {
+                    endpoint,
+                    token: token.map(|t| t.0),
+                };
                 if credentials.token.is_some() || credentials.endpoint.is_some() {
                     auth::set_credentials(credentials)?;
                 }
@@ -365,7 +377,7 @@ impl Request {
                     id,
                     ResponseData::SourcegraphAuth {
                         endpoint: Some(auth::get_endpoint()),
-                        token: auth::get_access_token(),
+                        token: auth::get_access_token().map(|t| SecretString(t)),
                     },
                 ))
             }
@@ -426,7 +438,7 @@ pub enum ResponseData {
 
     SourcegraphAuth {
         endpoint: Option<String>,
-        token: Option<String>,
+        token: Option<SecretString>,
     },
 }
 

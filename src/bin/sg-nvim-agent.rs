@@ -1,5 +1,5 @@
 use {
-    anyhow::{Context, Result},
+    anyhow::Result,
     jsonrpc::RPCErr,
     reqwest::Url,
     sg::{
