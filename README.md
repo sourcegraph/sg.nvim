@@ -1,6 +1,3 @@
-see if i can put secret storage in the agent
-- vscode check to see if i can stub out the secrets stuff
-
 # sg.nvim
 
 **Status**: Beta
@@ -11,19 +8,17 @@ see if i can put secret storage in the agent
 - [Installation](#installation)
 - [Configuration](#configuration)
 
-sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com into Neovim.
+sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com and Cody into Neovim.
 
 ## Setup
 
-To configure logging in:
+To Log In, either:
 
-- Log in on your Sourcegraph instance.
-- Click your user menu in the top right, then select Settings > Access tokens.
-- Create your access token, and then run `:SourcegraphLogin` in your neovim editor after installation.
-- Type in the link to your Sourcegraph instance (for example: `https://sourcegraph.com`)
-- And then paste in your access token.
+- Run `:SourcegraphLogin` after following installation instructions for `sourcegraph.com` usage.
+- Use the `SRC_ENDPOINT` and `SRC_ACCESS_TOKEN` environment variables to manage tokens for enterprise usage.
+  - See :[src-cli](https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance) for more info
 
-An alternative to this is to use the environment variables specified for [src-cli](https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance).
+See `:help sg.auth` for more information.
 
 You can check that you're logged in by then running `:checkhealth sg`
 
@@ -42,6 +37,8 @@ Requires:
   - If you would like to use something else for search functionality, please make an issue and I can look into adding support.
 
 ### Install
+
+Regardless of installation method, you must call `require("sg").setup { ... }` in your config.
 
 <details>
 <summary><code>lazy.nvim</code></summary>
@@ -126,8 +123,8 @@ nnoremap <space>ss <cmd>lua require('sg.extensions.telescope').fuzzy_search_resu
 Cody:
 
 - [x] Chat interface and associated commands
-- [ ] Autocompletions, prompted
-- [ ] Autocompletions, suggested
+- [x] Autocompletions, prompted
+- [x] Autocompletions, suggested
 
 Sourcegraph Browsing:
 
@@ -146,14 +143,10 @@ Sourcegraph Browsing:
   - [x] Goto Definition
   - [ ] Goto References
     - [x] <20 references
-    - [ ] kind of broken right now for lots of references
 - [x] Basic Search
   - [x] literal, regexp and structural search support
   - [x] `type:symbol` support
   - [ ] repo support
-- [ ] Advanced Search Features
-  - [ ] Autocompletion
-  - [ ] Memory of last searches
 - More? Make an issue with something you're missing :)
 
 

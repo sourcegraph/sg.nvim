@@ -153,6 +153,7 @@ local report_cody_account = function()
   -- This isn't sensitive, but I think it's just confusing for users
   user_info.id = nil
 
+  vim.health.info "To manage your Cody Account, navigate to: https://sourcegraph.com/cody/manage"
   vim.health.ok(string.format("Cody Account Information: %s", vim.inspect(user_info)))
   return true
 end

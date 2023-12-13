@@ -5,6 +5,9 @@
 --- How to manage authentication for Sourcegraph within Neovim
 --- (both for Cody and for Sourcegraph)
 ---
+--- To manage your sourcegraph account, visit:
+---     - https://sourcegraph.com/cody/manage
+---
 --- Use SRC_ENDPOINT and SRC_ACCESS_TOKEN environment variables to
 --- manually override previous configuration.
 ---
@@ -29,17 +32,6 @@ end
 
 local endpoint = vim.env.SRC_ENDPOINT
 local token = vim.env.SRC_ACCESS_TOKEN
-
--- TODO: Don't know if this is a good idea or not
--- local timer = vim.loop.new_timer()
--- timer:start(
---   0,
---   10000,
---   vim.schedule_wrap(function()
---     endpoint = vim.env.SRC_ENDPOINT
---     token = vim.env.SRC_ACCESS_TOKEN
---   end)
--- )
 
 --- Gets authorization from the environment variables.
 ---     It is possible these will be initialized from previous

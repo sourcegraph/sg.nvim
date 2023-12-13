@@ -69,24 +69,11 @@ async fn main() -> Result<()> {
     });
 
     let notifications: JoinHandle<Result<()>> = tokio::spawn(async move {
-        // let stdout = stdout.clone();
-
-        // .auth/github/login?pc=https%3A%2F%2Fgithub.com%2F%3A%3Ae917b2b7fa9040e1edd4
-        //  &redirect=/post-sign-up?returnTo=/user/settings/tokens/new/callback?requestFrom=JETBRAINS-$port"
-
         while let Some(task) = rx.recv().await {
             match task {
                 NeovimTasks::Authentication { port } => {
-                    std::thread::spawn(|| {
+                    std::thread::spawn(move || {
                         let server = tiny_http::Server::http(format!("127.0.0.1:{port}")).unwrap();
-                        let addr = server.server_addr();
-                        let ip = match addr {
-                            tiny_http::ListenAddr::IP(ip) => ip,
-                            _ => todo!(),
-                        };
-
-                        // TODO: Get a neovim one (but this is fine for now)
-
                         let request = server.recv().expect("to launch request");
 
                         // Create url to parse the parameters, a bit goofy but it is what it is
