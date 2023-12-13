@@ -5,9 +5,6 @@ use {
     std::sync::Mutex,
 };
 
-// const CODY_ACCESS_TOKEN_KEY: &str = "cody-access-token";
-// const CODY_ACCESS_PROPERTIES: [(&str, &str); 1] = [("cody", "access-token")];
-
 #[derive(Serialize, Deserialize)]
 pub struct CodyCredentials {
     pub endpoint: Option<String>,

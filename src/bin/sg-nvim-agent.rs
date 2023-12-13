@@ -17,17 +17,14 @@ async fn main() -> Result<()> {
     let stdout = Arc::new(Mutex::new(tokio::io::stdout()));
 
     // Initialize by letting neovim know if we have a saved token or not
-    eprintln!("Writing initialize notification...");
-    let wrote = jsonrpc::write_msg(
+    jsonrpc::write_msg(
         &stdout,
         nvim::Message::notification(Notification::Initialize {
             endpoint: Some(get_endpoint()),
             token: get_access_token(),
         }),
     )
-    .await;
-    eprintln!("WROTE: {:?}", wrote);
-    eprintln!(">> Done initialize notification...");
+    .await?;
 
     let rpc_stdout = stdout.clone();
 
