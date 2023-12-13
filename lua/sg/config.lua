@@ -18,10 +18,10 @@
 
 ---@class sg.config
 ---@field enable_cody boolean?: Enable/disable cody integration
+---@field accept_tos boolean?: Accept the TOS without being prompted
 ---@field download_binaries boolean?: Default true, download latest release from Github
 ---@field node_executable string?: path to node executable
 ---@field cody_agent string?: path to the cody-agent js bundle
----@field did_change_debounce number?: Number of ms to debounce changes
 ---@field on_attach function?: function to run when attaching to sg://<file> buffers
 
 ---@type sg.config
@@ -35,7 +35,6 @@ local config = {
     return require("sg.private.find_artifact").find_rust_bin "sg-nvim-agent"
   end,
 
-  did_change_debounce = 500,
   on_attach = function(_, bufnr)
     vim.keymap.set("n", "gd", vim.lsp.buf.definition, { buffer = bufnr })
     vim.keymap.set("n", "gr", vim.lsp.buf.references, { buffer = bufnr })

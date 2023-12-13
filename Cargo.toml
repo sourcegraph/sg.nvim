@@ -37,6 +37,7 @@ whoami = "1.4.1"
 [workspace.dependencies]
 anyhow = "1"
 tokio = { version = "1", features = ["full"] }
+openssl = { version = "0.10", features = ["vendored"] }
 
 serde = "1.0.180"
 serde_json = "1.0"

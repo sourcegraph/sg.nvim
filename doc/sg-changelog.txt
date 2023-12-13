@@ -6,6 +6,8 @@ December 14, 2023 - 0.3.0
 Large update relating to new Sourcegraph Authentication Strategies.
 
 - Removed App support (for now, may be added back later)
+- Authentication is now stored using `keyring-rs`, which integrates with
+  the system keyring storage options.
 - Changed authentication strategy:
     - Now will by default use SRC_ENDPOINT and SRC_ACCESS_TOKEN environment
       variables, if available.
