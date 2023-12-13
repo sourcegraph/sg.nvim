@@ -423,8 +423,7 @@ M.execute.autocomplete = function(file, line, character, callback)
   )
 end
 
--- // The completion was presented to the user, and will be logged for telemetry
--- // purposes.
+-- // The completion was presented to the user
 -- 'autocomplete/completionSuggested': [CompletionItemParams]
 --
 -- export interface CompletionItemParams {
@@ -434,8 +433,7 @@ M.execute.autocomplete_suggested = function(id)
   return M.notify("autocomplete/completionSuggested", { completionID = id })
 end
 
--- // The completion was accepted by the user, and will be logged for telemetry
--- // purposes.
+-- // The completion was accepted by the user
 -- 'autocomplete/completionAccepted': [CompletionItemParams]
 M.execute.autocomplete_accepted = function(id)
   return M.notify("autocomplete/completionAccepted", { completionID = id })

@@ -62,6 +62,7 @@ vim.api.nvim_create_user_command("SourcegraphLogin", function(command)
 
   if endpoint == "https://sourcegraph.com/" then
     local port = 52068
+    -- TODO: Change to NEOVIM when that goes live
     local editor = "JETBRAINS"
     local redirect = string.format("user/settings/tokens/new/callback?requestFrom=%s-%s", editor, port)
 
