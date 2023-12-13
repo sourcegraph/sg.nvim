@@ -68,6 +68,7 @@
 local cmp = require "cmp"
 local cmp_types = require "cmp.types.lsp"
 
+local config = require "sg.config"
 local log = require "sg.log"
 
 local M = {}
@@ -107,7 +108,7 @@ function source:complete(params, callback)
   end
 
   -- Don't trigger completions when cody is disabled or if we have invalid auth
-  if not require("sg.config").enable_cody then
+  if not config.enable_cody then
     log.trace "  skipping nvim-cmp complete. not enabled"
     callback { items = {}, isIncomplete = false }
     return
@@ -160,6 +161,11 @@ function source:complete(params, callback)
           newText = item.insertText,
           range = item.range,
         },
+
+        -- Store completeion ID for later
+        data = {
+          id = item.id,
+        },
       }
 
       table.insert(items, completion_item)
@@ -170,6 +176,26 @@ function source:complete(params, callback)
       isIncomplete = false,
     }
   end)
+end
+
+local is_valid_item = function(completion_item)
+  return config.enable_cody and vim.tbl_get(completion_item, "data", "id")
+end
+
+function source:resolve(completion_item, callback)
+  if is_valid_item(completion_item) then
+    require("sg.cody.rpc").execute.autocomplete_suggested(completion_item.data.id)
+  end
+
+  callback(completion_item)
+end
+
+function source:execute(completion_item, callback)
+  if is_valid_item(completion_item) then
+    require("sg.cody.rpc").execute.autocomplete_accepted(completion_item.data.id)
+  end
+
+  callback(completion_item)
 end
 
 cmp.register_source("cody", source)
