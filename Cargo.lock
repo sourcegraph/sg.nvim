@@ -1999,7 +1999,7 @@ dependencies = [
 
 [[package]]
 name = "jsonrpc"
-version = "1.0.1"
+version = "1.0.4"
 dependencies = [
  "anyhow",
  "serde",
@@ -2896,7 +2896,7 @@ dependencies = [
 
 [[package]]
 name = "sg"
-version = "1.0.1"
+version = "1.0.4"
 dependencies = [
  "anyhow",
  "futures",
@@ -2922,7 +2922,7 @@ dependencies = [
 
 [[package]]
 name = "sg-gql"
-version = "1.0.1"
+version = "1.0.4"
 dependencies = [
  "anyhow",
  "graphql_client",
@@ -2936,7 +2936,7 @@ dependencies = [
 
 [[package]]
 name = "sg-types"
-version = "1.0.1"
+version = "1.0.4"
 dependencies = [
  "anyhow",
  "serde",
