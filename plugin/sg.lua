@@ -71,7 +71,7 @@ vim.api.nvim_create_user_command("SourcegraphLogin", function(command)
         return
       end
 
-      vim.ui.open(string.format("%s%s", endpoint, redirect))
+      require("sg.utils").open(string.format("%s%s", endpoint, redirect))
     end)
   else
     print(string.format("Found endpoint: '%s', which was not `https://sourcegraph.com`", endpoint))
