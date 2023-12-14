@@ -4,51 +4,19 @@
 ---@brief [[
 --- sg.nvim is a plugin for interfacing with Sourcegraph and Cody
 ---
---- To configure logging in:
+--- To login, either:
 ---
---- - Log in on your Sourcegraph instance.
---- - Click your user menu in the top right, then select Settings > Access tokens.
---- - Create your access token, and then run `:SourcegraphLogin` in your neovim editor after installation.
---- - Type in the link to your Sourcegraph instance (for example: `https://sourcegraph.com`)
---- - And then paste in your access token.
+--- - Run `:SourcegraphLogin` after following installation instructions for `sourcegraph.com` usage.
+--- - Run `:SourcegraphLogin!` and provide an endpoint and access token to be stored.
+--- - Use the `SRC_ENDPOINT` and `SRC_ACCESS_TOKEN` environment variables to manage tokens for enterprise usage.
+---   - See [src-cli](https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance) for more info
 ---
---- An alternative to this is to use the environment variables specified for [src-cli](https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance).
+--- See `:help sg.auth` for more information.
 ---
 --- You can check that you're logged in by then running `:checkhealth sg`
 ---@brief ]]
 
-local data = require "sg.private.data"
-
 local M = {}
-
-local accept_tos = function(opts)
-  opts = opts or {}
-
-  local cody_data = data.get_cody_data()
-  if opts.accept_tos and not cody_data.tos_accepted then
-    cody_data.tos_accepted = true
-    data.write_cody_data(cody_data)
-  end
-
-  if not cody_data.tos_accepted then
-    local choice = vim.fn.inputlist {
-      "By using Cody, you agree to its license and privacy statement:"
-        .. " https://about.sourcegraph.com/terms/cody-notice . Do you wish to proceed? Yes/No: ",
-      "1. Yes",
-      "2. No",
-    }
-
-    cody_data.tos_accepted = choice == 1
-    data.write_cody_data(cody_data)
-  end
-
-  if not cody_data.user then
-    cody_data.user = require("sg.utils").uuid()
-    data.write_cody_data(cody_data)
-  end
-
-  return cody_data.tos_accepted
-end
 
 --- Setup sourcegraph
 ---@param opts sg.config
@@ -62,13 +30,10 @@ M.setup = function(opts)
     end
   end
 
-  if config.use_cody then
-    accept_tos(opts)
-  end
-
   require("sg.lsp").setup()
+  require("sg.request").start()
+  require("sg.cody.plugin.agent").setup(config)
+  require("sg.cody.plugin.commands").setup(config)
 end
-
-M.accept_tos = accept_tos
 
 return M

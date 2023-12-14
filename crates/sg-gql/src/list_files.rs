@@ -20,11 +20,12 @@ pub use private::{list_files_query::Variables, ListFilesQuery as Query};
 
 pub async fn request(
     client: &reqwest::Client,
+    headers: reqwest::header::HeaderMap,
     endpoint: String,
     variables: Variables,
 ) -> Result<Vec<PathInfo>> {
     let remote = variables.name.clone();
-    let response = crate::get_graphql::<Query>(client, endpoint, variables).await?;
+    let response = crate::get_graphql::<Query>(client, headers, endpoint, variables).await?;
 
     let commit = response
         .repository

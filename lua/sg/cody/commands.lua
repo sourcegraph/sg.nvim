@@ -1,8 +1,7 @@
 ---@tag cody.lua-commands
 ---@config { module = "sg.cody.commands" }
----
+
 local auth = require "sg.auth"
-local sg = require "sg"
 local util = require "sg.utils"
 
 local CodyBase = require "sg.components.layout.base"
@@ -45,7 +44,7 @@ end
 
 --- Send an autocomplete request
 ---@param request { filename: string, row: number, col: number }?
----@param callback function(data: CodyAutocompleteResult)
+---@param callback function(err: table, data: CodyAutocompleteResult)
 commands.autocomplete = function(request, callback)
   if not request then
     request = {}
@@ -55,14 +54,7 @@ commands.autocomplete = function(request, callback)
 
   local doc = protocol.get_text_document(0)
   require("sg.cody.rpc").notify("textDocument/didChange", doc)
-  require("sg.cody.rpc").execute.autocomplete(request.filename, request.row - 1, request.col, function(err, data)
-    if err then
-      -- vim.notify(string.format("Failed to get autocompletions: %s", vim.inspect(err)))
-      return
-    end
-
-    callback(data)
-  end)
+  require("sg.cody.rpc").execute.autocomplete(request.filename, request.row - 1, request.col, callback)
 end
 
 --- Ask Cody about the selected code
@@ -213,7 +205,7 @@ end
 -- Wrap all commands with making sure TOS is accepted
 for key, value in pairs(commands) do
   commands[key] = function(...)
-    if not auth.valid { cached = true } then
+    if not auth.get() then
       vim.notify "You are not logged in to Sourcegraph. Use `:SourcegraphLogin` or `:help sg` to log in"
       return
     end

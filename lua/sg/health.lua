@@ -1,4 +1,9 @@
+-- Just make sure request has started
+require("sg.request").start()
+
 local M = {}
+
+local blocking = require("sg.utils").blocking
 
 local report_nvim = function()
   if vim.version.cmp(vim.version(), { 0, 9, 0 }) >= 0 then
@@ -53,59 +58,41 @@ local report_env = function()
 
   local ok = true
 
-  vim.health.info(string.format("Auth strategy order: %s", vim.inspect(require("sg.config").auth_strategy)))
-
-  local all_valid = auth.get_all_valid()
-  if vim.tbl_isempty(all_valid) then
-    vim.health.error "No valid auth strategy detected. See `:help sg` for more info."
-    ok = false
+  local creds = auth.get()
+  if not creds then
+    vim.health.error "No valid auth strategy detected. See ':help sg' for more info."
+    return false
   else
-    for idx, valid in ipairs(all_valid) do
-      local creds, strategy = unpack(valid)
-      assert(creds, "must have valid credentials")
+    assert(creds, "must have valid credentials")
 
-      if idx == 1 then
-        vim.health.ok(string.format('  Authentication setup correctly ("%s")', strategy))
-        vim.health.ok(string.format("    endpoint set to: %s", creds.endpoint))
-      else
-        vim.health.ok(string.format('  Backup Authentication also available ("%s")', strategy))
-        vim.health.ok(string.format("    endpoint set to: %s", creds.endpoint))
-      end
-    end
+    vim.health.ok "  Authentication setup correctly"
+    vim.health.ok(string.format("    endpoint set to: %s", creds.endpoint))
   end
 
-  local err, info
-  require("sg.rpc").get_info(function(err_, info_)
-    err = err_
-    info = info_
+  local err, info = blocking(require("sg.rpc").get_info)
+  local expected_cargo_version = require "sg.private.cargo_version"
+  if err or not info then
+    ok = false
+  elseif expected_cargo_version ~= info.sg_nvim_version then
+    vim.health.error "Mismatched cargo and expected version. Update using :SourcegraphDownloadBinaries or :SourcegraphBuild"
+    vim.health.error(string.format("Exptected: %s | Found: %s", expected_cargo_version, info.sg_nvim_version))
 
-    if err or not info then
-      vim.health.error("  Sourcegraph Connection info failed: " .. vim.inspect(err))
-      ok = false
-    else
-      vim.health.ok("  Sourcegraph Connection info: " .. vim.inspect(info))
-    end
+    ok = false
+  else
+    vim.health.ok(
+      "Found correct binary versions: "
+        .. vim.inspect(expected_cargo_version)
+        .. " = "
+        .. vim.inspect(info.sg_nvim_version)
+    )
+  end
 
-    info = info or {}
-    local expected_cargo_version = require "sg.private.cargo_version"
-    if expected_cargo_version ~= info.sg_nvim_version then
-      vim.health.error "Mismatched cargo and expected version. Update using :SourcegraphDownloadBinaries or :SourcegraphBuild"
-      vim.health.error(string.format("Exptected: %s | Found: %s", expected_cargo_version, info.sg_nvim_version))
-
-      ok = false
-    else
-      vim.health.ok(
-        "Found correct binary versions: "
-          .. vim.inspect(expected_cargo_version)
-          .. " = "
-          .. vim.inspect(info.sg_nvim_version)
-      )
-    end
-  end)
-
-  vim.wait(10000, function()
-    return err or info
-  end)
+  if err or not info then
+    vim.health.error("  Sourcegraph Connection info failed: " .. vim.inspect(err))
+    ok = false
+  else
+    vim.health.ok("  Sourcegraph Connection info: " .. vim.inspect(info))
+  end
 
   return ok
 end
@@ -159,6 +146,25 @@ local report_agent = function()
   return true
 end
 
+local report_cody_account = function()
+  if not require("sg.auth").get() then
+    vim.health.error "Cannot check Cody Status, not logged in"
+    return false
+  end
+  local err, user_info = blocking(require("sg.rpc").get_user_info)
+  if err or not user_info then
+    vim.health.error(string.format("Cody Auth Failed: %s", vim.inspect(err)))
+    return false
+  end
+
+  -- This isn't sensitive, but I think it's just confusing for users
+  user_info.id = nil
+
+  vim.health.info "To manage your Cody Account, navigate to: https://sourcegraph.com/cody/manage"
+  vim.health.ok(string.format("Cody Account Information: %s", vim.inspect(user_info)))
+  return true
+end
+
 M.check = function()
   vim.health.start "sg.nvim report"
 
@@ -172,6 +178,7 @@ M.check = function()
   ok = report_nvim_agent() and ok
   ok = report_agent() and ok
   ok = report_env() and ok
+  ok = report_cody_account() and ok
 
   if ok then
     vim.health.ok "sg.nvim is ready to run"

@@ -66,7 +66,7 @@ proto.did_open = function(bufnr)
   -- Notify of changes
   local notify_changes, timer = debounce.debounce_trailing(function()
     require("sg.cody.rpc").notify("textDocument/didChange", proto.get_text_document(bufnr))
-  end, config.did_change_debounce)
+  end, 500)
 
   debounce_handles[bufnr] = timer
 

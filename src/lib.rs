@@ -1,8 +1,9 @@
 use {
     anyhow::Result, graphql_client::GraphQLQuery, lsp_types::Location, once_cell::sync::Lazy,
-    regex::Regex, reqwest::Client, sg_types::*,
+    regex::Regex, reqwest::Client, sg_gql::user::UserInfo, sg_types::*,
 };
 
+pub mod auth;
 pub mod entry;
 pub mod nvim;
 
@@ -11,7 +12,7 @@ pub fn normalize_url(url: &str) -> String {
 
     re.replace_all(
         &url.to_string()
-            .replace(get_endpoint(), "")
+            .replace(&auth::get_endpoint(), "")
             .replace("//gh/", "//github.com/")
             .replace("sg://", ""),
         "",
@@ -20,41 +21,46 @@ pub fn normalize_url(url: &str) -> String {
 }
 
 mod graphql {
-    use {super::*, futures::Future};
-
-    static GRAPHQL_ENDPOINT: Lazy<String> = Lazy::new(|| {
-        let endpoint = get_endpoint();
-        format!("{endpoint}/.api/graphql")
-    });
+    use {super::*, futures::Future, reqwest::header::HeaderMap};
 
     static CLIENT: Lazy<Client> = Lazy::new(|| {
-        let sourcegraph_access_token = get_access_token();
         Client::builder()
-            .default_headers(
-                std::iter::once((
-                    reqwest::header::AUTHORIZATION,
-                    reqwest::header::HeaderValue::from_str(&format!(
-                        "token {sourcegraph_access_token}",
-                    ))
-                    .expect("to be able to create the header value"),
-                ))
-                .collect(),
-            )
             .build()
             .expect("to be able to create the client")
     });
+
+    fn get_graphql_endpoint() -> String {
+        let endpoint = auth::get_endpoint();
+        format!("{endpoint}/.api/graphql")
+    }
 
     pub async fn request_wrap<Q: GraphQLQuery, F, T, R>(
         variables: impl Into<Q::Variables>,
         get: F,
     ) -> Result<T>
     where
-        F: Fn(&'static Client, String, Q::Variables) -> R,
+        F: Fn(&'static Client, HeaderMap, String, Q::Variables) -> R,
         R: Future<Output = Result<T>>,
         T: Sized,
     {
-        get(&CLIENT, GRAPHQL_ENDPOINT.to_string(), variables.into()).await
+        let headers = get_headers();
+        get(&CLIENT, headers, get_graphql_endpoint(), variables.into()).await
     }
+}
+
+pub fn get_headers() -> reqwest::header::HeaderMap {
+    use reqwest::header::*;
+
+    let mut x = HeaderMap::new();
+    if let Some(sourcegraph_access_token) = auth::get_access_token() {
+        x.insert(
+            AUTHORIZATION,
+            HeaderValue::from_str(&format!("token {sourcegraph_access_token}"))
+                .expect("to make header"),
+        );
+    }
+
+    x
 }
 
 macro_rules! wrap_request {
@@ -62,24 +68,6 @@ macro_rules! wrap_request {
         use $path::*;
         graphql::request_wrap::<Query, _, _, _>($variables, request).await
     }};
-}
-
-pub fn get_access_token() -> &'static str {
-    static TOKEN: Lazy<String> =
-        Lazy::new(|| std::env::var("SRC_ACCESS_TOKEN").expect("No access token found"));
-
-    &TOKEN
-}
-
-pub fn get_endpoint() -> &'static str {
-    static ENDPOINT: Lazy<String> = Lazy::new(|| {
-        std::env::var("SRC_ENDPOINT")
-            .unwrap_or_else(|_| "https://sourcegraph.com/".to_string())
-            .trim_end_matches('/')
-            .to_string()
-    });
-
-    &ENDPOINT
 }
 
 pub async fn get_path_info(remote: String, revision: String, path: String) -> Result<PathInfo> {
@@ -137,6 +125,8 @@ pub async fn get_file_contents(remote: &str, commit: &str, path: &str) -> Result
 }
 
 pub async fn get_sourcegraph_version() -> Result<SourcegraphVersion> {
+    auth::get_access_token().ok_or(anyhow::anyhow!("No user token. Login first"))?;
+
     wrap_request!(sg_gql::sourcegraph_version, Variables {})
 }
 
@@ -259,4 +249,12 @@ pub async fn get_references(uri: String, line: i64, character: i64) -> Result<Ve
 
 pub async fn get_search(query: String) -> Result<Vec<SearchResult>> {
     wrap_request!(sg_gql::search, Variables { query })
+}
+
+pub async fn get_user_info() -> Result<UserInfo> {
+    let token = auth::get_access_token();
+    match token {
+        Some(_) => wrap_request!(sg_gql::user, Variables {}),
+        None => Err(anyhow::anyhow!("No user information. Must log in first")),
+    }
 }

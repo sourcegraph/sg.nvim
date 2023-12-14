@@ -1,6 +1,6 @@
 use {
     anyhow::{Context, Result},
-    graphql_client::{reqwest::post_graphql, GraphQLQuery},
+    graphql_client::GraphQLQuery,
     reqwest::Client,
     sg_types::{Remote, OID},
 };
@@ -17,14 +17,32 @@ pub mod references;
 pub mod repository_id;
 pub mod search;
 pub mod sourcegraph_version;
+pub mod user;
+
+async fn post_graphql<Q: GraphQLQuery, U: reqwest::IntoUrl>(
+    client: &reqwest::Client,
+    headers: reqwest::header::HeaderMap,
+    url: U,
+    variables: Q::Variables,
+) -> Result<graphql_client::Response<Q::ResponseData>> {
+    let body = Q::build_query(variables);
+
+    let reqwest_response = client.post(url).headers(headers).json(&body).send().await?;
+
+    reqwest_response
+        .json()
+        .await
+        .context("post_graphql -> json")
+}
 
 pub async fn get_graphql<Q: GraphQLQuery>(
     client: &Client,
+    headers: reqwest::header::HeaderMap,
     endpoint: String,
     variables: Q::Variables,
 ) -> Result<Q::ResponseData> {
     let vars_ser = serde_json::to_string(&variables)?;
-    let response = match post_graphql::<Q, _>(client, endpoint, variables).await {
+    let response = match post_graphql::<Q, _>(client, headers, endpoint, variables).await {
         Ok(response) => response,
         Err(err) => {
             return Err(anyhow::anyhow!(

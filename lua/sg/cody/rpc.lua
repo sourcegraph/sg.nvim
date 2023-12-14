@@ -21,7 +21,7 @@ local is_ready = function(opts)
     return true
   end
 
-  if not auth.valid { cached = true } then
+  if not auth.get() then
     return false
   end
 
@@ -35,6 +35,31 @@ local track = function(msg)
   if config.testing then
     table.insert(M.messages, msg)
   end
+end
+
+--- Gets the server config
+---@return CodyClientInfo
+local get_server_config = function(creds, remote_url)
+  return {
+    name = "neovim",
+    version = require("sg.private.data").version,
+    workspaceRootUri = vim.uri_from_fname(vim.loop.cwd() or ""),
+    extensionConfiguration = {
+      accessToken = creds.token,
+      serverEndpoint = creds.endpoint,
+      codebase = remote_url,
+      customHeaders = { ["User-Agent"] = "Sourcegraph Cody Neovim Plugin" },
+      eventProperties = {
+        anonymousUserID = require("sg.private.data").get_cody_data().user,
+        prefix = "CodyNeovimPlugin",
+        client = "NEOVIM_CODY_EXTENSION",
+        source = "IDEEXTENSION",
+      },
+    },
+    capabilities = {
+      chat = "streaming",
+    },
+  }
 end
 
 local cody_args = { config.cody_agent }
@@ -197,7 +222,7 @@ M.notify = function(method, params)
   --        problems in the notify and requests compared to in start?
   --
   --        We can revisit this later though.
-  if not auth.valid { cached = true } then
+  if not auth.get() then
     return
   end
 
@@ -221,7 +246,7 @@ end
 ---@param params any
 ---@param callback fun(E, R)
 M.request = function(method, params, callback)
-  if not auth.valid { cached = true } then
+  if not auth.get() then
     return callback("Invalid auth. Cannot complete cody requeest", nil)
   end
 
@@ -239,7 +264,8 @@ M.request = function(method, params, callback)
     if not is_ready { method = method } then
       callback(
         "Unable to get token and/or endpoint for sourcegraph."
-          .. " Use `:SourcegraphLogin` or `:help sg` for more information",
+          .. " Use `:SourcegraphLogin` or `:help sg` for more information\n"
+          .. vim.inspect(M.server_info),
         nil
       )
       return
@@ -276,28 +302,7 @@ M.initialize = function(callback)
   end
 
   require("sg.cody.context").get_origin(0, function(remote_url)
-    ---@type CodyClientInfo
-    local info = {
-      name = "neovim",
-      version = require("sg.private.data").version,
-      workspaceRootUri = vim.uri_from_fname(vim.loop.cwd() or ""),
-      extensionConfiguration = {
-        accessToken = creds.token,
-        serverEndpoint = creds.endpoint,
-        codebase = remote_url,
-        customHeaders = { ["User-Agent"] = "Sourcegraph Cody Neovim Plugin" },
-        eventProperties = {
-          anonymousUserID = require("sg.private.data").get_cody_data().user,
-          prefix = "CodyNeovimPlugin",
-          client = "NEOVIM_CODY_EXTENSION",
-          source = "IDEEXTENSION",
-        },
-      },
-      capabilities = {
-        chat = "streaming",
-      },
-    }
-
+    local info = get_server_config(creds, remote_url)
     M.request("initialize", info, callback)
   end)
 end
@@ -331,6 +336,17 @@ M.exit = function()
   M.client.terminate()
 end
 
+M.config_did_change = function()
+  M.initialize(function(err, data)
+    if err then
+      require("sg.log").error(err)
+    end
+
+    -- Clear or reset the server information
+    M.server_info = data or {}
+  end)
+end
+
 ---@type CodyServerInfo
 M.server_info = {
   name = "",
@@ -360,7 +376,24 @@ M.execute.chat_question = function(message, callback)
   return M.request(
     "recipes/execute",
     { id = "chat-question", humanChatInput = message, data = { id = message_id } },
-    callback
+    function(err, _)
+      local ratelimit = require "sg.ratelimit"
+      if ratelimit.is_ratelimit_err(err) then
+        -- Notify user of error message
+        callback {
+          speaker = "cody",
+          text = err.message,
+          data = { id = message_id },
+        }
+
+        -- Mark callback as "completed"
+        ---@diagnostic disable-next-line: param-type-mismatch
+        callback(nil)
+
+        -- Set notification
+        return ratelimit.notify_ratelimit "chat"
+      end
+    end
   )
 end
 
@@ -377,7 +410,24 @@ M.execute.code_question = function(message, callback)
   return M.request(
     "recipes/execute",
     { id = "code-question", humanChatInput = message, data = { id = message_id } },
-    callback
+    function(err, _)
+      local ratelimit = require "sg.ratelimit"
+      if ratelimit.is_ratelimit_err(err) then
+        -- Notify user of error message
+        callback {
+          speaker = "cody",
+          text = err.message,
+          data = { id = message_id },
+        }
+
+        -- Mark callback as "completed"
+        ---@diagnostic disable-next-line: param-type-mismatch
+        callback(nil)
+
+        -- Set notification
+        return ratelimit.notify_ratelimit "chat"
+      end
+    end
   )
 end
 
@@ -387,6 +437,22 @@ M.execute.autocomplete = function(file, line, character, callback)
     { filePath = file, position = { line = line, character = character } },
     callback
   )
+end
+
+-- // The completion was presented to the user
+-- 'autocomplete/completionSuggested': [CompletionItemParams]
+--
+-- export interface CompletionItemParams {
+--     completionID: CompletionItemID
+-- }
+M.execute.autocomplete_suggested = function(id)
+  return M.notify("autocomplete/completionSuggested", { completionID = id })
+end
+
+-- // The completion was accepted by the user
+-- 'autocomplete/completionAccepted': [CompletionItemParams]
+M.execute.autocomplete_accepted = function(id)
+  return M.notify("autocomplete/completionAccepted", { completionID = id })
 end
 
 M.transcript = {}

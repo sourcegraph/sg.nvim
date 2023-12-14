@@ -20,11 +20,12 @@ pub use private::{path_info_query::Variables, PathInfoQuery as Query};
 
 pub async fn request(
     client: &reqwest::Client,
+    headers: reqwest::header::HeaderMap,
     endpoint: String,
     variables: Variables,
 ) -> Result<PathInfo> {
     use private::path_info_query::*;
-    let response = crate::get_graphql::<Query>(client, endpoint, variables).await?;
+    let response = crate::get_graphql::<Query>(client, headers, endpoint, variables).await?;
 
     let repository = response
         .repository

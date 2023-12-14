@@ -20,11 +20,12 @@ use sg_types::SearchResult;
 
 pub async fn request(
     client: &reqwest::Client,
+    headers: reqwest::header::HeaderMap,
     endpoint: String,
     variables: Variables,
 ) -> Result<Vec<SearchResult>> {
     use private::search_query::SearchQuerySearchResultsResults::*;
-    let response = crate::get_graphql::<Query>(client, endpoint, variables).await?;
+    let response = crate::get_graphql::<Query>(client, headers, endpoint, variables).await?;
 
     let results = response.search.context("search")?.results.results;
 

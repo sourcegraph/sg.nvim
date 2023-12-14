@@ -1473,6 +1473,9 @@ type BatchSpecWorkspaceFile implements File2 & Node {
   """
   canonicalURL: String!
 
+  """Not implemented."""
+  changelistURL: String
+
   """The URLs to this file on external services."""
   externalURLs: [ExternalLink!]!
 
@@ -1892,6 +1895,9 @@ enum BulkOperationType {
 
   """Bulk publish changesets."""
   PUBLISH
+
+  """Export changesets."""
+  EXPORT
 }
 
 """A status message of a permissions sync job cancellation."""
@@ -2524,6 +2530,52 @@ type CloningProgress {
   message: String!
 }
 
+"""A specific code host, like github.com."""
+type CodeHost implements Node {
+  """The id of the code host."""
+  id: ID!
+
+  """The type of code host, e.g. GITHUB."""
+  kind: ExternalServiceKind!
+
+  """The url for the code host, e.g. github.com."""
+  url: String!
+
+  """A amount of API requests Sourcegraph can send to the code host."""
+  apiRateLimitQuota: Int
+
+  """How often API rate limits get reset. Defined in seconds."""
+  apiRateLimitIntervalSeconds: Int
+
+  """A amount of git requests Sourcegraph can send to the code host."""
+  gitRateLimitQuota: Int
+
+  """How often git rate limits get reset. Defined in seconds."""
+  gitRateLimitIntervalSeconds: Int
+
+  """All external services that refer to this code host."""
+  externalServices(first: Int = 50, after: String): ExternalServiceConnection!
+}
+
+"""A list of code hosts."""
+type CodeHostConnection {
+  """
+  Only when this flag is true, the connection can be trusted to be complete.
+  This will stop existing in Sourcegraph 5.3 when the migration is ensured
+  to be complete.
+  """
+  isMigrationDone: Boolean!
+
+  """A list of code hosts."""
+  nodes: [CodeHost!]!
+
+  """Pagination information."""
+  pageInfo: PageInfo!
+
+  """The total number of records in this result set."""
+  totalCount: Int!
+}
+
 """
 Describes the state of a provider (code host) during a permission sync job.
 """
@@ -3076,6 +3128,9 @@ A dotcom user allowed to access the Cody Gateway
 FOR INTERNAL USE ONLY.
 """
 type CodyGatewayDotcomUser {
+  """The id of the user"""
+  id: ID!
+
   """The user name of the user"""
   username: String!
 
@@ -3135,6 +3190,27 @@ enum CodyGatewayRateLimitSource {
   PLAN
 }
 
+"""CodyGatewayRateLimitStatus current status of a rate limit."""
+type CodyGatewayRateLimitStatus {
+  """The feature that the rate limit applies to."""
+  feature: String!
+
+  """The limit allowed."""
+  limit: BigInt!
+
+  """The number of usages in current period."""
+  usage: BigInt!
+
+  """The percentage of the rate limit used."""
+  percentUsed: Int!
+
+  """The time interval for the rate limit."""
+  interval: String!
+
+  """When the rate limit next resets if an interval has already started."""
+  nextLimitReset: DateTime
+}
+
 """A usage data point of Cody Gateway usage of a subscription."""
 type CodyGatewayUsageDatapoint {
   """The day the usage occurred."""
@@ -3145,6 +3221,39 @@ type CodyGatewayUsageDatapoint {
 
   """The model that was used."""
   model: String!
+}
+
+"""
+Cody LLM configuration contains information about how the main LLM used by Cody
+is configured.
+"""
+type CodyLLMConfiguration {
+  """Name of the model being used for chat."""
+  chatModel: String!
+
+  """
+  Maximum number of tokens client should use when talking to the chatModel.
+  """
+  chatModelMaxTokens: Int
+
+  """Name of the model being used for fast chat."""
+  fastChatModel: String!
+
+  """
+  Maximum number of tokens client should use when talking to the fastChatModel.
+  """
+  fastChatModelMaxTokens: Int
+
+  """Name of the model being used for code completions."""
+  completionModel: String!
+
+  """
+  Maximum number of tokens client should use when talking to the completionModel.
+  """
+  completionModelMaxTokens: Int
+
+  """Name of the provider being used for LLM interactions."""
+  provider: String!
 }
 
 """A search result that is a Git commit."""
@@ -3182,6 +3291,12 @@ Commit signing configuration for a code host, e.g. GitHubApp or SSHKey. Today, t
 only supported form of commit signing is via a GitHub App.
 """
 union CommitSigningConfiguration = GitHubApp
+
+"""
+Commit signing verification for a code host, e.g. if it was signed via GitHub App or
+an SSH key.
+"""
+union CommitVerification = GitHubCommitVerification
 
 """Input wrapper for completions"""
 input CompletionsInput {
@@ -3880,6 +3995,93 @@ input Event {
   Used on Sourcegraph Cloud only.
   """
   insertID: String
+
+  """The client that this event is being sent from."""
+  client: String
+
+  """The product category for the event, used for billing purposes."""
+  billingProductCategory: String
+
+  """
+  The billing ID for the event, used for tagging user events for billing aggregation purposes.
+  """
+  billingEventID: String
+
+  """
+  The site ID that the client was connected to when the event was logged.
+  """
+  connectedSiteID: String
+
+  """
+  The connected site's license key, hashed using sha256. Used for uniquely identifying the site.
+  """
+  hashedLicenseKey: String
+}
+
+"""
+Billing IDs for events, used for tagging user events for billing aggregation purposes.
+"""
+enum EventBillingID {
+  """A billable Cody chat event, including manual chats, recipes, and more."""
+  CodyChat
+
+  """A billable Cody completion (aka suggestion or autocomplete) event."""
+  CodyCompletion
+
+  """A billable Cody embedding/code graph creation or search event."""
+  CodyEmbedding
+}
+
+"""The product categories for events, used for billing purposes."""
+enum EventBillingProductCategory {
+  """
+  Used for all events related to non-billable, non-product usage (e.g. marketing, CTAs, signed out
+  events, etc.)
+  """
+  NOT_BILLABLE
+
+  """
+  Used for all billable but shared user interface events, such as administration, authentication, user
+  profile and settings, shared landing pages, etc.
+  """
+  SHARED
+
+  """
+  Used for all events primarily related to the Code Search product, including file and repo pageviews,
+  search actions, code navigation, batch changes, code insights, etc.
+  """
+  CODE_SEARCH
+
+  """
+  Used for all events primarily related to the Cody product, including chats, recipes, completions, web
+  chat views, etc.
+  """
+  CODY
+}
+
+"""
+The product client where events come from.
+
+Future additions include:
+- BITBUCKET_NATIVE_INTEGRATION
+- GITLAB_NATIVE_INTEGRATION
+- CHROME_SOURCEGRAPH_EXTENSION
+- FIREFOX_SOURCEGRAPH_EXTENSION
+- EDGE_SOURCEGRAPH_EXTENSION
+- VSCODE_SOURCEGRAPH_EXTENSION (for https://marketplace.visualstudio.com/items?itemName=sourcegraph.sourcegraph)
+- EMACS_CODY_EXTENSION
+"""
+enum EventClient {
+  SERVER_WEB
+  APP_WEB
+  DOTCOM_WEB
+  MARKETING_WEB
+  DOTCOM_BACKEND
+  APP_BACKEND
+  SERVER_BACKEND
+  VSCODE_CODY_EXTENSION
+  JETBRAINS_CODY_EXTENSION
+  NEOVIM_CODY_EXTENSION
 }
 
 """A single user event that has been logged."""
@@ -3897,7 +4099,7 @@ type EventLog {
   url: String!
 
   """The source of the event."""
-  source: EventSource!
+  source: String!
 
   """The additional argument information."""
   argument: String
@@ -3931,6 +4133,8 @@ enum EventSource {
   BACKEND
   STATICWEB
   IDEEXTENSION
+
+  """DEPRECATED"""
   CODY
 }
 
@@ -4389,6 +4593,11 @@ type ExternalChangeset implements Node & Changeset {
   forkName: String
 
   """
+  Commit verification object for this changeset's commit, if it was signed.
+  """
+  commitVerification: CommitVerification
+
+  """
   The review state of this changeset. This is only set once the changeset is published on the code host.
   
   Note: The COMMENTED and DISMISSED review states are not yet implemented.
@@ -4490,6 +4699,9 @@ type ExternalService implements Node {
   """The display name of the external service."""
   displayName: String!
 
+  """The current rate limiter state for the external service."""
+  rateLimiterState: RateLimiterState
+
   """The JSON configuration of the external service."""
   config: JSONCString!
 
@@ -4575,6 +4787,11 @@ type ExternalService implements Node {
   True if this external service configuration supports `exclude` parameter.
   """
   supportsRepoExclusion: Boolean!
+
+  """
+  True if this external service is unrestricted and marks all repositories added by it as publicly accessible.
+  """
+  unrestricted: Boolean!
 }
 
 """
@@ -4699,7 +4916,7 @@ type ExternalServiceRepositoryConnection {
 
 """
 External services count information includes a count of services for remote code host connections and a count of services
-for local code host connections (local is only supported for Sourcegraph App).
+for local code host connections (local is only supported for Cody App).
 """
 type ExternalServicesCounts {
   """
@@ -4976,6 +5193,11 @@ interface File2 {
   The canonical URL to this file (using an immutable revision specifier).
   """
   canonicalURL: String!
+
+  """
+  The URL to this file using the changelist ID if this file is inside a perforce depot.
+  """
+  changelistURL: String
 
   """The URLs to this file on external services."""
   externalURLs: [ExternalLink!]!
@@ -5318,11 +5540,16 @@ type GitBlob implements TreeEntry & File2 & Ownable {
   """
   canonicalURL: String!
 
+  """
+  The URL to this file using the changelist ID if this file is inside a perforce depot.
+  """
+  changelistURL: String
+
   """The URLs to this blob on its repository's external services."""
   externalURLs: [ExternalLink!]!
 
   """Blame the blob."""
-  blame(startLine: Int!, endLine: Int!): [Hunk!]!
+  blame(startLine: Int!, endLine: Int!, ignoreWhitespace: Boolean = false): [Hunk!]!
 
   """Highlight the blob contents."""
   highlight(
@@ -5379,19 +5606,13 @@ type GitBlob implements TreeEntry & File2 & Ownable {
   ): Symbol
 
   """Always false, since a blob is a file, not directory."""
-  isSingleChild(
-    """Returns the first n files in the tree."""
-    first: Int
-
-    """Recurse into sub-trees."""
-    recursive: Boolean = false
-
-    """Recurse into sub-trees of single-child directories"""
-    recursiveSingleChild: Boolean = false
-  ): Boolean!
+  isSingleChild: Boolean!
 
   """LFS is set if the GitBlob is a pointer to a file stored in LFS."""
   lfs: LFS
+
+  """The revision history for this file"""
+  history(first: Int, after: String): TreeEntryConnection!
 
   """
   A wrapper around LSIF query methods. If no LSIF upload can be used to answer code
@@ -5712,13 +5933,6 @@ type GitCommit implements Node {
   tree(
     """The path of the tree."""
     path: String = ""
-
-    """
-    Whether to recurse into sub-trees. If true, it overrides the value of the "recursive" parameter on all of
-    GitTree's fields.
-    DEPRECATED: Use the "recursive" parameter on GitTree's fields instead.
-    """
-    recursive: Boolean = false
   ): GitTree
 
   """A list of file names in this repository."""
@@ -5923,6 +6137,26 @@ enum GitHubAppDomain {
   BATCHES
 }
 
+"""
+The verification object describing the result of verifying the commit's signature.
+https://docs.github.com/en/rest/git/commits?apiVersion=2022-11-28#create-a-commit
+"""
+type GitHubCommitVerification {
+  """
+  Indicates whether GitHub considers the signature in the commit verified
+  """
+  verified: Boolean!
+
+  """The reason for the verified value"""
+  reason: String!
+
+  """The signature extracted from the commit"""
+  signature: String!
+
+  """The value that was signed"""
+  payload: String!
+}
+
 """A Git object."""
 type GitObject {
   """This object's OID."""
@@ -6089,6 +6323,43 @@ type GitRevSpecExpr {
   object: GitObject
 }
 
+"""
+FOR INTERNAL USE ONLY: A status message produced when the disk threshold for gitserver is reached.
+"""
+type GitserverDiskThresholdReached {
+  """The message of this status message"""
+  message: String!
+}
+
+"""GitserverInfo contains information about a gitserver instance."""
+type GitserverInstance implements Node {
+  """The unique identifier of the gitserver instance."""
+  id: ID!
+
+  """The address of the gitserver instance."""
+  address: String!
+
+  """
+  The amount of free space available on the gitserver instance, in bytes.
+  """
+  freeDiskSpaceBytes: BigInt!
+
+  """The total amount of storage space on the gitserver instance, in bytes."""
+  totalDiskSpaceBytes: BigInt!
+}
+
+"""A list of gitserver instances."""
+type GitserverInstanceConnection {
+  """A list of gitserver instances."""
+  nodes: [GitserverInstance!]!
+
+  """The total count of gitserver instances in the connection."""
+  totalCount: Int!
+
+  """Pagination information."""
+  pageInfo: PageInfo!
+}
+
 """A Git tree in a repository."""
 type GitTree implements TreeEntry {
   """The full path (relative to the root) of this tree."""
@@ -6133,7 +6404,7 @@ type GitTree implements TreeEntry {
 
   """A list of directories in this tree."""
   directories(
-    """Returns the first n files in the tree."""
+    """Returns the first n directories in the tree."""
     first: Int
 
     """Recurse into sub-trees."""
@@ -6154,15 +6425,8 @@ type GitTree implements TreeEntry {
     """Returns the first n files in the tree."""
     first: Int
 
-    """Recurse into sub-trees. If true, implies recursiveSingleChild."""
+    """Recurse into sub-trees."""
     recursive: Boolean = false
-
-    """
-    Recurse into sub-trees of single-child directories. If true, we return a flat list of
-    every directory that is a single child, and any directories or files that are
-    nested in a single child.
-    """
-    recursiveSingleChild: Boolean = false
 
     """
     Includes all parent directories and their entries. For example, if the path is
@@ -6188,16 +6452,10 @@ type GitTree implements TreeEntry {
   ): SymbolConnection!
 
   """Whether this tree entry is a single child"""
-  isSingleChild(
-    """Returns the first n files in the tree."""
-    first: Int
+  isSingleChild: Boolean!
 
-    """Recurse into sub-trees."""
-    recursive: Boolean = false
-
-    """Recurse into sub-trees of single-child directories"""
-    recursiveSingleChild: Boolean = false
-  ): Boolean!
+  """The revision history for this file or directory."""
+  history(first: Int, after: String): TreeEntryConnection!
 
   """LSIF data for this tree entry."""
   lsif(
@@ -7296,6 +7554,18 @@ type LFS {
   byteSize: BigInt!
 }
 
+"""License information extracted from license key."""
+type LicenseInfo {
+  """Tags of the license."""
+  tags: [String!]!
+
+  """The number of users that can use the license."""
+  userCount: Int!
+
+  """The expiration date of the license."""
+  expiresAt: DateTime!
+}
+
 """Options for a line chart data series"""
 input LineChartDataSeriesOptionsInput {
   """The label for the data series."""
@@ -8050,6 +8320,13 @@ type Mutation {
   updateUser(user: ID!, username: String, displayName: String, avatarURL: String): User!
 
   """
+  Updates the user's Cody plan to Pro or Community.
+  
+  Only the user may perform this mutation.
+  """
+  changeCodyPlan(user: ID!, pro: Boolean!): User!
+
+  """
   Creates an organization. The caller is added as a member of the newly created organization.
   
   Only authenticated users may perform this mutation.
@@ -8109,13 +8386,7 @@ type Mutation {
   """
   checkMirrorRepositoryConnection(
     """The ID of the existing repository whose mirror to check."""
-    repository: ID
-
-    """
-    The name of a repository whose mirror to check. If the name is provided, the repository need not be added
-    to the site (but the site configuration must define a code host that knows how to handle the name).
-    """
-    name: String
+    repository: ID!
   ): CheckMirrorRepositoryConnectionResult!
 
   """
@@ -8245,8 +8516,13 @@ type Mutation {
   """
   setTosAccepted(userID: ID): EmptyResponse!
 
-  """Current user opt in/out from being searchable in the users picker."""
-  setSearchable(searchable: Boolean!): EmptyResponse!
+  """
+  Sets the user to have completed the post-signup flow.
+  If the ID is omitted, the current user is assumed.
+  
+  Only the user or site admins may perform this mutation.
+  """
+  setCompletedPostSignup(userID: ID): EmptyResponse!
 
   """
   Creates an access token that grants the privileges of the specified user (referred to as the access token's
@@ -8287,21 +8563,12 @@ type Mutation {
   addExternalAccount(serviceType: String!, serviceID: String!, accountDetails: String!): EmptyResponse!
 
   """
-  Sends an invitation to join Sourcegraph to the given email address.
-  
-  Returns instantly regardless of whether or not an invitation email was actually sent. For example, the email
-  may fail to send if there is a typo or it is invalid, or Sourcegraph may refuse to send it due to spam concerns
-  or if the user has been invited too recently.
-  """
-  inviteEmailToSourcegraph(email: String!): EmptyResponse!
-
-  """
   Invite the user with the given username to join the organization. The invited user account must already
   exist.
   
   Only site admins and any organization member may perform this mutation.
   """
-  inviteUserToOrganization(organization: ID!, username: String, email: String): InviteUserToOrganizationResult!
+  inviteUserToOrganization(organization: ID!, username: String!): InviteUserToOrganizationResult!
 
   """
   Accept or reject an existing organization invitation.
@@ -8314,29 +8581,6 @@ type Mutation {
 
     """The response to the invitation."""
     responseType: OrganizationInvitationResponseType!
-  ): EmptyResponse!
-
-  """
-  Resend the notification about an organization invitation to the recipient.
-  
-  Only site admins and any member of the organization may perform this mutation.
-  """
-  resendOrganizationInvitationNotification(
-    """The organization invitation."""
-    organizationInvitation: ID!
-  ): EmptyResponse!
-
-  """
-  Revoke an existing organization invitation.
-  
-  If the invitation has been accepted or rejected, it may no longer be revoked. After an
-  invitation is revoked, the recipient may not accept or reject it. Both cases yield an error.
-  
-  Only site admins and any member of the organization may perform this mutation.
-  """
-  revokeOrganizationInvitation(
-    """The organization invitation."""
-    organizationInvitation: ID!
   ): EmptyResponse!
 
   """
@@ -8481,6 +8725,27 @@ type Mutation {
     Used on Sourcegraph Cloud only.
     """
     insertID: String
+
+    """The client that this event is being sent from."""
+    client: String
+
+    """The product category for the event, used for billing purposes."""
+    billingProductCategory: String
+
+    """
+    The billing ID for the event, used for tagging user events for billing aggregation purposes.
+    """
+    billingEventID: String
+
+    """
+    The site ID that the client was connected to when the event was logged.
+    """
+    connectedSiteID: String
+
+    """
+    The connected site's license key, hashed using sha256. Used for uniquely identifying the site.
+    """
+    hashedLicenseKey: String
   ): EmptyResponse
 
   """Logs a batch of events."""
@@ -9883,6 +10148,12 @@ type Mutation {
   cancelRepoEmbeddingJob(job: ID!): EmptyResponse!
 
   """
+  TEMPORARY: creates a new embedding job for all completed embeddings
+  jobs so that they will be moved from blobstore to qdrant
+  """
+  migrateToQdrant: EmptyResponse!
+
+  """
   Deletes a role. This mutation targets only non-system roles.
   Any users who were assigned to the role will be unassigned and lose any permissions associated with it.
   """
@@ -9936,6 +10207,39 @@ type Mutation {
 
   """removeAssignedTeam removes an assigned owner."""
   removeAssignedTeam(input: AssignOwnerOrTeamInput!): EmptyResponse
+
+  """(experimental) Updates the current onboarding tour content."""
+  updateOnboardingTourContent(input: String!): EmptyResponse!
+
+  """
+  EXPERIMENTAL: Create a new search job. The query will be validated before the search is created.
+  """
+  createSearchJob(
+    """The query to run. This must be a valid search query."""
+    query: String!
+  ): SearchJob!
+
+  """
+  EXPERIMENTAL: Cancel a search job. This will cancel all of the search's repositories and revisions.
+  """
+  cancelSearchJob(
+    """The ID of the search job to cancel."""
+    id: ID!
+  ): EmptyResponse
+
+  """
+  EXPERIMENTAL: Delete a search job. This will delete all of the search's repositories and revisions.
+  """
+  deleteSearchJob(
+    """The ID of the search job to delete."""
+    id: ID!
+  ): EmptyResponse!
+
+  """
+  Telemetry mutations for "Event Logging Everywhere", aka a version 2 of
+  existing event-logging/event-recording APIs.
+  """
+  telemetry: TelemetryMutation
 }
 
 """
@@ -10154,6 +10458,21 @@ type NotebookStarConnection {
 
   """Pagination information."""
   pageInfo: PageInfo!
+}
+
+"""(experimental) Onboarding tour content wrapper object."""
+type OnboardingTour {
+  """(experimental) The current version of the onboarding tour content."""
+  current: OnboardingTourContent
+}
+
+"""(experimental) Content for a specific tour versioned by ID"""
+type OnboardingTourContent {
+  """(experimental) GraphQL ID of the content tour object."""
+  id: ID!
+
+  """(experimental) JSON value of the onboarding content."""
+  value: String!
 }
 
 """An organization, which is a group of users."""
@@ -10781,6 +11100,9 @@ type OwnershipStats {
 
   """Total files with assigned ownership."""
   totalAssignedOwnershipFiles: Int!
+
+  """When statistics were last updated."""
+  updatedAt: DateTime
 }
 
 """
@@ -11088,6 +11410,13 @@ type PermissionsInfo {
   updatedAt: DateTime
 
   """
+  What was the source of the last permission update. The value is updated
+  whenever different source last touched the database row (i.e. permission sync
+  or explicit permissions update)
+  """
+  source: PermissionSource
+
+  """
   If true for a repo, it indicates access to the repo is allowed for all users.
   It will always be false for users.
   """
@@ -11202,6 +11531,19 @@ type PermissionsInfoUsersConnection implements Connection {
 
   """Pagination information."""
   pageInfo: ConnectionPageInfo!
+}
+
+"""
+PermissionSource indicates where a permission originated from.
+
+REPO_SYNC: The permission was synced from the code host, via repo-centric permission sync.
+USER_SYNC: The permission was synced from the code host using user-centric permission sync.
+API: The permission was set explicitly via the GraphQL API.
+"""
+enum PermissionSource {
+  REPO_SYNC
+  USER_SYNC
+  API
 }
 
 """Various permissions syncing statistics."""
@@ -11331,6 +11673,7 @@ enum PermissionsSyncJobReason {
   REASON_REPO_UPDATED_FROM_CODE_HOST
   REASON_USER_EMAIL_REMOVED
   REASON_USER_EMAIL_VERIFIED
+  REASON_USER_ADDED
   REASON_USER_ADDED_TO_ORG
   REASON_USER_REMOVED_FROM_ORG
   REASON_USER_ACCEPTED_ORG_INVITE
@@ -11709,6 +12052,22 @@ type ProductLicenseInfo {
 
   """The Salesforce opportunity ID associated with this license."""
   salesforceOpportunityID: String
+
+  """
+  This indicates if the current license is valid. It will be false if:
+  - The license key has expired
+  - The license key is in use on another instance
+  - The license key was revoked
+  """
+  isValid: Boolean!
+
+  """
+  This indicates the reason the license is invalid. It'll be null if `isValid` is true.
+  """
+  licenseInvalidityReason: String
+
+  """The license key, hashed using sha256."""
+  hashedKey: String
 }
 
 """
@@ -11906,10 +12265,10 @@ type Query {
   ): Repository
 
   """
-  Looks up a repository by either name or cloneURL or hashedName. When the repository does not exist on the server
-  and "disablePublicRepoRedirects" is "false" in the site configuration, it returns a Redirect to
-  an external Sourcegraph URL that may have this repository instead. Otherwise, this query returns
-  null.
+  Looks up a repository by either name or cloneURL or hashedName. When the
+  repository does not exist on the server, it returns a Redirect to an
+  external Sourcegraph URL that may have this repository instead. Otherwise,
+  this query returns null.
   """
   repositoryRedirect(
     """Query the repository by name, for example "github.com/gorilla/mux"."""
@@ -11941,6 +12300,11 @@ type Query {
 
     """Opaque pagination cursor."""
     after: String
+
+    """
+    If provided, fetch external services which contain a repo with the given ID.
+    """
+    repo: ID
   ): ExternalServiceConnection!
 
   """
@@ -12035,6 +12399,12 @@ type Query {
 
     """Include repositories that do not have a text search index."""
     notIndexed: Boolean = true
+
+    """Include repositories that have embeddings."""
+    embedded: Boolean = true
+
+    """Include repositories that don't have embeddings."""
+    notEmbedded: Boolean = true
 
     """
     Include only repositories that have encountered errors when cloning or fetching
@@ -12359,12 +12729,6 @@ type Query {
     token: String!
   ): OrganizationInvitation!
 
-  """Get pending invitations for the specific organization"""
-  pendingInvitations(
-    """The organization ID"""
-    organization: ID!
-  ): [OrganizationInvitation!]!
-
   """Search for users that opt-in to search autocomplete."""
   autocompleteMembersSearch(
     """The organization ID"""
@@ -12435,6 +12799,13 @@ type Query {
     """The cursor argument for backward pagination."""
     before: String
   ): PermissionConnection!
+
+  """
+  Returns information pertaining to all gitserver instances associated with this Sourcegraph instance.
+  
+  Site-admin only.
+  """
+  gitservers: GitserverInstanceConnection!
 
   """The list of all globally available executor secrets."""
   executorSecrets(
@@ -12516,6 +12887,13 @@ type Query {
 
   """Repository key-value pair metadata"""
   repoMeta: RepoMetadata
+
+  """
+  List of all configured code hosts on this instance.
+  
+  Site-admin only.
+  """
+  codeHosts(first: Int = 50, after: String, search: String): CodeHostConnection!
 
   """
   Returns the outbound webhooks registered within Sourcegraph, optionally filtered by
@@ -12626,6 +13004,9 @@ type Query {
   Returns the max number of changesets are allowed for License that does not have the batch change feature.
   """
   maxUnlicensedChangesets: Int!
+
+  """Get all changesets in the given batch change by ID."""
+  getChangesetsByIDs(batchChange: ID!, changesets: [ID!]!): ChangesetConnection!
 
   """Query precise code intelligence indexes."""
   preciseIndexes(
@@ -13008,6 +13389,15 @@ type Query {
     count: Int
   ): BitbucketProjectPermissionJobs!
 
+  """A list of monitors. Site-admin only."""
+  monitors(
+    """Returns the first n monitors from the list."""
+    first: Int!
+
+    """Opaque pagination cursor."""
+    after: String
+  ): MonitorConnection!
+
   """
   All configured GitHub Apps, optionally filtered by the domain in which they are used.
   """
@@ -13236,12 +13626,50 @@ type Query {
   instanceOwnershipStats: OwnershipStats!
 
   """Returns a string of completion responses"""
-  completions(input: CompletionsInput!): String!
+  completions(input: CompletionsInput!, fast: Boolean = false): String!
 
   """
   EXPERIMENTAL: Searches the instances indexed code for code matching snippet.
   """
   snippetAttribution(snippet: String!, first: Int): SnippetAttributionConnection!
+
+  """(experimental) Returns onboarding tour content."""
+  onboardingTourContent: OnboardingTour!
+
+  """EXPERIMENTAL: Get a list of search jobs."""
+  searchJobs(
+    """The number of results to return."""
+    first: Int
+
+    """
+    Note: Use either last or first (see above) in the query. Setting both will
+    return an error.
+    """
+    last: Int
+
+    """The cursor to start at."""
+    after: String
+
+    """Opaque pagination cursor to be used when paginating backwards."""
+    before: String
+
+    """List of users ids by which we will filter out search jobs list."""
+    userIDs: [ID!]
+
+    """The query to filter the results by."""
+    query: String
+
+    """The states to filter the results by."""
+    states: [SearchJobState!]
+
+    """The order by which to sort the results."""
+    orderBy: SearchJobsOrderBy = CREATED_AT
+
+    """
+    The determines the order of the returned searches. Defaults to ascending.
+    """
+    descending: Boolean = false
+  ): SearchJobConnection!
 }
 
 """Query block allows performing inline search queries within a notebook."""
@@ -13321,6 +13749,31 @@ type RankingSummaryProgress {
   total: Int!
 }
 
+"""The current state of a rate limiter."""
+type RateLimiterState {
+  """The number of tokens in the bucket."""
+  burst: Int!
+
+  """The current capacity of the rate limiter."""
+  currentCapacity: Int!
+
+  """If infinite is true, the rate limiter is functionally disabled."""
+  infinite: Boolean!
+
+  """
+  The amount of time in seconds it takes for the rate limiter to refill the number of tokens specified by limit.
+  """
+  interval: Int!
+
+  """The last time at which the rate limiter refilled tokens."""
+  lastReplenishment: DateTime!
+
+  """
+  The number of tokens the rate limiter refills in the specified amount of time.
+  """
+  limit: Int!
+}
+
 """A signal derived from recent code contributors."""
 type RecentContributorOwnershipSignal {
   """Descriptive title to display in the UI for the determination."""
@@ -13337,6 +13790,48 @@ type RecentViewOwnershipSignal {
 
   """More detailed description to display in the UI for the determination."""
   description: String!
+}
+
+"""
+Recorded command is a Git command and its metadata which was run for particular repo.
+"""
+type RecordedCommand {
+  """When the command started its execution."""
+  start: DateTime!
+
+  """Command run time in seconds."""
+  duration: Float!
+
+  """The command itself (e.g. "git fetch")."""
+  command: String!
+
+  """Directory in which the command has been run."""
+  dir: String!
+
+  """Path to command executable (git executable in most cases)."""
+  path: String!
+
+  """Output of the command."""
+  output: String!
+
+  """Indicates whether the command execution was successful."""
+  isSuccess: Boolean!
+}
+
+"""
+RecordedCommandConnection is a connection containing a list of RecordedCommand nodes.
+"""
+type RecordedCommandConnection {
+  """A list of recorded commands for given repository."""
+  nodes: [RecordedCommand!]!
+
+  """
+  The total number of recorded commands for given repository in the connection.
+  """
+  totalCount: Int!
+
+  """Pagination information."""
+  pageInfo: PageInfo!
 }
 
 """A reference to another Sourcegraph instance."""
@@ -13767,6 +14262,26 @@ type Repository implements Node & GenericSearchResultInterface {
   """Returns true if embeddings for the repo are generated."""
   embeddingExists: Boolean!
 
+  """Returns true if command executed on the repo are recorded."""
+  isRecordingEnabled: Boolean!
+
+  """Returns a list of all recorded commands for given repository."""
+  recordedCommands(
+    """
+    Maximum number of recorded commands returned.
+    If a query specifies a limit higher than 40, it will be capped at 40.
+    The default value is 40. This prevents returning an excessive number
+    of recorded commands for performance reasons.
+    """
+    limit: Int = 40
+
+    """
+    Skips initial "offset" number of recorded commands.
+    (Default: 0)
+    """
+    offset: Int = 0
+  ): RecordedCommandConnection!
+
   """
   Stats on all the changesets that have been created in this repository by batch
   changes.
@@ -14108,6 +14623,9 @@ type RepositoryStats {
 
   """The number of repositories that are currently corrupt"""
   corrupted: Int!
+
+  """The number of repositories that have embeddings"""
+  embedded: Int!
 }
 
 """Information about a repository's text search index."""
@@ -14697,6 +15215,99 @@ input SearchInsightPreviewInput {
   series: [SearchSeriesPreviewInput!]!
 }
 
+"""A search job."""
+type SearchJob implements Node {
+  """The ID of the search job."""
+  id: ID!
+
+  """The query to run."""
+  query: String!
+
+  """The state of the search job."""
+  state: SearchJobState!
+
+  """The user who created the search job."""
+  creator: User
+
+  """The date and time the search job was created."""
+  createdAt: DateTime!
+
+  """The date and time the search job was started."""
+  startedAt: DateTime
+
+  """The date and time the search job was finished."""
+  finishedAt: DateTime
+
+  """The url to download the search job results."""
+  URL: String
+
+  """The url to download search job logs."""
+  logURL: String
+
+  """The repository stats for the search job."""
+  repoStats: SearchJobStats!
+}
+
+"""A connection that returns search jobs."""
+type SearchJobConnection {
+  """The list of searches."""
+  nodes: [SearchJob!]!
+
+  """The total count of searches."""
+  totalCount: Int!
+
+  """Information to aid in pagination."""
+  pageInfo: BidirectionalPageInfo!
+}
+
+"""The order by which search jobs are sorted."""
+enum SearchJobsOrderBy {
+  """Sort search jobs by their query."""
+  QUERY
+
+  """Sort search jobs by their creation date."""
+  CREATED_AT
+
+  """Sort search jobs by their state."""
+  STATE
+}
+
+"""The state of a search job."""
+enum SearchJobState {
+  """The search job has been created and is waiting to be processed."""
+  QUEUED
+
+  """The search job is being processed."""
+  PROCESSING
+
+  """The search job had an error."""
+  ERRORED
+
+  """The search job has failed."""
+  FAILED
+
+  """The search job has completed."""
+  COMPLETED
+
+  """The search job was canceled."""
+  CANCELED
+}
+
+"""The repository stats for a search job."""
+type SearchJobStats {
+  """The total number of items."""
+  total: Int!
+
+  """The number of items that have completed."""
+  completed: Int!
+
+  """The number of items that have failed."""
+  failed: Int!
+
+  """The number of items that are in progress."""
+  inProgress: Int!
+}
+
 """The search pattern type."""
 enum SearchPatternType {
   standard
@@ -14705,6 +15316,7 @@ enum SearchPatternType {
   structural
   lucky
   keyword
+  newStandardRC1
 }
 
 """Information about search aggregations"""
@@ -15179,8 +15791,13 @@ type Site implements SettingsSubject {
   """The site ID."""
   siteID: String!
 
-  """The site's configuration. Only visible to site admins."""
-  configuration: SiteConfiguration!
+  """
+  The site's configuration. Only visible to site admins.
+  
+  If returnSafeConfigsOnly is true, returns a subset of the configuration classified
+  as safe config.
+  """
+  configuration(returnSafeConfigsOnly: Boolean): SiteConfiguration!
 
   """
   The site's latest site-wide settings (which are the second-lowest-precedence
@@ -15270,7 +15887,7 @@ type Site implements SettingsSubject {
 
   """
   The number of external services distinguished by local repositories and remote repositories.
-  Local repository code host connections are only supported in Sourcegraph App.
+  Local repository code host connections are only supported in Cody App.
   """
   externalServicesCounts: ExternalServicesCounts!
 
@@ -15393,6 +16010,19 @@ type Site implements SettingsSubject {
 
   """Whether Cody is enabled for this site."""
   isCodyEnabled: Boolean!
+
+  """
+  If Cody is enabled, this returns how Cody is configured to talk to the LLM.
+  """
+  codyLLMConfiguration: CodyLLMConfiguration
+
+  """
+  Returns the status of the Cody Rate limits when using the `sourcegraph` provider.
+  If the instance is not using the Cody Gateway there will be no rate limits.
+  
+  Site-admin only.
+  """
+  codyGatewayRateLimitStatus: [CodyGatewayRateLimitStatus!]
 }
 
 """The configuration for a site."""
@@ -15442,6 +16072,9 @@ type SiteConfiguration {
     """
     before: String
   ): SiteConfigurationChangeConnection
+
+  """License information from license key. Available only to site-admins."""
+  licenseInfo: LicenseInfo!
 }
 
 """
@@ -15699,6 +16332,11 @@ type SnapshotData {
 
   """The formatted SCIP symbol string."""
   data: String!
+
+  """
+  Any additional lines of snapshot output such as relationships, documentation etc.
+  """
+  additional: [String!]
 }
 
 """EXPERIMENTAL: Attribution result from snippetAttribution."""
@@ -15746,7 +16384,7 @@ enum SpeakerType {
 }
 
 """FOR INTERNAL USE ONLY: A status message"""
-union StatusMessage = GitUpdatesDisabled | NoRepositoriesDetected | CloningProgress | ExternalServiceSyncError | SyncError | IndexingProgress
+union StatusMessage = GitUpdatesDisabled | NoRepositoriesDetected | CloningProgress | ExternalServiceSyncError | SyncError | IndexingProgress | GitserverDiskThresholdReached
 
 """A Git submodule"""
 type Submodule {
@@ -16191,6 +16829,166 @@ input TeamMemberInput {
   externalAccountLogin: String
 }
 
+"""Billing-related metadata for a telemetry event."""
+input TelemetryEventBillingMetadataInput {
+  """
+  Billing product ID associated with the event.
+  
+  IDs must come from a static set of values in libraries - it is left as a
+  string in the API to allow some flexibility.
+  """
+  product: String!
+
+  """
+  Billing category ID the event falls into.
+  
+  IDs must come from a static set of values in libraries - it is left as a
+  string in the API to allow some flexibility.
+  """
+  category: String!
+}
+
+"""
+Properties comprising a telemetry V2 event that can be reported by a client.
+"""
+input TelemetryEventInput {
+  """
+  Feature associated with the event in camelCase, e.g. 'myFeature'.
+  
+  Feature names must come from a static set of values in libraries - it is
+  left as a string in the API to allow some flexibility.
+  """
+  feature: String!
+
+  """
+  Action associated with the event in camelCase, e.g. 'pageView'.
+  
+  Action names must come from a static set of values in libraries - it is
+  left as a string in the API to allow some flexibility.
+  """
+  action: String!
+
+  """Information about where this event came from."""
+  source: TelemetryEventSourceInput!
+
+  """Parameters of the event."""
+  parameters: TelemetryEventParametersInput!
+
+  """
+  Optional marketing campaign tracking parameters.
+  
+  🚨 SECURITY: This metadata is NEVER exported from private Sourcegraph instances,
+  and is only exported for events tracked in the public Sourcegraph.com instance.
+  """
+  marketingTracking: TelemetryEventMarketingTrackingInput
+}
+
+"""
+Marketing campaign tracking parameters for a telemetry V2 event.
+
+🚨 SECURITY: This metadata is NEVER exported from private Sourcegraph instances,
+and is only exported for events tracked in the public Sourcegraph.com instance.
+"""
+input TelemetryEventMarketingTrackingInput {
+  """URL the event occurred on."""
+  url: String
+
+  """Initial URL the user landed on."""
+  firstSourceURL: String
+
+  """Cohort ID to identify the user as part of a specific A/B test."""
+  cohortID: String
+
+  """Referrer URL that refers the user to Sourcegraph."""
+  referrer: String
+
+  """Last source URL visited by the user."""
+  lastSourceURL: String
+
+  """Device session ID to identify the user's session."""
+  deviceSessionID: String
+
+  """Session referrer URL for the user."""
+  sessionReferrer: String
+
+  """First URL the user visited in their current session."""
+  sessionFirstURL: String
+}
+
+"""A single, PII-free metadata item for telemetry V2 events."""
+input TelemetryEventMetadataInput {
+  """The key identifying this metadata entry."""
+  key: String!
+
+  """
+  Numeric value associated with the key. Enforcing numeric values eliminates
+  risks of accidentally shipping sensitive or private data.
+  
+  The value type in the schema is JSONValue for flexibility, but we ONLY
+  accept numeric values (integers and floats) - any other value will be
+  rejected.
+  """
+  value: JSONValue!
+}
+
+"""Properties of a telemetry V2 event."""
+input TelemetryEventParametersInput {
+  """
+  Version of the event parameters, used for indicating the "shape" of this
+  event's metadata.
+  """
+  version: Int!
+
+  """
+  Strictly typed metadata that must not contain any sensitive data or PII.
+  """
+  metadata: [TelemetryEventMetadataInput!]
+
+  """
+  Private metadata in JSON format. Unlike metadata, values can be of any type,
+  not just numeric.
+  
+  🚨 SECURITY: This metadata is NOT exported from instances by default, as it
+  can contain arbitrarily-shaped data that may accidentally contain sensitive
+  or private contents.
+  """
+  privateMetadata: JSONValue
+
+  """Billing-related metadata."""
+  billingMetadata: TelemetryEventBillingMetadataInput
+
+  """
+  Optional interaction ID that can be provided to indicate the interaction
+  this event belongs to. It overrides the X-Sourcegraph-Interaction-ID header
+  if one is set on the request recording the event.
+  
+  This parameter is only available in Sourcegraph 5.2.4 and later.
+  """
+  interactionID: String
+}
+
+"""
+Properties comprising the source of a telemetry V2 event reported by a client.
+"""
+input TelemetryEventSourceInput {
+  """Source client of the event."""
+  client: String!
+
+  """Version of the source client of the event."""
+  clientVersion: String
+}
+
+"""Mutations for recording events from clients."""
+type TelemetryMutation {
+  """
+  Record a batch of telemetry events.
+  
+  ❗ Do not use this directly when recording events in-product - use the
+  @sourcegraph/telemetry package, or equivalent, instead.
+  """
+  recordEvents(events: [TelemetryEventInput!]!): EmptyResponse
+}
+
 """Temporary settings for a user."""
 type TemporarySettings {
   """A JSON string representing the temporary settings."""
@@ -16266,16 +17064,16 @@ interface TreeEntry {
   submodule: Submodule
 
   """Whether this tree entry is a single child"""
-  isSingleChild(
-    """Returns the first n files in the tree."""
-    first: Int
+  isSingleChild: Boolean!
 
-    """Recurse into sub-trees."""
-    recursive: Boolean = false
+  """The revision history for this file or directory."""
+  history(first: Int, after: String): TreeEntryConnection!
 
-    """Recurse into sub-trees of single-child directories"""
-    recursiveSingleChild: Boolean = false
-  ): Boolean!
+  """
+  The Git commit containing this tree entry was reached through.
+  Note that a tree entry can exist in multiple commits.
+  """
+  commit: GitCommit!
 
   """LSIF data for this tree entry."""
   lsif(
@@ -16284,6 +17082,21 @@ interface TreeEntry {
     """
     toolName: String
   ): TreeEntryLSIFData
+}
+
+"""A list of TreeEntry"""
+type TreeEntryConnection {
+  """A list of TreeEntry."""
+  nodes: [TreeEntry!]!
+
+  """
+  The total count of TreeEntry in the connection. This total count may be larger
+  than the number of nodes in this object when the result is paginated.
+  """
+  totalCount: Int
+
+  """Pagination information."""
+  pageInfo: PageInfo!
 }
 
 """
@@ -16582,9 +17395,6 @@ type User implements Node & SettingsSubject & Namespace & TeamMember {
   """Whether the user has already accepted the terms of service or not."""
   tosAccepted: Boolean!
 
-  """Whether the user accepted to be searched in the users picker or not."""
-  searchable: Boolean!
-
   """The user's usage statistics on Sourcegraph."""
   usageStatistics: UserUsageStatistics!
 
@@ -16608,6 +17418,12 @@ type User implements Node & SettingsSubject & Namespace & TeamMember {
   Only the user and site admins can access this field.
   """
   hasVerifiedEmail: Boolean!
+
+  """
+  Whether the user has completed the post-signup flow.
+  Only the user and site admins can access this field.
+  """
+  completedPostSignup: Boolean!
 
   """
   The user's verified primary email address (if any).
@@ -16671,12 +17487,6 @@ type User implements Node & SettingsSubject & Namespace & TeamMember {
   """Whether the user is controlled externally through SCIM."""
   scimControlled: Boolean!
 
-  """
-  EXPERIMENTAL: Collaborators who can be invited to Sourcegraph. This typically comes from a few
-  repositories this user has access to, and is derived from recent commit history of those.
-  """
-  invitableCollaborators: [Person!]!
-
   """The list of all roles assigned to this user."""
   roles(
     """The limit argument for forward pagination."""
@@ -16707,6 +17517,30 @@ type User implements Node & SettingsSubject & Namespace & TeamMember {
   Null, if not overwritten.
   """
   codeCompletionsQuotaOverride: Int
+
+  """Whether the user has enrolled for Cody Pro."""
+  codyProEnabled: Boolean!
+
+  """The date when the user enrolled for Cody Pro."""
+  codyProEnabledAt: DateTime
+
+  """The start date of current billing period of Cody."""
+  codyCurrentPeriodStartDate: DateTime
+
+  """The end date of current billing period of Cody."""
+  codyCurrentPeriodEndDate: DateTime
+
+  """The count of Cody chats in the current billing period."""
+  codyCurrentPeriodChatUsage: Int
+
+  """The count of Cody code completions in the current billing period."""
+  codyCurrentPeriodCodeUsage: Int
+
+  """The limit of Cody chats for the current billing period."""
+  codyCurrentPeriodChatLimit: Int
+
+  """The limit of Cody code completions for the current billing period."""
+  codyCurrentPeriodCodeLimit: Int
 
   """
   The list of all available executor secrets for execution in this users namespace.
@@ -17006,6 +17840,9 @@ type VirtualFile implements File2 {
 
   """Not implemented."""
   canonicalURL: String!
+
+  """Not impleemented."""
+  changelistURL: String
 
   """Not implemented."""
   externalURLs: [ExternalLink!]!

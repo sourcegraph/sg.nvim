@@ -3,18 +3,19 @@ INTRODUCTION                                                           *sg.nvim*
 
 sg.nvim is a plugin for interfacing with Sourcegraph and Cody
 
-To configure logging in:
+To login, either:
 
-- Log in on your Sourcegraph instance.
-- Click your user menu in the top right, then select Settings > Access tokens.
-- Create your access token, and then run `:SourcegraphLogin` in your neovim
-  editor after installation.
-- Type in the link to your Sourcegraph instance (for example:
-  `https://sourcegraph.com`)
-- And then paste in your access token.
+- Run `:SourcegraphLogin` after following installation instructions for
+  `sourcegraph.com` usage.
+- Run `:SourcegraphLogin!` and provide an endpoint and access token to be
+  stored.
+- Use the `SRC_ENDPOINT` and `SRC_ACCESS_TOKEN` environment variables to manage
+  tokens for enterprise usage.
+  - See
+    [src-cli](https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance)
+    for more info
 
-An alternative to this is to use the environment variables specified for
-[src-cli](https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance).
+See `:help sg.auth` for more information.
 
 You can check that you're logged in by then running `:checkhealth sg`
 
@@ -46,22 +47,32 @@ sg.config                                                          *sg.config*
 
 
   Configuration Options: ~
-    {enable_cody}         (boolean)                    Enable/disable cody
-                                                       integration
-    {download_binaries}   (boolean)                    Default true, download
-                                                       latest release from
-                                                       Github
-    {node_executable}     (string)                     path to node executable
-    {cody_agent}          (string)                     path to the cody-agent
-                                                       js bundle
-    {did_change_debounce} (number)                     Number of ms to
-                                                       debounce changes
-    {on_attach}           (function)                   function to run when
-                                                       attaching to
-                                                       sourcegraph buffers
-    {auth_strategy}       (SourcegraphAuthStrategy[])  Ordering for auth
-                                                       strategies.
+    {enable_cody}       (boolean?)   Enable/disable cody integration
+    {accept_tos}        (boolean?)   Accept the TOS without being prompted
+    {download_binaries} (boolean?)   Default true, download latest release
+                                     from Github
+    {node_executable}   (string?)    path to node executable
+    {cody_agent}        (string?)    path to the cody-agent js bundle
+    {on_attach}         (function?)  function to run when attaching to
+                                     sg://<file> buffers
 
+
+
+================================================================================
+UPGRADE                                                             *sg.upgrade*
+
+Cody has two tiers of usage currently available. To see up-to-date information
+about rate-limiting and usage guidelines, see:
+- Cody Dashboard: https://sourcegraph.com/cody/manage
+- Manage your subscription: https://sourcegraph.com/cody/subscription
+
+- The default version is the Cody Free version.
+- The Cody Pro version has higher rate limits for both chat and code
+  completions.
+
+Any questions about accounts or about what might be spurious ratelimiting,
+please reach out to Sourcegraph at:
+- https://sourcegraph.com/community
 
 
 ================================================================================
@@ -70,63 +81,33 @@ AUTH                                                                   *sg.auth*
 How to manage authentication for Sourcegraph within Neovim (both for Cody and
 for Sourcegraph)
 
+To manage your sourcegraph account, visit:
+    - https://sourcegraph.com/cody/manage
 
-M.strategies()                                          *sg.auth.strategies()*
-    The default strategies for sg.nvim. Use |config.auth_strategy| to configure
-    the order of evaluation. Whichever one returns a valid configuration first
-    will be used when starting and connecting to Sourcegraph and Cody.
+Use SRC_ENDPOINT and SRC_ACCESS_TOKEN environment variables to manually
+override previous configuration.
 
-    Auth Strategy: `"environment-variables"`
-    Use the environment variables `SRC_ENDPOINT` and `SRC_ACCESS_TOKEN` to
-    determine which instance to connect to
+If you're not using the environment variables, then you may need to
+authenticate when accessing the variables on startup. If you prefer to not have
+this behavior, then you should load the environment variables into the
+environment before opening neovim.
 
-    Auth Strategy: `"nvim"`
-    Create a custom configuration for neovim.
+Otherwise use |:SourcegraphLogin| to set up authentication.
 
-    Auth Strategy: `"cody-app"`
-    Use the Cody App configuration to connect to your sourcegraph instance. See
-    https://sourcegraph.com/get-cody for more information
-
-
+NOTE: Cody-App support has been removed (for now). We're currently exploring
+what App will look like in the future, but it will not currently be supported
+anymore.
 
 
-M.get({ordering})                                              *sg.auth.get()*
-    Get the highest priority active auth configuration. By default loads the
-    ordering from the user config.
+M.get()                                                        *sg.auth.get()*
+    Gets authorization from the environment variables. It is possible these
+    will be initialized from previous session configuration, if not already
+    present.
 
 
-
-    Parameters: ~
-        {ordering} (SourcegraphAuthStrategy[]?)
 
     Return: ~
         SourcegraphAuthConfig?
-        SourcegraphAuthStrategy?
-
-
-M.reload()                                                  *sg.auth.reload()*
-    Can force reload
-
-
-
-M.valid({opts})                                              *sg.auth.valid()*
-    Gets whether the current configuration is valid.
-
-
-    Parameters: ~
-        {opts} ({ cached: boolean }?)
-
-    Return: ~
-        boolean
-
-
-M.set_nvim_auth({opts})                              *sg.auth.set_nvim_auth()*
-    Set the nvim auth. Will optionally prompt user for auth if nothing is
-    passed.
-
-
-    Parameters: ~
-        {opts} (SourcegraphAuthConfig?)
 
 
 
@@ -155,10 +136,6 @@ Default commands for interacting with Cody
 :CodyTask {task_description} ~
     Instruct Cody to perform a task on selected text.
 
-                                                                     *:CodyDo*
-:CodyDo ~
-    @deprecated DEPRECATED. Use CodyTask.
-
                                                                *:CodyTaskView*
 :CodyTaskView ~
     Opens the last active CodyTask.
@@ -184,6 +161,14 @@ Default commands for interacting with Cody
 
     Useful if you've re-authenticated or are testing your config
 
+
+
+M.setup({config})                                               *cody.setup()*
+    Setup Cody
+
+
+    Parameters: ~
+        {config} (sg.config)
 
 
 
@@ -215,7 +200,7 @@ commands.autocomplete({request}, {callback}) *sg.cody.commands.autocomplete()*
 
     Parameters: ~
         {request}  ({ filename: string, row: number, col: number }?)
-        {callback} (function(data: CodyAutocompleteResult))
+        {callback} (function(err: table, data: CodyAutocompleteResult))
 
 
 commands.float({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands.float()*
@@ -302,6 +287,12 @@ Default commands for interacting with Sourcegraph
     Get prompted for endpoint and access_token if you don't want to set them
     via environment variables.
 
+    For enterprise instances, the only currently supported method is
+    environment variables.
+
+    If you want to force a particular endpoint + access token combination to be
+    saved, use :SourcegraphLogin! and then follow the prompts.
+
                                                            *:SourcegraphBuild*
 :SourcegraphBuild ~
     Rebuild the Sourcegraph crates and required dependencies (in case build
@@ -355,6 +346,26 @@ rpc.repository({name})                                   *sg.rpc.repository()*
         string?: The repository ID, if found
 
 
+rpc.get_entry({path}, {callback})                         *sg.rpc.get_entry()*
+    Get an SgEntry based on a path
+
+
+    Parameters: ~
+        {path}     (string)
+        {callback} (fun(err: string?, entry: SgEntry?))
+
+
+rpc.get_file_contents({remote}, {oid}, {path}, {callback}) *sg.rpc.get_file_contents()*
+    Get file contents for a sourcegraph file
+
+
+    Parameters: ~
+        {remote}   (string)
+        {oid}      (string)
+        {path}     (string)
+        {callback} (fun(err: string?, contents: string[]?))  nil
+
+
 rpc.get_directory_contents({remote}, {oid}, {path}) *sg.rpc.get_directory_contents()*
     Get directory contents for a sourcegraph directory
 
@@ -367,6 +378,25 @@ rpc.get_directory_contents({remote}, {oid}, {path}) *sg.rpc.get_directory_conten
     Return: ~
         string?: err, if any
         SgEntry[]?: contents, if successful
+
+
+rpc.get_search({query}, {callback})                      *sg.rpc.get_search()*
+    Get search results
+
+
+    Parameters: ~
+        {query}    (string)
+        {callback} (function(err: string?, res: SgSearchResult[]?))
+
+
+rpc.get_info()                                             *sg.rpc.get_info()*
+    Get info about current sourcegraph info
+
+
+
+rpc.get_link()                                             *sg.rpc.get_link()*
+    Get info about current sourcegraph info
+
 
 
 

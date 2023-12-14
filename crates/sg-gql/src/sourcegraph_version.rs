@@ -16,10 +16,11 @@ pub use private::{version_query::Variables, VersionQuery as Query};
 
 pub async fn request(
     client: &reqwest::Client,
+    headers: reqwest::header::HeaderMap,
     endpoint: String,
     variables: Variables,
 ) -> Result<SourcegraphVersion> {
-    crate::get_graphql::<Query>(client, endpoint, variables)
+    crate::get_graphql::<Query>(client, headers, endpoint, variables)
         .await
         .map(|response_body| {
             let version = response_body.site;

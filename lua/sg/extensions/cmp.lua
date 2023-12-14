@@ -68,8 +68,8 @@
 local cmp = require "cmp"
 local cmp_types = require "cmp.types.lsp"
 
-local commands = require "sg.cody.commands"
-local document = require "sg.document"
+local config = require "sg.config"
+local log = require "sg.log"
 
 local M = {}
 
@@ -89,6 +89,13 @@ end
 ---@param params cmp.SourceCompletionApiParams
 ---@param callback function(response: lsp.CompletionResponse)
 function source:complete(params, callback)
+  log.trace "entering nvim-cmp complete"
+
+  -- Delay loading until first complete, this makes sure that
+  -- we can handle auth and everything beforehand
+  local commands = require "sg.cody.commands"
+  local document = require "sg.document"
+
   _ = self
   _ = params
 
@@ -96,16 +103,41 @@ function source:complete(params, callback)
   -- This messes up the state of the agent.
   local bufnr = vim.api.nvim_get_current_buf()
   if not document.is_useful(bufnr) then
+    log.trace "  skipping nvim-cmp complete. not useful"
     return
   end
 
   -- Don't trigger completions when cody is disabled or if we have invalid auth
-  if not require("sg.config").enable_cody or not require("sg.auth").valid { cached = true } then
+  if not config.enable_cody then
+    log.trace "  skipping nvim-cmp complete. not enabled"
     callback { items = {}, isIncomplete = false }
     return
   end
 
-  commands.autocomplete(nil, function(data)
+  if not require("sg.auth").get() then
+    log.trace "  skipping nvim-cmp complete. not authed"
+    callback { items = {}, isIncomplete = false }
+    return
+  end
+
+  if not require("sg.cody.rpc").client then
+    log.trace "  skipping nvim-cmp complete. no client started"
+    callback { items = {}, isIncomplete = false }
+    return
+  end
+
+  commands.autocomplete(nil, function(err, data)
+    if err then
+      if require("sg.ratelimit").is_ratelimit_err(err) then
+        require("sg.ratelimit").notify_ratelimit "autocomplete"
+        return
+      end
+
+      -- TODO: Might want to do something else here?...
+      log.debug("Failed to do autocomplete: ", err)
+      return
+    end
+
     local items = {}
     for _, item in ipairs(data.items) do
       local trimmed = vim.trim(item.insertText)
@@ -129,6 +161,11 @@ function source:complete(params, callback)
           newText = item.insertText,
           range = item.range,
         },
+
+        -- Store completeion ID for later
+        data = {
+          id = item.id,
+        },
       }
 
       table.insert(items, completion_item)
@@ -139,6 +176,26 @@ function source:complete(params, callback)
       isIncomplete = false,
     }
   end)
+end
+
+local is_valid_item = function(completion_item)
+  return config.enable_cody and vim.tbl_get(completion_item, "data", "id")
+end
+
+function source:resolve(completion_item, callback)
+  if is_valid_item(completion_item) then
+    require("sg.cody.rpc").execute.autocomplete_suggested(completion_item.data.id)
+  end
+
+  callback(completion_item)
+end
+
+function source:execute(completion_item, callback)
+  if is_valid_item(completion_item) then
+    require("sg.cody.rpc").execute.autocomplete_accepted(completion_item.data.id)
+  end
+
+  callback(completion_item)
 end
 
 cmp.register_source("cody", source)

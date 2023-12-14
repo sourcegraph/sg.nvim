@@ -1,14 +1,6 @@
 ---@tag sg.rpc
 ---@config { ["module"] = "sg.rpc" }
 
-if not require "sg.request" then
-  return {
-    get_info = function(callback)
-      callback("Unable to check current sg version", nil)
-    end,
-  }
-end
-
 local req = require("sg.request").request
 
 local rpc = {}
@@ -79,7 +71,7 @@ end
 
 --- Get search results
 ---@param query string
----@param callback fun(err: string?, res: SgSearchResult[]?): nil
+---@param callback function(err: string?, res: SgSearchResult[]?)
 function rpc.get_search(query, callback)
   req("sourcegraph/search", { query = query }, callback)
 end
@@ -96,6 +88,18 @@ end
 
 function rpc.get_remote_url(path, callback)
   req("sourcegraph/get_remote_url", { path = path }, callback)
+end
+
+function rpc.get_auth(creds, callback)
+  req("sourcegraph/auth", creds or {}, callback)
+end
+
+function rpc.get_user_info(callback)
+  req("sourcegraph/get_user_info", { testing = false }, callback)
+end
+
+function rpc.dotcom_login(port, callback)
+  req("sourcegraph/dotcom_login", { port = port }, callback)
 end
 
 return rpc

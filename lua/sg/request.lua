@@ -1,26 +1,37 @@
--- Verify that the environment is properly configured
-local creds = require("sg.auth").get()
-if not creds then
-  return require("sg.notify").NO_AUTH()
-end
-
-local bin_sg_nvim = require("sg.config").get_nvim_agent()
-if not bin_sg_nvim then
-  return require("sg.notify").NO_BUILD()
-end
-
 local log = require "sg.log"
 local lsp = require "sg.vendored.vim-lsp-rpc"
 
+local bin_sg_nvim = require("sg.config").get_nvim_agent()
+
 local M = {}
 
-local notification_handlers = {}
+local notification_handlers = {
+  ["initialize"] = function(data)
+    if data.endpoint and data.token then
+      require("sg.auth").set(data.endpoint, data.token, { from_agent = true })
+    end
+  end,
+
+  ["display_text"] = function(data)
+    print("display_text::", vim.inspect(data))
+  end,
+}
+
 local server_handlers = {}
 
 --- Start the server
 ---@param opts { force: boolean? }?
 ---@return VendoredPublicClient?
 M.start = function(opts)
+  if not bin_sg_nvim then
+    -- Try and check for the bin again
+    bin_sg_nvim = require("sg.config").get_nvim_agent()
+    if not bin_sg_nvim then
+      require("sg.notify").NO_BUILD()
+      return nil
+    end
+  end
+
   opts = opts or {}
 
   if M.client and not opts.force then
@@ -32,8 +43,10 @@ M.start = function(opts)
     vim.wait(10)
   end
 
+  -- Verify that the environment is properly configured
   M.client = lsp.start(bin_sg_nvim, {}, {
     notification = function(method, data)
+      log.info("got notification", method, data)
       if notification_handlers[method] then
         notification_handlers[method](data)
       else
@@ -51,8 +64,8 @@ M.start = function(opts)
   }, {
     env = {
       PATH = vim.env.PATH,
-      SRC_ACCESS_TOKEN = creds.token,
-      SRC_ENDPOINT = creds.endpoint,
+      SRC_ACCESS_TOKEN = vim.env.SRC_ACCESS_TOKEN,
+      SRC_ENDPOINT = vim.env.SRC_ENDPOINT,
     },
   })
 
@@ -60,6 +73,19 @@ M.start = function(opts)
     vim.notify "[sg.nvim] failed to start sg.nvim plugin"
     return nil
   end
+
+  -- Schedule getting the auth from neovim, if possible.
+  vim.schedule(function()
+    M.request("sourcegraph/auth", {}, function(err, data)
+      if err then
+        return
+      end
+
+      if data.endpoint and data.token then
+        require("sg.auth").set(data.endpoint, data.token)
+      end
+    end)
+  end)
 
   return M.client
 end

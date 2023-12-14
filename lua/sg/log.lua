@@ -12,6 +12,7 @@ end
 local logger = require("plenary.log").new {
   plugin = "sg",
   level = "info",
+  use_console = false,
   info_level = 3,
 }
 
@@ -29,6 +30,11 @@ local modes = {
 local filtered_keys = {
   SRC_ACCESS_TOKEN = true,
   accessToken = true,
+  token = true,
+}
+
+local shortened_keys = {
+  content = true,
 }
 
 local modified = {}
@@ -39,9 +45,15 @@ for _, level in ipairs(modes) do
     for idx, arg in ipairs(arguments) do
       if type(arg) == "table" then
         arg = vim.deepcopy(arg)
-        traverse(arg, function(t, k, _)
+        traverse(arg, function(t, k, v)
           if filtered_keys[k] then
             t[k] = "**** revoked ****"
+          end
+
+          if shortened_keys[k] then
+            if type(v) == "string" and #v > 15 then
+              t[k] = string.sub(v, 1, 15) .. " ..."
+            end
           end
         end)
 

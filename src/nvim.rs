@@ -1,13 +1,16 @@
 use {
     crate::{
+        auth::{get_access_token, get_endpoint, CodyCredentials},
         entry::{link, Entry},
-        get_cody_completions, get_embeddings_context, get_endpoint, get_repository_id,
+        get_cody_completions, get_embeddings_context, get_repository_id,
     },
     anyhow::Result,
     serde::{Deserialize, Serialize},
     serde_json::{json, Value},
+    sg_gql::user::UserInfo,
     sg_types::{Embedding, RecipeInfo, SearchResult},
     std::{thread, time::Duration},
+    tokio::sync::mpsc::UnboundedSender,
 };
 
 // TODO: I would like to explore this idea some more
@@ -101,12 +104,27 @@ pub enum Message {
     Notification(Notification),
 }
 
+impl Message {
+    pub fn notification(notification: Notification) -> Self {
+        Self::Notification(notification)
+    }
+}
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub struct Request {
     pub id: usize,
 
     #[serde(flatten)]
     pub data: RequestData,
+}
+
+#[derive(Serialize, Deserialize, Clone)]
+pub struct SecretString(String);
+
+impl std::fmt::Debug for SecretString {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "<redacted>")
+    }
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -174,12 +192,36 @@ pub enum RequestData {
     SourcegraphRemoteURL {
         path: String,
     },
+
+    #[serde(rename = "sourcegraph/get_user_info")]
+    SourcegraphUserInfo {
+        testing: bool,
+    },
+
+    #[serde(rename = "sourcegraph/auth")]
+    SourcegraphAuth {
+        endpoint: Option<String>,
+        token: Option<SecretString>,
+        clear: bool,
+    },
+
+    #[serde(rename = "sourcegraph/dotcom_login")]
+    SourcegraphDotcomLogin {
+        port: usize,
+    },
+}
+
+#[derive(Debug)]
+pub enum NeovimTasks {
+    Authentication { port: usize },
 }
 
 #[allow(unused_variables)]
 impl Request {
-    pub async fn respond(self) -> Result<Response> {
+    pub async fn respond(self, tx: &UnboundedSender<NeovimTasks>) -> Result<Response> {
         let Self { id, data } = self;
+        eprintln!("DATA : {:?}", data);
+
         match data {
             RequestData::Echo { message, delay } => {
                 if let Some(delay) = delay {
@@ -272,8 +314,8 @@ impl Request {
                 let value = json!({
                     "sourcegraph_version": version,
                     "sg_nvim_version": nvim_version,
-                    "endpoint": crate::get_endpoint(),
-                    "access_token_set": !crate::get_access_token().is_empty()
+                    "endpoint": get_endpoint(),
+                    "access_token_set": get_access_token().is_some()
                 });
 
                 Ok(Response::new(id, ResponseData::SourcegraphInfo(value)))
@@ -312,6 +354,54 @@ impl Request {
                 };
                 Ok(Response::new(id, ResponseData::SourcegraphRemoteURL(url)))
             }
+            RequestData::SourcegraphUserInfo { .. } => {
+                eprintln!("Got Sg user info request");
+                let user_info = crate::get_user_info().await?;
+
+                Ok(Response::new(
+                    id,
+                    ResponseData::SourcegraphUserInfo(user_info),
+                ))
+            }
+            RequestData::SourcegraphAuth {
+                endpoint,
+                token,
+                clear,
+            } => {
+                use crate::auth;
+
+                if clear {
+                    auth::set_credentials(CodyCredentials::default())?;
+                } else {
+                    let credentials = CodyCredentials {
+                        endpoint,
+                        token: token.map(|t| t.0),
+                    };
+                    if credentials.token.is_some() || credentials.endpoint.is_some() {
+                        auth::set_credentials(credentials)?;
+                    }
+                }
+
+                Ok(Response::new(
+                    id,
+                    ResponseData::SourcegraphAuth {
+                        endpoint: Some(auth::get_endpoint()),
+                        token: auth::get_access_token().map(|t| SecretString(t)),
+                    },
+                ))
+            }
+            RequestData::SourcegraphDotcomLogin { port } => {
+                // Start http server
+                tx.send(NeovimTasks::Authentication { port })?;
+
+                // Send response that we're ready.
+                Ok(Response::new(
+                    id,
+                    ResponseData::Echo {
+                        message: "... Starting Sourcegraph Login in Browser ... ".to_string(),
+                    },
+                ))
+            }
         }
     }
 }
@@ -331,11 +421,21 @@ impl Response {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(untagged)]
 pub enum ResponseData {
-    Echo { message: String },
-    Complete { completion: String },
-    Repository { repository: String },
-    Embedding { embeddings: Vec<Embedding> },
-    ListRecipes { recipes: Vec<RecipeInfo> },
+    Echo {
+        message: String,
+    },
+    Complete {
+        completion: String,
+    },
+    Repository {
+        repository: String,
+    },
+    Embedding {
+        embeddings: Vec<Embedding>,
+    },
+    ListRecipes {
+        recipes: Vec<RecipeInfo>,
+    },
     SourcegraphGetEntry(ProtoEntry),
     SourcegraphFileContents(Vec<String>),
     SourcegraphDirectoryContents(Vec<ProtoEntry>),
@@ -343,10 +443,32 @@ pub enum ResponseData {
     SourcegraphInfo(Value),
     SourcegraphLink(String),
     SourcegraphRemoteURL(Option<String>),
+    SourcegraphUserInfo(UserInfo),
+
+    SourcegraphAuth {
+        endpoint: Option<String>,
+        token: Option<SecretString>,
+    },
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(tag = "method", content = "params")]
 pub enum Notification {
-    UpdateChat { message: String },
-    Hack { json: String },
+    #[serde(rename = "initialize")]
+    Initialize {
+        endpoint: Option<String>,
+        token: Option<String>,
+    },
+
+    #[serde(rename = "display_text")]
+    DisplayText {
+        message: String,
+    },
+
+    UpdateChat {
+        message: String,
+    },
+    Hack {
+        json: String,
+    },
 }

@@ -5,13 +5,24 @@
 --- How to manage authentication for Sourcegraph within Neovim
 --- (both for Cody and for Sourcegraph)
 ---
+--- To manage your sourcegraph account, visit:
+---     - https://sourcegraph.com/cody/manage
+---
+--- Use SRC_ENDPOINT and SRC_ACCESS_TOKEN environment variables to
+--- manually override previous configuration.
+---
+--- If you're not using the environment variables, then you may need to
+--- authenticate when accessing the variables on startup. If you prefer to
+--- not have this behavior, then you should load the environment variables
+--- into the environment before opening neovim.
+---
+--- Otherwise use |:SourcegraphLogin| to set up authentication.
+---
+--- NOTE: Cody-App support has been removed (for now).
+--- We're currently exploring what App will look like in the future,
+--- but it will not currently be supported anymore.
+---
 ---@brief ]]
-
-local config = require "sg.config"
-local data = require "sg.private.data"
-
-local json_or_nil = require("sg.utils").json_or_nil
-local strategy = require("sg.types").auth_strategy
 
 local M = {}
 
@@ -19,184 +30,45 @@ local valid = function(s)
   return s and type(s) == "string" and s ~= ""
 end
 
--- TODO: It does feel a bit weird to read the files all the time,
--- but I think it's alright for now -- it also makes the state
--- always correct with whatever their current file is.
+local endpoint = vim.env.SRC_ENDPOINT
+local token = vim.env.SRC_ACCESS_TOKEN
 
---- The default strategies for sg.nvim. Use |config.auth_strategy| to configure the
---- order of evaluation. Whichever one returns a valid configuration first will be used
---- when starting and connecting to Sourcegraph and Cody.
----@eval { ["description"] = require('sg.auth').__docs() }
----@type table<SourcegraphAuthStrategy, SourcegraphAuthObject>
-M.strategies = {
-  [strategy.app] = {
-    doc = "Use the Cody App configuration to connect to your sourcegraph instance."
-      .. " See https://sourcegraph.com/get-cody for more information",
-    get = function()
-      local locations = {
-        "~/Library/Application Support/com.sourcegraph.cody/app.json",
-      }
-
-      if vim.env.XDG_DATA_HOME then
-        table.insert(locations, vim.env.XDG_DATA_HOME .. "/com.sourcegraph.cody/app.json")
-      end
-
-      table.insert(locations, vim.fn.expand "$HOME/.local/share/com.sourcegraph.cody/app.json")
-
-      -- TODO: Handle windows paths
-      -- table.insert(vim"{FOLDERID_LocalAppData}/com.sourcegraph.cody/app.json",
-
-      for _, file in ipairs(locations) do
-        local parsed = json_or_nil(file)
-        if parsed and valid(parsed.token) and valid(parsed.endpoint) then
-          return { token = parsed.token, endpoint = parsed.endpoint }
-        end
-      end
-
-      return nil
-    end,
-  },
-  [strategy.nvim] = {
-    doc = "Create a custom configuration for neovim.",
-    get = function()
-      local cody_data = data.get_cody_data()
-
-      if cody_data and valid(cody_data.endpoint) and valid(cody_data.token) then
-        return { endpoint = cody_data.endpoint, token = cody_data.token }
-      end
-
-      return nil
-    end,
-  },
-  [strategy.env] = {
-    doc = "Use the environment variables `SRC_ENDPOINT` and `SRC_ACCESS_TOKEN` to determine which instance to connect to",
-    get = function()
-      if valid(vim.env.SRC_ENDPOINT) and valid(vim.env.SRC_ACCESS_TOKEN) then
-        return { endpoint = vim.env.SRC_ENDPOINT, token = vim.env.SRC_ACCESS_TOKEN }
-      end
-
-      return nil
-    end,
-  },
-}
-
---- Helps massage data into expected strategies
-local transform_order = function(order)
-  if M.strategies[order] then
-    return order
-  end
-
-  for k, v in pairs(strategy) do
-    if v == order and M.strategies[k] then
-      return k
-    end
-
-    if k == order and M.strategies[k] then
-      return k
-    end
-  end
-
-  error(string.format("Unknown auth strategy: %s", order))
-end
-
---- Get the highest priority active auth configuration.
---- By default loads the ordering from the user config.
+--- Gets authorization from the environment variables.
+---     It is possible these will be initialized from previous
+---     session configuration, if not already present.
 ---
----@param ordering SourcegraphAuthStrategy[]?
 ---@return SourcegraphAuthConfig?
----@return SourcegraphAuthStrategy?
-M.get = function(ordering)
-  ordering = ordering or config.auth_strategy
-  for _, order in ipairs(ordering) do
-    order = transform_order(order)
-
-    local f = M.strategies[order]
-    if f then
-      local result = f.get()
-      if result then
-        return result, order
-      end
-    end
+M.get = function()
+  if valid(endpoint) and valid(endpoint) then
+    return { endpoint = endpoint, token = token }
   end
 
-  return nil, nil
+  return nil
 end
 
-M.get_all_valid = function(ordering)
-  ordering = ordering or config.auth_strategy
-
-  local results = {}
-  for _, order in ipairs(ordering) do
-    local res = M.get { order }
-    if res then
-      table.insert(results, { res, order })
-    end
-  end
-
-  return results
-end
-
-local cached_valid_conf = nil
-
---- Can force reload
-M.reload = function()
-  cached_valid_conf = nil
-  return M.valid()
-end
-
---- Gets whether the current configuration is valid.
----@param opts { cached: boolean }?
----@return boolean
-M.valid = function(opts)
+M.set = function(new_endpoint, new_token, opts)
   opts = opts or {}
 
-  if not opts.cached or cached_valid_conf == nil then
-    require("sg").accept_tos()
-
-    cached_valid_conf = M.get() ~= nil
+  if not valid(new_endpoint) or not valid(new_token) then
+    error "endpoint and token must be valid strings"
   end
 
-  return cached_valid_conf
-end
+  vim.env.SRC_ENDPOINT = new_endpoint
+  vim.env.SRC_ACCESS_TOKEN = new_token
 
---- Set the nvim auth. Will optionally prompt user for auth if nothing is passed.
----@param opts SourcegraphAuthConfig?
-M.set_nvim_auth = function(opts)
-  cached_valid_conf = nil
+  -- Update local vars
+  endpoint = vim.env.SRC_ENDPOINT
+  token = vim.env.SRC_ACCESS_TOKEN
 
-  opts = opts or {}
-  opts.endpoint = opts.endpoint
-    or vim.fn.input {
-      prompt = "SRC_ENDPOINT > ",
-      default = "https://sourcegraph.com",
-    }
-
-  opts.token = opts.token or vim.fn.inputsecret "SRC_ACCESS_TOKEN > "
-
-  if opts.endpoint:sub(1, 4) ~= "http" then
-    opts.endpoint = "https://" .. opts.endpoint
+  if not opts.from_agent then
+    -- Notify nvim-agent that the configuration has changed
+    require("sg.rpc").get_auth({ endpoint = new_endpoint, token = new_token }, function()
+      -- Notify Cody that configuration has changed
+      require("sg.cody.rpc").config_did_change()
+    end)
+  else
+    require("sg.cody.rpc").config_did_change()
   end
-
-  assert(opts.token, "[sg-cody] Nvim auth must have a token")
-  assert(opts.endpoint, "[sg-cody] Nvim auth must have an endpoint")
-
-  local cody_data = data.get_cody_data()
-  cody_data.token = opts.token
-  cody_data.endpoint = opts.endpoint
-  data.write_cody_data(cody_data)
-end
-
-M.__docs = function()
-  local result = {}
-  for _, strat in ipairs(config.auth_strategy) do
-    local obj = M.strategies[strat]
-
-    table.insert(result, string.format('Auth Strategy: `"%s"`<br>', strat))
-    table.insert(result, "  " .. obj.doc .. "<br>")
-    table.insert(result, "<br>")
-  end
-
-  return result
 end
 
 return M
