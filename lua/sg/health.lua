@@ -1,3 +1,6 @@
+-- Just make sure request has started
+require("sg.request").start()
+
 local M = {}
 
 local blocking = require("sg.utils").blocking
@@ -57,8 +60,8 @@ local report_env = function()
 
   local creds = auth.get()
   if not creds then
-    vim.health.error "No valid auth strategy detected. See `:help sg` for more info."
-    ok = false
+    vim.health.error "No valid auth strategy detected. See ':help sg' for more info."
+    return false
   else
     assert(creds, "must have valid credentials")
 
@@ -67,9 +70,9 @@ local report_env = function()
   end
 
   local err, info = blocking(require("sg.rpc").get_info)
-  info = info or {}
   local expected_cargo_version = require "sg.private.cargo_version"
-  if err then
+  if err or not info then
+    ok = false
   elseif expected_cargo_version ~= info.sg_nvim_version then
     vim.health.error "Mismatched cargo and expected version. Update using :SourcegraphDownloadBinaries or :SourcegraphBuild"
     vim.health.error(string.format("Exptected: %s | Found: %s", expected_cargo_version, info.sg_nvim_version))
@@ -144,8 +147,12 @@ local report_agent = function()
 end
 
 local report_cody_account = function()
+  if not require("sg.auth").get() then
+    vim.health.error "Cannot check Cody Status, not logged in"
+    return false
+  end
   local err, user_info = blocking(require("sg.rpc").get_user_info)
-  if err then
+  if err or not user_info then
     vim.health.error(string.format("Cody Auth Failed: %s", vim.inspect(err)))
     return false
   end

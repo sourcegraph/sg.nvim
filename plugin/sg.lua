@@ -62,8 +62,7 @@ vim.api.nvim_create_user_command("SourcegraphLogin", function(command)
 
   if endpoint == "https://sourcegraph.com/" then
     local port = 52068
-    -- TODO: Change to NEOVIM when that goes live
-    local editor = "JETBRAINS"
+    local editor = "NEOVIM"
     local redirect = string.format("user/settings/tokens/new/callback?requestFrom=%s-%s", editor, port)
 
     require("sg.rpc").dotcom_login(port, function(err, _)
@@ -82,6 +81,23 @@ vim.api.nvim_create_user_command("SourcegraphLogin", function(command)
 end, {
   desc = "Login and store credentials for later use (an alternative to using environment variables). Use <bang> to store a password",
   bang = true,
+})
+
+---@command SourcegraphClear [[
+--- Remove Sourcegraph Login information
+---@command ]]
+vim.api.nvim_create_user_command("SourcegraphClear", function()
+  return require("sg.rpc").get_auth({
+    clear = true,
+  }, function(err)
+    if err then
+      vim.notify(string.format("[cody] Failed to update auth: %s", vim.inspect(err)))
+    else
+      vim.notify "[cody] Cleared Sourcegraph Auth Information"
+    end
+  end)
+end, {
+  desc = "Clears stored sourcegraph credentials",
 })
 
 ---@command SourcegraphBuild [[

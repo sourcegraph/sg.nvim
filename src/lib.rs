@@ -125,6 +125,8 @@ pub async fn get_file_contents(remote: &str, commit: &str, path: &str) -> Result
 }
 
 pub async fn get_sourcegraph_version() -> Result<SourcegraphVersion> {
+    auth::get_access_token().ok_or(anyhow::anyhow!("No user token. Login first"))?;
+
     wrap_request!(sg_gql::sourcegraph_version, Variables {})
 }
 
@@ -250,5 +252,9 @@ pub async fn get_search(query: String) -> Result<Vec<SearchResult>> {
 }
 
 pub async fn get_user_info() -> Result<UserInfo> {
-    wrap_request!(sg_gql::user, Variables {})
+    let token = auth::get_access_token();
+    match token {
+        Some(_) => wrap_request!(sg_gql::user, Variables {}),
+        None => Err(anyhow::anyhow!("No user information. Must log in first")),
+    }
 }

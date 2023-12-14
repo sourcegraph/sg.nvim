@@ -202,6 +202,7 @@ pub enum RequestData {
     SourcegraphAuth {
         endpoint: Option<String>,
         token: Option<SecretString>,
+        clear: bool,
     },
 
     #[serde(rename = "sourcegraph/dotcom_login")]
@@ -362,15 +363,23 @@ impl Request {
                     ResponseData::SourcegraphUserInfo(user_info),
                 ))
             }
-            RequestData::SourcegraphAuth { endpoint, token } => {
+            RequestData::SourcegraphAuth {
+                endpoint,
+                token,
+                clear,
+            } => {
                 use crate::auth;
 
-                let credentials = CodyCredentials {
-                    endpoint,
-                    token: token.map(|t| t.0),
-                };
-                if credentials.token.is_some() || credentials.endpoint.is_some() {
-                    auth::set_credentials(credentials)?;
+                if clear {
+                    auth::set_credentials(CodyCredentials::default())?;
+                } else {
+                    let credentials = CodyCredentials {
+                        endpoint,
+                        token: token.map(|t| t.0),
+                    };
+                    if credentials.token.is_some() || credentials.endpoint.is_some() {
+                        auth::set_credentials(credentials)?;
+                    }
                 }
 
                 Ok(Response::new(

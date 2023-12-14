@@ -81,10 +81,6 @@ M.download = function()
   --    so we need to vim.wait for them.
   vim.notify "[sg] Starting to download binaries..."
 
-  -- TODO: Windows
-  --    Check that we have curl
-  --    Check what to do to zip
-
   local curl = system({ "curl", link, "-L", "-o", tarfile }):wait()
   if curl.code ~= 0 then
     error("Failed to execute downloading release" .. vim.inspect(curl))

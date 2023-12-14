@@ -5,7 +5,7 @@ use {
     std::sync::Mutex,
 };
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Default)]
 pub struct CodyCredentials {
     pub endpoint: Option<String>,
     pub token: Option<String>,
