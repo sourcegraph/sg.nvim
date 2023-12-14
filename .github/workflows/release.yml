@@ -157,6 +157,12 @@ jobs:
           submodules: recursive
       - name: Install cargo-dist
         run: "curl --proto '=https' --tlsv1.2 -LsSf https://github.com/axodotdev/cargo-dist/releases/download/v0.5.0/cargo-dist-installer.sh | sh"
+      - name: Add aarch64 target
+        if: matrix.runner == 'ubuntu-20.04'
+        run: "rustup target add aarch64-unknown-linux-gnu"
+      - name: Install cross-compiling tools
+        if: matrix.runner == 'ubuntu-20.04'
+        run: "sudo apt update && sudo apt install gcc-aarch64-linux-gnu g++-aarch64-linux-gnu"
       # Get all the local artifacts for the global tasks to use (for e.g. checksums)
       - name: Fetch local artifacts
         uses: actions/download-artifact@v3
