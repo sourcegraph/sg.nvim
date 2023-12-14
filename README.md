@@ -12,11 +12,12 @@ sg.nvim is a plugin focused on bringing many of the features of sourcegraph.com 
 
 ## Setup
 
-To Log In, either:
+To login, either:
 
 - Run `:SourcegraphLogin` after following installation instructions for `sourcegraph.com` usage.
+- Run `:SourcegraphLogin!` and provide an endpoint and access token to be stored.
 - Use the `SRC_ENDPOINT` and `SRC_ACCESS_TOKEN` environment variables to manage tokens for enterprise usage.
-  - See :[src-cli](https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance) for more info
+  - See [src-cli](https://github.com/sourcegraph/src-cli#log-into-your-sourcegraph-instance) for more info
 
 See `:help sg.auth` for more information.
 
