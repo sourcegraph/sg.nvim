@@ -46,15 +46,32 @@ sg.config                                                          *sg.config*
 
 
   Configuration Options: ~
-    {enable_cody}         (boolean?)   Enable/disable cody integration
-    {download_binaries}   (boolean?)   Default true, download latest release
-                                       from Github
-    {node_executable}     (string?)    path to node executable
-    {cody_agent}          (string?)    path to the cody-agent js bundle
-    {did_change_debounce} (number?)    Number of ms to debounce changes
-    {on_attach}           (function?)  function to run when attaching to
-                                       sg://<file> buffers
+    {enable_cody}       (boolean?)   Enable/disable cody integration
+    {accept_tos}        (boolean?)   Accept the TOS without being prompted
+    {download_binaries} (boolean?)   Default true, download latest release
+                                     from Github
+    {node_executable}   (string?)    path to node executable
+    {cody_agent}        (string?)    path to the cody-agent js bundle
+    {on_attach}         (function?)  function to run when attaching to
+                                     sg://<file> buffers
 
+
+
+================================================================================
+UPGRADE                                                             *sg.upgrade*
+
+Cody has two tiers of usage currently available. To see up-to-date information
+about rate-limiting and usage guidelines, see:
+- Cody Dashboard: https://sourcegraph.com/cody/manage
+- Manage your subscription: https://sourcegraph.com/cody/subscription
+
+- The default version is the Cody Free version.
+- The Cody Pro version has higher rate limits for both chat and code
+  completions.
+
+Any questions about accounts or about what might be spurious ratelimiting,
+please reach out to Sourcegraph at:
+- https://sourcegraph.com/community
 
 
 ================================================================================
@@ -63,8 +80,16 @@ AUTH                                                                   *sg.auth*
 How to manage authentication for Sourcegraph within Neovim (both for Cody and
 for Sourcegraph)
 
+To manage your sourcegraph account, visit:
+    - https://sourcegraph.com/cody/manage
+
 Use SRC_ENDPOINT and SRC_ACCESS_TOKEN environment variables to manually
 override previous configuration.
+
+If you're not using the environment variables, then you may need to
+authenticate when accessing the variables on startup. If you prefer to not have
+this behavior, then you should load the environment variables into the
+environment before opening neovim.
 
 Otherwise use |:SourcegraphLogin| to set up authentication.
 
@@ -109,10 +134,6 @@ Default commands for interacting with Cody
                                                                    *:CodyTask*
 :CodyTask {task_description} ~
     Instruct Cody to perform a task on selected text.
-
-                                                                     *:CodyDo*
-:CodyDo ~
-    @deprecated DEPRECATED. Use CodyTask.
 
                                                                *:CodyTaskView*
 :CodyTaskView ~
@@ -265,6 +286,12 @@ Default commands for interacting with Sourcegraph
     Get prompted for endpoint and access_token if you don't want to set them
     via environment variables.
 
+    For enterprise instances, the only currently supported method is
+    environment variables.
+
+    If you want to force a particular endpoint + access token combination to be
+    saved, use :SourcegraphLogin! and then follow the prompts.
+
                                                            *:SourcegraphBuild*
 :SourcegraphBuild ~
     Rebuild the Sourcegraph crates and required dependencies (in case build
@@ -316,6 +343,26 @@ rpc.repository({name})                                   *sg.rpc.repository()*
     Return: ~
         string?: The error, if any
         string?: The repository ID, if found
+
+
+rpc.get_entry({path}, {callback})                         *sg.rpc.get_entry()*
+    Get an SgEntry based on a path
+
+
+    Parameters: ~
+        {path}     (string)
+        {callback} (fun(err: string?, entry: SgEntry?))
+
+
+rpc.get_file_contents({remote}, {oid}, {path}, {callback}) *sg.rpc.get_file_contents()*
+    Get file contents for a sourcegraph file
+
+
+    Parameters: ~
+        {remote}   (string)
+        {oid}      (string)
+        {path}     (string)
+        {callback} (fun(err: string?, contents: string[]?))  nil
 
 
 rpc.get_directory_contents({remote}, {oid}, {path}) *sg.rpc.get_directory_contents()*
