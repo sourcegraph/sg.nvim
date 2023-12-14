@@ -57,42 +57,46 @@ end
 -- Probably will break on me unexpectedly. Nice
 utils.system = vim.system or (require "sg.vendored.vim-system")
 
-utils.open = vim.ui.open
-  or function(path)
-    vim.validate {
-      path = { path, "string" },
-    }
-    local is_uri = path:match "%w+:"
-    if not is_uri then
-      path = vim.fn.expand(path)
-    end
-
-    local cmd
-
-    if vim.fn.has "mac" == 1 then
-      cmd = { "open", path }
-    elseif vim.fn.has "win32" == 1 then
-      if vim.fn.executable "rundll32" == 1 then
-        cmd = { "rundll32", "url.dll,FileProtocolHandler", path }
-      else
-        return nil, "vim.ui.open: rundll32 not found"
+utils.open = function(...)
+  local open = vim.ui.open
+    or function(path)
+      vim.validate {
+        path = { path, "string" },
+      }
+      local is_uri = path:match "%w+:"
+      if not is_uri then
+        path = vim.fn.expand(path)
       end
-    elseif vim.fn.executable "wslview" == 1 then
-      cmd = { "wslview", path }
-    elseif vim.fn.executable "xdg-open" == 1 then
-      cmd = { "xdg-open", path }
-    else
-      return nil, "vim.ui.open: no handler found (tried: wslview, xdg-open)"
+
+      local cmd
+
+      if vim.fn.has "mac" == 1 then
+        cmd = { "open", path }
+      elseif vim.fn.has "win32" == 1 then
+        if vim.fn.executable "rundll32" == 1 then
+          cmd = { "rundll32", "url.dll,FileProtocolHandler", path }
+        else
+          return nil, "vim.ui.open: rundll32 not found"
+        end
+      elseif vim.fn.executable "wslview" == 1 then
+        cmd = { "wslview", path }
+      elseif vim.fn.executable "xdg-open" == 1 then
+        cmd = { "xdg-open", path }
+      else
+        return nil, "vim.ui.open: no handler found (tried: wslview, xdg-open)"
+      end
+
+      local rv = utils.system(cmd, { text = true, detach = true }):wait()
+      if rv.code ~= 0 then
+        local msg = ("vim.ui.open: command failed (%d): %s"):format(rv.code, vim.inspect(cmd))
+        return rv, msg
+      end
+
+      return rv, nil
     end
 
-    local rv = utils.system(cmd, { text = true, detach = true }):wait()
-    if rv.code ~= 0 then
-      local msg = ("vim.ui.open: command failed (%d): %s"):format(rv.code, vim.inspect(cmd))
-      return rv, msg
-    end
-
-    return rv, nil
-  end
+  open(...)
+end
 
 -- From https://gist.github.com/jrus/3197011
 utils.uuid = function()
