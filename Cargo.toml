@@ -61,7 +61,8 @@ targets = ["aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu", "aarch64-app
 # Publish jobs to run in CI
 pr-run-mode = "plan"
 # Skip checking whether the specified configuration files are up to date
-allow-dirty = ["ci"]
+# allow-dirty = ["ci"]
+allow-dirty = []
 
 # The profile that 'cargo dist' will build with
 [profile.dist]
