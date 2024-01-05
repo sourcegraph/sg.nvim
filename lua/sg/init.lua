@@ -18,6 +18,10 @@
 
 local M = {}
 
+-- Private var to determine if setup has been called.
+-- Primarily usesful for health checks and reporting information to users
+M._setup_has_been_called = false
+
 --- Setup sourcegraph
 ---@param opts sg.config
 M.setup = function(opts)
@@ -34,6 +38,8 @@ M.setup = function(opts)
   require("sg.request").start()
   require("sg.cody.plugin.agent").setup(config)
   require("sg.cody.plugin.commands").setup(config)
+
+  M._setup_has_been_called = true
 end
 
 return M

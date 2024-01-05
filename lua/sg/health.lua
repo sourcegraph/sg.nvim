@@ -6,11 +6,11 @@ local M = {}
 local blocking = require("sg.utils").blocking
 
 local report_nvim = function()
-  if vim.version.cmp(vim.version(), { 0, 9, 0 }) >= 0 then
-    vim.health.ok(string.format("Valid nvim version: %s", vim.version()))
+  if vim.version.cmp(vim.version(), { 0, 9, 4 }) >= 0 then
+    vim.health.ok(string.format("Valid nvim version: %s", tostring(vim.version())))
     return true
   else
-    vim.health.error "Invalid nvim version. Upgrade to at least 0.9.0"
+    vim.health.error "Invalid nvim version. Upgrade to at least 0.9.4"
     return false
   end
 end
@@ -173,7 +173,17 @@ M.check = function()
   local uname = vim.loop.os_uname()
   vim.health.info(string.format("Machine: %s, sysname: %s", uname.machine, uname.sysname))
 
-  ok = report_nvim() and ok
+  if not report_nvim() then
+    vim.health.error "Invalid nvim version. Upgrade to at least 0.9.4 or nightly"
+    return
+  end
+
+  if not require("sg")._setup_has_been_called then
+    vim.health.error "sg.nvim has not been setup. See ':help sg' for more info."
+    vim.health.error "Run `require('sg').setup()` somewhere in your configuration"
+    return
+  end
+
   ok = report_lib() and ok
   ok = report_nvim_agent() and ok
   ok = report_agent() and ok
