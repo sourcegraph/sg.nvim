@@ -184,8 +184,10 @@ pub enum RequestData {
     #[serde(rename = "sourcegraph/link")]
     SourcegraphLink {
         path: String,
-        line: usize,
-        col: usize,
+        start_line: usize,
+        start_col: usize,
+        end_line: usize,
+        end_col: usize,
     },
 
     #[serde(rename = "sourcegraph/get_remote_url")]
@@ -320,14 +322,29 @@ impl Request {
 
                 Ok(Response::new(id, ResponseData::SourcegraphInfo(value)))
             }
-            RequestData::SourcegraphLink { path, line, col } => {
+            RequestData::SourcegraphLink {
+                path,
+                start_line,
+                start_col,
+                end_line,
+                end_col,
+            } => {
                 let link = match Entry::new(&path).await? {
                     Entry::File(file) => {
                         let endpoint = get_endpoint();
                         let remote = file.remote.0;
                         let path = file.path;
 
-                        format!("{endpoint}/{remote}/-/blob/{path}?L{line}:{col}")
+                        let prefix = format!("{endpoint}/{remote}/-/blob/{path}");
+                        if start_line == end_line && start_col == end_col {
+                            if start_col == 0 {
+                                format!("{prefix}?L{start_line}")
+                            } else {
+                                format!("{prefix}?L{start_line}:{start_col}")
+                            }
+                        } else {
+                            format!("{prefix}?L{start_line}:{start_col}-{end_line}:{end_col}")
+                        }
                     }
                     Entry::Directory(dir) => {
                         let endpoint = get_endpoint();
