@@ -51,11 +51,11 @@ vim.api.nvim_create_user_command("SourcegraphLogin", function(command)
         endpoint = endpoint,
         token = token,
         clear = token == "",
-      }, function(err, data)
+      }, function(err)
         if err then
           vim.notify(string.format("[cody] Failed to update auth: %s", vim.inspect(err)))
         else
-          vim.notify(string.format("[cody] Updated Sourcegraph Auth Information. New endpoint: %s", data.endpoint))
+          vim.notify "[cody] Updated Sourcegraph Auth Information. Please restart nvim."
         end
       end)
     end

@@ -29,7 +29,7 @@ pub async fn request(
             Ok(UserInfo {
                 id: user.id,
                 username: user.username,
-                cody_pro_enabled: user.cody_pro_enabled,
+                cody_pro_enabled: false,
                 code_usage: None,
                 code_limit: None,
                 chat_usage: None,
