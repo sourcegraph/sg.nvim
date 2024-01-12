@@ -59,6 +59,42 @@ commands.CodyAsk = {
   { range = 2, nargs = 1 },
 }
 
+---@command :CodyExplain [[
+--- Ask a question about the current selection.
+---
+--- Use from visual mode to pass the current selection
+---@command ]]
+commands.CodyExplain = {
+  function(command)
+    local proto = require "sg.cody.protocol"
+
+    if command.range == 0 then
+      cody_commands.ask(command.args)
+    else
+      local bufnr = vim.api.nvim_get_current_buf()
+      require("sg.cody.rpc").notify(
+        "textDocument/didChange",
+        proto.get_text_document(bufnr, {
+          content = true,
+          selection = {
+            start = {
+              line = command.line1 - 1,
+              character = 0,
+            },
+            ["end"] = {
+              line = command.line2,
+              character = 0,
+            },
+          },
+        })
+      )
+      -- cody_commands.ask_range(bufnr, command.line1 - 1, command.line2, command.args)
+      require("sg.cody.rpc").command.explain(function() end)
+    end
+  end,
+  { range = 2 },
+}
+
 ---@command :CodyChat{!} {title} [[
 --- State a new cody chat, with an optional {title}
 ---

@@ -1,20 +1,21 @@
 local CodyPrompt = require "sg.components.cody_prompt"
 local CodyHistory = require "sg.components.cody_history"
 local Message = require "sg.cody.message"
-local Speaker = require "sg.cody.speaker"
+local CodySpeaker = require("sg.types").CodySpeaker
 local State = require "sg.cody.state"
 
 ---@class CodyBaseLayoutOpts
----@field name string?
----@field reset boolean?
----@field code_only boolean?
----@field state CodyState?
----@field prompt CodyPromptOpts?
----@field history CodyHistoryOpts
+---@field id string: ID sent from cody-agent
+---@field name? string
+---@field reset? boolean
+---@field code_only? boolean
+---@field state? cody.State
+---@field prompt? CodyPromptOpts
+---@field history? CodyHistoryOpts
 
 ---@class CodyBaseLayout
 ---@field opts CodyBaseLayoutOpts
----@field state CodyState
+---@field state cody.State
 ---@field history CodyHistory
 ---@field prompt CodyPrompt?
 ---@field code_only boolean
@@ -28,11 +29,11 @@ Base.__index = Base
 function Base.init(opts)
   local state = opts.state
   if opts.reset then
-    state = State.init { name = opts.name, code_only = opts.code_only }
+    state = State.init { id = opts.id, name = opts.name, code_only = opts.code_only }
   else
     if not state then
       -- state = State.last() or State.init { name = opts.name }
-      state = State.init { name = opts.name, code_only = opts.code_only }
+      state = State.init { id = opts.id, name = opts.name, code_only = opts.code_only }
     end
   end
 
@@ -77,15 +78,8 @@ end
 ---@param contents string[]
 ---@return nil: Does not return. Executes async
 function Base:request_user_message(contents)
-  self.state:append(Message.init(Speaker.user, contents))
+  self.state:submit(Message.init(CodySpeaker.human, contents))
   self:show()
-  self:request_completion()
-end
-
---- Request a completion
----@return number: The id of the message to be completed
-function Base:request_completion()
-  error "Base:request_completion() is an abstract function"
 end
 
 function Base:create()
@@ -179,8 +173,7 @@ end
 
 --- Callback for running on submit
 function Base:on_submit(_, text)
-  self.state:append(Message.init(Speaker.user, text))
-  self:request_completion()
+  self.state:submit(Message.init(CodySpeaker.human, text))
 end
 
 function Base:set_keymaps()

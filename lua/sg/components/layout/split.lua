@@ -1,8 +1,3 @@
-local log = require "sg.log"
-
-local Message = require "sg.cody.message"
-local Speaker = require "sg.cody.speaker"
-
 local keymaps = require "sg.keymaps"
 local shared = require "sg.components.shared"
 local util = require "sg.utils"
@@ -11,7 +6,7 @@ local Base = require "sg.components.layout.base"
 
 ---@class CodyLayoutSplitOpts : CodyBaseLayoutOpts
 ---@field width number?
----@field state CodyState?
+---@field state cody.State?
 ---@field on_submit function?
 
 ---@class CodyLayoutSplit : CodyBaseLayout
@@ -64,6 +59,15 @@ function CodySplit.init(opts)
     vim.wo[prompt.win].winbar = "Cody Prompt%=%#Comment#(`?` for help)"
   end
 
+  local prompt_submit = opts.prompt.on_submit
+  opts.prompt.on_submit = function(bufnr, text)
+    if prompt_submit then
+      prompt_submit(bufnr, text)
+    end
+
+    vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, {})
+  end
+
   local object = Base.init(opts) --[[@as CodyLayoutSplit]]
 
   object.super = Base
@@ -105,37 +109,14 @@ function CodySplit:set_keymaps()
   with_history "<c-e>"
   with_history "<c-y>"
 
+  keymaps.map(self.prompt.bufnr, "n", "M", "[cody] show models", function()
+    require("sg.cody.rpc.chat").models(self.state.id, function(err, data)
+      print("MODELS:", vim.inspect(err), vim.inspect(data))
+    end)
+  end)
+
   keymaps.map(self.prompt.bufnr, "n", "?", "[cody] show keymaps", function()
     keymaps.help(self.prompt.bufnr)
-  end)
-end
-
----Returns the id of the message where the completion will go
----@return number
-function CodySplit:request_completion()
-  self:render()
-  vim.api.nvim_buf_set_lines(self.prompt.bufnr, 0, -1, false, {})
-
-  return self.state:complete(self.history.bufnr, self.history.win, function(id)
-    log.trace("requesting a completion", self.history.bufnr, self.history.win, id)
-
-    -- TODO: THis seems wrong...
-    return function(msg, err)
-      log.trace("received completion", err, msg)
-
-      if err then
-        vim.notify(vim.inspect(err))
-        return
-      end
-
-      if not msg then
-        self.state:mark_message_complete(id)
-        return
-      end
-
-      self.state:update_message(id, Message.init(Speaker.cody, vim.split(msg.text or "", "\n"), msg.contextFiles))
-      self:render()
-    end
   end)
 end
 

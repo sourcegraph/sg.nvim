@@ -2,7 +2,7 @@ use {
     crate::{
         auth::{get_access_token, get_endpoint, CodyCredentials},
         entry::{link, Entry},
-        get_cody_completions, get_embeddings_context, get_repository_id,
+        get_cody_completions, get_embeddings_context,
     },
     anyhow::Result,
     serde::{Deserialize, Serialize},
@@ -141,10 +141,6 @@ pub enum RequestData {
         temperature: Option<f64>,
     },
 
-    Repository {
-        name: String,
-    },
-
     Embedding {
         repo: String,
         query: String,
@@ -246,17 +242,6 @@ impl Request {
                 };
 
                 Ok(Response::new(id, ResponseData::Complete { completion }))
-            }
-            RequestData::Repository { name } => {
-                eprintln!("[sg-cody] repo: {id} {name}");
-                let repository = match get_repository_id(name).await {
-                    Ok(repo) => repo,
-                    Err(err) => {
-                        return Err(anyhow::anyhow!("failed to get repository: {err:?}"));
-                    }
-                };
-
-                Ok(Response::new(id, ResponseData::Repository { repository }))
             }
             RequestData::Embedding {
                 repo,
@@ -444,9 +429,6 @@ pub enum ResponseData {
     },
     Complete {
         completion: String,
-    },
-    Repository {
-        repository: String,
     },
     Embedding {
         embeddings: Vec<Embedding>,

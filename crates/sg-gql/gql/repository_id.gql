@@ -1,5 +1,0 @@
-query RepositoryIDQuery($name: String!) {
-  repository(name: $name) {
-    id
-  }
-}

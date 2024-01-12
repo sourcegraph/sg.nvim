@@ -55,6 +55,12 @@ local get_server_config = function(creds, remote_url)
         client = "NEOVIM_CODY_EXTENSION",
         source = "IDEEXTENSION",
       },
+      customConfiguration = {
+        -- ["cody.useContext"] = "keyword",
+        ["cody.experimental.symfContext"] = true,
+        -- ["cody.debug.enable"] = true,
+        -- ["cody.debug.verbose"] = true,
+      },
     },
     capabilities = {
       chat = "streaming",
@@ -104,6 +110,10 @@ M.start = function(opts, callback)
 
   ---@type {["chat/updateMessageInProgress"]: fun(noti: CodyChatUpdateMessageInProgressNoti?)}
   local notification_handlers = {
+    ["webview/postMessage"] = function(notification)
+      return require("sg.cody.rpc.webview").handle_post_message(notification)
+    end,
+
     ["debug/message"] = function(noti)
       log.debug("[cody-agent] debug:", noti.message)
     end,
@@ -127,6 +137,10 @@ M.start = function(opts, callback)
   }
 
   local server_handlers = {
+    ["webview/create"] = function(_, params)
+      vim.notify(string.format("WEBVIEW CREATE: %s", vim.inspect(params)))
+    end,
+
     ["showQuickPick"] = function(_, params)
       return function(respond)
         vim.ui.select(params, nil, function(selected)
@@ -246,8 +260,10 @@ end
 --- Send a request to cody
 ---@param method string
 ---@param params any
----@param callback fun(E, R)
+---@param callback? fun(E, R)
 M.request = function(method, params, callback)
+  callback = callback or function() end
+
   if not auth.get() then
     return callback("Invalid auth. Cannot complete cody requeest", nil)
   end
@@ -361,17 +377,14 @@ M.messages = _SG_CODY_RPC_MESSAGES
 
 M.execute = {}
 
---- List currently available messages
-M.execute.list_recipes = function(callback)
-  M.request("recipes/list", {}, callback)
-end
-
 --- Execute a chat question and get a streaming response
 ---@param message string
 ---@param callback CodyMessageHandler
 ---@return table | nil
 ---@return table | nil
 M.execute.chat_question = function(message, callback)
+  error "DO NOT USE CHAT QUESTION"
+
   local message_id = utils.uuid()
   M.message_callbacks[message_id] = callback
 
@@ -402,12 +415,13 @@ end
 --- Execute a code question and get a streaming response
 --- Returns only code (hopefully)
 ---@param message string
----@param callback CodyMessageHandler
 ---@return table | nil
 ---@return table | nil
-M.execute.code_question = function(message, callback)
+M.execute.code_question = function(message)
+  error "code_question"
+
   local message_id = utils.uuid()
-  M.message_callbacks[message_id] = callback
+  -- M.message_callbacks[message_id] = callback
 
   return M.request(
     "recipes/execute",
@@ -416,15 +430,15 @@ M.execute.code_question = function(message, callback)
       local ratelimit = require "sg.ratelimit"
       if ratelimit.is_ratelimit_err(err) then
         -- Notify user of error message
-        callback {
-          speaker = "cody",
-          text = err.message,
-          data = { id = message_id },
-        }
+        -- callback {
+        --   speaker = "cody",
+        --   text = err.message,
+        --   data = { id = message_id },
+        -- }
 
         -- Mark callback as "completed"
         ---@diagnostic disable-next-line: param-type-mismatch
-        callback(nil)
+        -- callback(nil)
 
         -- Set notification
         return ratelimit.notify_ratelimit "chat"
@@ -461,6 +475,12 @@ M.transcript = {}
 
 M.transcript.reset = function()
   return M.notify("transcript/reset", {})
+end
+
+M.command = {}
+
+M.command.explain = function(callback)
+  return M.request("commands/explain", {}, require("sg.cody.rpc.chat").make_chat({}, callback))
 end
 
 return M

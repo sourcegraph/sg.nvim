@@ -36,6 +36,8 @@ function CodyHistory:show()
 
   vim.api.nvim_buf_set_name(self.bufnr, string.format("Cody History (%d)", self.bufnr))
   vim.wo[self.win].foldmethod = "marker"
+  vim.wo[self.win].conceallevel = 3
+  vim.wo[self.win].concealcursor = "n"
 
   vim.bo[self.bufnr].filetype = self.opts.filetype or "markdown.cody_history"
 end

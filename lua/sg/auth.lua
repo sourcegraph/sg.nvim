@@ -30,6 +30,7 @@ local valid = function(s)
   return s and type(s) == "string" and s ~= ""
 end
 
+-- Initialize values from environment when possible
 local endpoint = vim.env.SRC_ENDPOINT
 local token = vim.env.SRC_ACCESS_TOKEN
 
@@ -53,6 +54,13 @@ M.set = function(new_endpoint, new_token, opts)
     error "endpoint and token must be valid strings"
   end
 
+  -- If we already have auth, then don't update from initialization
+  --    I think this is the logic you would want to have happen.
+  --    This makes sure existing env is the one that overrides
+  if opts.initialize and endpoint and token then
+    return
+  end
+
   vim.env.SRC_ENDPOINT = new_endpoint
   vim.env.SRC_ACCESS_TOKEN = new_token
 
@@ -60,7 +68,7 @@ M.set = function(new_endpoint, new_token, opts)
   endpoint = vim.env.SRC_ENDPOINT
   token = vim.env.SRC_ACCESS_TOKEN
 
-  if not opts.from_agent then
+  if not opts.initialize then
     -- Notify nvim-agent that the configuration has changed
     require("sg.rpc").get_auth({ endpoint = new_endpoint, token = new_token }, function()
       -- Notify Cody that configuration has changed

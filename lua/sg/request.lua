@@ -8,7 +8,7 @@ local M = {}
 local notification_handlers = {
   ["initialize"] = function(data)
     if data.endpoint and data.token then
-      require("sg.auth").set(data.endpoint, data.token, { from_agent = true })
+      require("sg.auth").set(data.endpoint, data.token, { initialize = true })
     end
   end,
 
@@ -75,16 +75,14 @@ M.start = function(opts)
   end
 
   -- Schedule getting the auth from neovim, if possible.
-  vim.schedule(function()
-    M.request("sourcegraph/auth", {}, function(err, data)
-      if err then
-        return
-      end
+  M.request("sourcegraph/auth", {}, function(err, data)
+    if err then
+      return
+    end
 
-      if data.endpoint and data.token then
-        require("sg.auth").set(data.endpoint, data.token)
-      end
-    end)
+    if data.endpoint and data.token then
+      require("sg.auth").set(data.endpoint, data.token)
+    end
   end)
 
   return M.client

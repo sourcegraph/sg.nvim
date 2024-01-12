@@ -25,7 +25,7 @@ proto.get_text_document = function(bufnr, opts)
 
   opts = opts or {}
   opts.content = if_nil(opts.content, true)
-  opts.selection = if_nil(opts.selection, false)
+  -- opts.selection = if_nil(opts.selection, false)
 
   -- TODO: We need to handle renames and some other goofy stuff like that
   local name = vim.api.nvim_buf_get_name(bufnr)
@@ -43,8 +43,9 @@ proto.get_text_document = function(bufnr, opts)
   end
 
   -- TODO:
-  -- if opts.selection then
-  -- end
+  if opts.selection then
+    text_document.selection = opts.selection
+  end
 
   return text_document
 end

@@ -9,9 +9,9 @@ local CodyFloat = require "sg.components.layout.float"
 local CodySplit = require "sg.components.layout.split"
 local CodyHover = require "sg.components.layout.hover"
 local Message = require "sg.cody.message"
-local Speaker = require "sg.cody.speaker"
 local State = require "sg.cody.state"
 local protocol = require "sg.cody.protocol"
+local CodySpeaker = require("sg.types").CodySpeaker
 
 local commands = {}
 
@@ -78,15 +78,17 @@ end
 --- Start a new CodyChat
 ---@param name string?
 ---@param opts { reset: boolean }?
----@return CodyLayoutSplit
 commands.chat = function(name, opts)
   opts = opts or {}
 
-  -- TODO: Config for this :)
-  local layout = CodySplit.init { name = name, reset = opts.reset }
-  layout:show()
-
-  return layout
+  require("sg.cody.rpc.chat").new({
+    name = name,
+    reset = opts.reset,
+  }, function(err)
+    if err then
+      vim.notify(err)
+    end
+  end)
 end
 
 --- Ask Cody to preform a task on the selected code.
@@ -126,25 +128,6 @@ commands.history = function()
       layout:show()
     end)
   end)
-end
-
---- Add context to an existing state
----@param start_line any
----@param end_line any
----@param state CodyState?
-commands.add_context = function(bufnr, start_line, end_line, state)
-  local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
-
-  local content = vim.tbl_flatten {
-    "Some additional context is:",
-    util.format_code(bufnr, selection),
-  }
-
-  -- TODO: We should be re-rendering when we see this happen
-  if not state then
-    state = State.last()
-  end
-  state:append(Message.init(Speaker.user, content, {}))
 end
 
 commands.toggle = function()

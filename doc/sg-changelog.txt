@@ -16,4 +16,19 @@ Large update relating to new Sourcegraph Authentication Strategies.
     - If they are not available, will prompt user to get new credentials via
       |:SourcegraphLogin| process
 
+================================================================================
+                                                       *cody.pro-trial-ending*
+
+You saw this message because your Cody Pro Trial is ending soon. 
+
+Setup your payment information to continue using Cody Pro,
+you won't be charged until February 15.
+
+Vist: https://accounts.sourcegraph.com/cody/subscription?on-trial=true
+
+To ignore this message, run: >
+     :CodyIgnoreNotification cody.pro-trial-ending
+<
+
+
  vim:tw=78:ts=8:ft=help:norl:

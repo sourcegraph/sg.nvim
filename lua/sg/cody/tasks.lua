@@ -1,12 +1,11 @@
 local keymaps = require "sg.keymaps"
 
 local CodyHover = require "sg.components.layout.hover"
-local Speaker = require "sg.cody.speaker"
+local CodySpeaker = require("sg.types").CodySpeaker
 local Message = require "sg.cody.message"
 local Mark = require "sg.mark"
 
 local ns = vim.api.nvim_create_namespace "sg-nvim-tasks"
-local task_store = {}
 
 ---@class CodyTask
 ---@field bufnr number: buffer where the task was created
@@ -29,6 +28,8 @@ CodyTask.__index = CodyTask
 ---@param opts CodyTaskOptions
 ---@return CodyTask
 CodyTask.init = function(opts)
+  error "NOT YET READY FOR CODY TASK"
+
   assert(opts.bufnr, "bufnr is required")
 
   -- A CodyTask should point to a very specific question and answer.
@@ -51,7 +52,7 @@ CodyTask.init = function(opts)
       code_ft = vim.bo[opts.bufnr].filetype,
     }
 
-  layout.state:append(Message.init(Speaker.user, vim.split(opts.task, "\n"), nil, {
+  layout.state:submit(Message.init(CodySpeaker.human, opts.task, {
     hidden = true,
   }))
 
