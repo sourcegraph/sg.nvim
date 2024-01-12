@@ -82,8 +82,15 @@ function rpc.get_info(callback)
 end
 
 --- Get info about current sourcegraph info
-function rpc.get_link(path, line, col, callback)
-  req("sourcegraph/link", { path = path, line = line, col = col }, callback)
+---@param path string
+---@param position { start_line: number, start_col: number, end_line: number, end_col: number }
+---@param callback any
+function rpc.get_link(path, position, callback)
+  ---@type table
+  local args = vim.deepcopy(position)
+  args.path = path
+
+  req("sourcegraph/link", args, callback)
 end
 
 function rpc.get_remote_url(path, callback)
