@@ -63,7 +63,7 @@ pub fn get_endpoint() -> String {
         .lock()
         .expect("to unlock endpoint")
         .clone()
-        .unwrap_or_else(|| "https://sourcegraph.com/".to_string())
+        .unwrap_or_else(|| "https://sourcegraph.com".to_string())
         .trim_end_matches('/')
         .to_string()
 }

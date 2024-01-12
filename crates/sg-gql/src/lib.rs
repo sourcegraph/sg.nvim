@@ -8,7 +8,9 @@ use {
 pub mod cody_completion;
 pub mod commit_oid;
 pub mod definition;
+pub mod dotcom_user;
 pub mod embeddings_context;
+pub mod enterprise_user;
 pub mod file;
 pub mod hover;
 pub mod list_files;
@@ -17,7 +19,6 @@ pub mod references;
 pub mod repository_id;
 pub mod search;
 pub mod sourcegraph_version;
-pub mod user;
 
 async fn post_graphql<Q: GraphQLQuery, U: reqwest::IntoUrl>(
     client: &reqwest::Client,

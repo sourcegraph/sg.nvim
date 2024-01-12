@@ -1,6 +1,6 @@
 use {
     anyhow::Result, graphql_client::GraphQLQuery, lsp_types::Location, once_cell::sync::Lazy,
-    regex::Regex, reqwest::Client, sg_gql::user::UserInfo, sg_types::*,
+    regex::Regex, reqwest::Client, sg_gql::dotcom_user::UserInfo, sg_types::*,
 };
 
 pub mod auth;
@@ -252,9 +252,11 @@ pub async fn get_search(query: String) -> Result<Vec<SearchResult>> {
 }
 
 pub async fn get_user_info() -> Result<UserInfo> {
+    let endpoint = auth::get_endpoint();
     let token = auth::get_access_token();
-    match token {
-        Some(_) => wrap_request!(sg_gql::user, Variables {}),
-        None => Err(anyhow::anyhow!("No user information. Must log in first")),
+    match (token, endpoint.as_str()) {
+        (None, _) => Err(anyhow::anyhow!("No user information. Must log in first")),
+        (Some(_), "https://sourcegraph.com") => wrap_request!(sg_gql::dotcom_user, Variables {}),
+        (Some(_), _) => wrap_request!(sg_gql::enterprise_user, Variables {}),
     }
 }

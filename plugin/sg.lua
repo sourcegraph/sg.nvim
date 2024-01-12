@@ -50,11 +50,12 @@ vim.api.nvim_create_user_command("SourcegraphLogin", function(command)
       return require("sg.rpc").get_auth({
         endpoint = endpoint,
         token = token,
-      }, function(err)
+        clear = token == "",
+      }, function(err, data)
         if err then
           vim.notify(string.format("[cody] Failed to update auth: %s", vim.inspect(err)))
         else
-          vim.notify "[cody] Updated Sourcegraph Auth Information"
+          vim.notify(string.format("[cody] Updated Sourcegraph Auth Information. New endpoint: %s", data.endpoint))
         end
       end)
     end

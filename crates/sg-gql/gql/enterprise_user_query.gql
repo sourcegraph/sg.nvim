@@ -1,0 +1,7 @@
+query EnterpriseUserQuery {
+  currentUser {
+    id
+    username
+    codyProEnabled
+  }
+}

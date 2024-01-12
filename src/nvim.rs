@@ -7,7 +7,7 @@ use {
     anyhow::Result,
     serde::{Deserialize, Serialize},
     serde_json::{json, Value},
-    sg_gql::user::UserInfo,
+    sg_gql::dotcom_user::UserInfo,
     sg_types::{Embedding, RecipeInfo, SearchResult},
     std::{thread, time::Duration},
     tokio::sync::mpsc::UnboundedSender,
@@ -394,6 +394,7 @@ impl Request {
                         endpoint,
                         token: token.map(|t| t.0),
                     };
+
                     if credentials.token.is_some() || credentials.endpoint.is_some() {
                         auth::set_credentials(credentials)?;
                     }

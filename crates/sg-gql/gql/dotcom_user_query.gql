@@ -1,4 +1,4 @@
-query UserQuery {
+query DotcomUserQuery {
   currentUser {
     id
     username

@@ -1,11 +1,6 @@
 use {
     anyhow::{Context, Result},
-    log::{info, LevelFilter},
-    log4rs::{
-        append::file::FileAppender,
-        config::{Appender, Config, Root},
-        encode::pattern::PatternEncoder,
-    },
+    log::info,
     lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response},
     lsp_types::{
         request::{GotoDefinition, HoverRequest, References},
@@ -13,7 +8,6 @@ use {
         ReferenceParams, ServerCapabilities,
     },
     serde::{Deserialize, Serialize},
-    std::path::Path,
 };
 
 mod sg_read {

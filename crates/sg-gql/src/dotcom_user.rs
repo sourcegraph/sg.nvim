@@ -6,13 +6,13 @@ pub(super) mod private {
     #[derive(GraphQLQuery)]
     #[graphql(
         schema_path = "gql/schema.gql",
-        query_path = "gql/user_query.gql",
+        query_path = "gql/dotcom_user_query.gql",
         response_derives = "Debug"
     )]
-    pub struct UserQuery;
+    pub struct DotcomUserQuery;
 }
 
-pub use private::{user_query::Variables, UserQuery as Query};
+pub use private::{dotcom_user_query::Variables, DotcomUserQuery as Query};
 use {
     anyhow::Context,
     serde::{Deserialize, Serialize},
