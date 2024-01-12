@@ -78,18 +78,22 @@ async fn main() -> Result<()> {
                         let url = Url::parse(&url).expect("to parse URL");
 
                         if let Some((_, token)) = url.query_pairs().find(|(k, _)| k == "token") {
-                            let response = tiny_http::Response::from_string(
-                                "Credentials have been saved to Neovim. Restart Neovim now.",
-                            );
+                            let response = match sg::auth::set_credentials(
+                                sg::auth::CodyCredentials {
+                                    endpoint: Some("https://sourcegraph.com/".to_string()),
+                                    token: Some(token.to_string()),
+                                },
+                            ) {
+                                Ok(_) => tiny_http::Response::from_string(
+                                    "Credentials have been saved to Neovim. Restart Neovim now.",
+                                ),
+                                Err(err) => tiny_http::Response::from_string(&format!(
+                                    "Failed to save credentials - Please report this error: {}",
+                                    err
+                                )),
+                            };
 
-                            // Ignore response errors
                             let _ = request.respond(response);
-
-                            sg::auth::set_credentials(sg::auth::CodyCredentials {
-                                endpoint: Some("https://sourcegraph.com/".to_string()),
-                                token: Some(token.to_string()),
-                            })
-                            .expect("to set credentials");
                         }
                     });
                 }
