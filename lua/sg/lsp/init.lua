@@ -43,6 +43,11 @@ M.get_client_id = function()
     return
   end
 
+  local src_headers = require("sg.config").src_headers
+  if not src_headers or src_headers == "" then
+    src_headers = nil
+  end
+
   ---@diagnostic disable-next-line: missing-fields
   local headers = require("sg.config").src_headers
   M._client = vim.lsp.start_client {
@@ -51,9 +56,7 @@ M.get_client_id = function()
     cmd_env = {
       SRC_ENDPOINT = auth.endpoint,
       SRC_ACCESS_TOKEN = auth.token,
-    },
-    settings = {
-      src_headers = headers,
+      SRC_HEADERS = src_headers and vim.json.encode(src_headers) or nil,
     },
     handlers = {
       -- For definitions, we need to preload the buffers so that we don't

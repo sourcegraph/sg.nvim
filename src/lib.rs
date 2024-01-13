@@ -1,6 +1,7 @@
 use {
     anyhow::Result, graphql_client::GraphQLQuery, lsp_types::Location, once_cell::sync::Lazy,
     regex::Regex, reqwest::Client, sg_gql::dotcom_user::UserInfo, sg_types::*,
+    std::collections::HashMap,
 };
 
 pub mod auth;
@@ -51,16 +52,38 @@ mod graphql {
 pub fn get_headers() -> reqwest::header::HeaderMap {
     use reqwest::header::*;
 
-    let mut x = HeaderMap::new();
+    let mut header_map = HeaderMap::new();
+
+    // Add same user agent as we do for Cody requests via node
+    header_map.insert(
+        USER_AGENT,
+        HeaderValue::from_static("Sourcegraph Cody Neovim Plugin"),
+    );
+
+    // Auth
     if let Some(sourcegraph_access_token) = auth::get_access_token() {
-        x.insert(
+        header_map.insert(
             AUTHORIZATION,
             HeaderValue::from_str(&format!("token {sourcegraph_access_token}"))
                 .expect("to make header"),
         );
     }
 
-    x
+    // If `SRC_HEADERS` is set, append these headers to the request.
+    if let Ok(src_headers) = std::env::var("SRC_HEADERS") {
+        if let Ok(headers) = serde_json::from_str::<HashMap<String, String>>(&src_headers) {
+            for (key, value) in headers {
+                let header = HeaderName::from_bytes(key.as_bytes());
+                let value = HeaderValue::from_str(&value);
+
+                if let (Ok(header), Ok(value)) = (header, value) {
+                    header_map.insert(header, value);
+                };
+            }
+        }
+    }
+
+    header_map
 }
 
 macro_rules! wrap_request {

@@ -43,6 +43,8 @@ M.start = function(opts)
     vim.wait(10)
   end
 
+  local src_headers = require("sg.config").src_headers
+
   -- Verify that the environment is properly configured
   M.client = lsp.start(bin_sg_nvim, {}, {
     notification = function(method, data)
@@ -66,7 +68,7 @@ M.start = function(opts)
       PATH = vim.env.PATH,
       SRC_ACCESS_TOKEN = vim.env.SRC_ACCESS_TOKEN,
       SRC_ENDPOINT = vim.env.SRC_ENDPOINT,
-      SRC_HEADERS = vim.json.encode(require("sg.config").src_headers),
+      SRC_HEADERS = src_headers and vim.json.encode(src_headers) or nil,
     },
   })
 

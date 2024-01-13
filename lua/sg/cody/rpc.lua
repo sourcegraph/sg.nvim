@@ -40,6 +40,12 @@ end
 --- Gets the server config
 ---@return CodyClientInfo
 local get_server_config = function(creds, remote_url)
+  -- Add any custom headers from user configuration
+  local custom_headers = { ["User-Agent"] = "Sourcegraph Cody Neovim Plugin" }
+  if config.src_headers then
+    custom_headers = vim.tbl_extend("error", custom_headers, config.src_headers)
+  end
+
   return {
     name = "neovim",
     version = require("sg.private.data").version,
@@ -48,7 +54,7 @@ local get_server_config = function(creds, remote_url)
       accessToken = creds.token,
       serverEndpoint = creds.endpoint,
       codebase = remote_url,
-      customHeaders = { ["User-Agent"] = "Sourcegraph Cody Neovim Plugin" },
+      customHeaders = custom_headers,
       eventProperties = {
         anonymousUserID = require("sg.private.data").get_cody_data().user,
         prefix = "CodyNeovimPlugin",
