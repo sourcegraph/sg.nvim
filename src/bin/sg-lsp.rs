@@ -172,9 +172,20 @@ async fn handle_sourcegraph_read(
     Ok(())
 }
 
+#[derive(Debug, Default, Deserialize, Serialize)]
+struct SgInitOptions {
+    headers: Option<String>,
+}
+
 async fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
-    let _params: InitializeParams = serde_json::from_value(params)?;
-    info!("Starting main loop...");
+    let params: InitializeParams = serde_json::from_value(params)?;
+    if let Some(options) = params.initialization_options.clone() {
+        // let options =
+        let options: SgInitOptions = serde_json::from_value(options).unwrap_or_default();
+    };
+
+    // let src_headers = serde_json::valu
+    info!("Starting main loop: {:?}", params);
 
     for msg in &connection.receiver {
         info!("got msg: {:?}", msg);

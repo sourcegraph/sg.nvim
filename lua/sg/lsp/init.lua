@@ -44,12 +44,16 @@ M.get_client_id = function()
   end
 
   ---@diagnostic disable-next-line: missing-fields
+  local headers = require("sg.config").src_headers
   M._client = vim.lsp.start_client {
     name = "sourcegraph",
     cmd = { cmd },
     cmd_env = {
       SRC_ENDPOINT = auth.endpoint,
       SRC_ACCESS_TOKEN = auth.token,
+    },
+    settings = {
+      src_headers = headers,
     },
     handlers = {
       -- For definitions, we need to preload the buffers so that we don't

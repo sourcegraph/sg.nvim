@@ -66,6 +66,7 @@ M.start = function(opts)
       PATH = vim.env.PATH,
       SRC_ACCESS_TOKEN = vim.env.SRC_ACCESS_TOKEN,
       SRC_ENDPOINT = vim.env.SRC_ENDPOINT,
+      SRC_HEADERS = vim.json.encode(require("sg.config").src_headers),
     },
   })
 

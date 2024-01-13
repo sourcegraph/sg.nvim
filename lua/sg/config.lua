@@ -24,6 +24,7 @@
 ---@field skip_node_check boolean?: Useful if using other js runtime
 ---@field cody_agent string?: path to the cody-agent js bundle
 ---@field on_attach function?: function to run when attaching to sg://<file> buffers
+---@field src_headers? table<string, string>: Headers to be sent with each sg request
 
 ---@type sg.config
 local config = {
