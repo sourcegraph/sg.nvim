@@ -11,6 +11,8 @@ if not ok then
   config = {}
 end
 
+config.accept_tos = true
+
 -- This is the default path of downloading binaries
 if config.download_binaries or config.download_binaries == nil then
   return require("sg.build").download()

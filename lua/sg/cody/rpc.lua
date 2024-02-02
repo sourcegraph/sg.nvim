@@ -94,10 +94,12 @@ M.start = function(opts, callback)
     M.client = nil
   end
 
-  local ok, reason = require("sg.utils").valid_node_executable(config.node_executable)
-  if not ok then
-    require("sg.notify").INVALID_NODE(reason)
-    return callback()
+  if not config.skip_node_check then
+    local ok, reason = require("sg.utils").valid_node_executable(config.node_executable)
+    if not ok then
+      require("sg.notify").INVALID_NODE(reason)
+      return callback()
+    end
   end
 
   ---@type {["chat/updateMessageInProgress"]: fun(noti: CodyChatUpdateMessageInProgressNoti?)}

@@ -100,45 +100,50 @@ end
 local report_agent = function()
   local config = require "sg.config"
 
-  local ok, reason = require("sg.utils").valid_node_executable(config.node_executable)
-  if not ok then
-    vim.health.error(string.format("Invalid node executable (%s): %s", config.node_executable, vim.inspect(reason)))
-    return false
-  end
-
-  if 1 ~= vim.fn.executable(config.node_executable) then
-    vim.health.error(string.format("config.node_executable (%s) not executable", config.node_executable))
-    return false
+  if config.skip_node_check then
+    vim.health.info(string.format("Skipped node check. Executable is: %s", config.node_executable))
   else
-    local result = require("sg.utils").system({ config.node_executable, "--version" }, { text = true }):wait()
-    if result.code ~= 0 then
-      vim.health.error(
-        string.format(
-          "config.node_executable (%s) failed to run `%s --version`",
-          config.node_executable,
-          config.node_executable
-        )
-      )
+    local ok, reason = require("sg.utils").valid_node_executable(config.node_executable)
+    if not ok then
+      vim.health.error(string.format("Invalid node executable (%s): %s", config.node_executable, vim.inspect(reason)))
+      return false
+    end
 
-      for _, msg in ipairs(vim.split(result.stdout, "\n")) do
-        vim.health.info(msg)
-      end
-      for _, msg in ipairs(vim.split(result.stderr, "\n")) do
-        vim.health.info(msg)
-      end
+    if 1 ~= vim.fn.executable(config.node_executable) then
+      vim.health.error(string.format("config.node_executable (%s) not executable", config.node_executable))
+      return false
     else
-      vim.health.ok(
-        string.format(
-          "Found `%s` (config.node_executable) is executable.\n    Version: '%s'",
-          config.node_executable,
-          reason
+      local result = require("sg.utils").system({ config.node_executable, "--version" }, { text = true }):wait()
+      if result.code ~= 0 then
+        vim.health.error(
+          string.format(
+            "config.node_executable (%s) failed to run `%s --version`",
+            config.node_executable,
+            config.node_executable
+          )
         )
-      )
+
+        for _, msg in ipairs(vim.split(result.stdout, "\n")) do
+          vim.health.info(msg)
+        end
+        for _, msg in ipairs(vim.split(result.stderr, "\n")) do
+          vim.health.info(msg)
+        end
+      else
+        vim.health.ok(
+          string.format(
+            "Found `%s` (config.node_executable) is executable.\n    Version: '%s'",
+            config.node_executable,
+            reason
+          )
+        )
+      end
     end
   end
 
   if not config.cody_agent then
     vim.health.error "Unable to find cody_agent `cody-agent.js` file"
+    return false
   else
     vim.health.ok(string.format("Found `cody-agent`: %s", config.cody_agent))
   end
