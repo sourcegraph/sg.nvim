@@ -21,6 +21,7 @@
 ---@field accept_tos boolean?: Accept the TOS without being prompted
 ---@field download_binaries boolean?: Default true, download latest release from Github
 ---@field node_executable string?: path to node executable
+---@field skip_node_check boolean?: Useful if using other js runtime
 ---@field cody_agent string?: path to the cody-agent js bundle
 ---@field on_attach function?: function to run when attaching to sg://<file> buffers
 
@@ -29,6 +30,7 @@ local config = {
   enable_cody = true,
   download_binaries = true,
   node_executable = "node",
+  skip_node_check = false,
   cody_agent = vim.api.nvim_get_runtime_file("dist/cody-agent.js", false)[1],
 
   get_nvim_agent = function()
