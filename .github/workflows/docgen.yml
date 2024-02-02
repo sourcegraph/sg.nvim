@@ -62,7 +62,6 @@ jobs:
 
       - name: Generating docs
         run: |
-          nvim --version
           nvim -l scripts/gendocs.lua
 
       # inspired by nvim-lspconfigs
