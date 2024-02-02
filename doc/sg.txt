@@ -52,6 +52,7 @@ sg.config                                                          *sg.config*
     {download_binaries} (boolean?)   Default true, download latest release
                                      from Github
     {node_executable}   (string?)    path to node executable
+    {skip_node_check}   (boolean?)   Useful if using other js runtime
     {cody_agent}        (string?)    path to the cody-agent js bundle
     {on_attach}         (function?)  function to run when attaching to
                                      sg://<file> buffers
@@ -293,6 +294,10 @@ Default commands for interacting with Sourcegraph
     If you want to force a particular endpoint + access token combination to be
     saved, use :SourcegraphLogin! and then follow the prompts.
 
+                                                           *:SourcegraphClear*
+:SourcegraphClear ~
+    Remove Sourcegraph Login information
+
                                                            *:SourcegraphBuild*
 :SourcegraphBuild ~
     Rebuild the Sourcegraph crates and required dependencies (in case build
@@ -394,9 +399,14 @@ rpc.get_info()                                             *sg.rpc.get_info()*
 
 
 
-rpc.get_link()                                             *sg.rpc.get_link()*
+rpc.get_link({path}, {position}, {callback})               *sg.rpc.get_link()*
     Get info about current sourcegraph info
 
+
+    Parameters: ~
+        {path}     (string)
+        {position} ({ start_line: number, start_col: number, end_line: number, end_col: number })
+        {callback} (any)
 
 
 
