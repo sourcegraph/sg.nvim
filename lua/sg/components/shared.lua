@@ -35,7 +35,7 @@ shared.calculate_width = function(width)
   if type(width) == "string" then
     error "i'll do this later"
   elseif width > 1 then
-    return width
+    return math.floor(width)
   else
     return math.floor(width * vim.o.columns)
   end
@@ -68,6 +68,7 @@ shared.make_win_minimal = function(win)
     list = false,
     signcolumn = "auto",
     wrap = true,
+    winhighlight = "Normal:Normal,FloatBorder:Normal",
   }
 
   for key, value in pairs(options) do

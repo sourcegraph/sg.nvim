@@ -88,8 +88,7 @@ commands.CodyExplain = {
           },
         })
       )
-      -- cody_commands.ask_range(bufnr, command.line1 - 1, command.line2, command.args)
-      require("sg.cody.rpc").command.explain(function() end)
+      cody_commands.ask_range(bufnr, command.line1 - 1, command.line2, command.args)
     end
   end,
   { range = 2 },
@@ -107,7 +106,7 @@ commands.CodyChat = {
       name = table.concat(command.fargs, " ")
     end
 
-    cody_commands.chat(name, { reset = command.bang })
+    cody_commands.chat(command.bang, { name = name })
   end,
   { nargs = "*", bang = true },
 }
@@ -267,14 +266,5 @@ M.setup = function(config)
 end
 
 M.tasks = {}
-
--- TODO: This isn't ready yet, but we should explore how to expose this
--- ---@command CodyRecipes [[
--- --- Use cody recipes on a selection
--- ---@command ]]
--- vim.api.nvim_create_user_command("CodyRecipes", function(command)
---   local bufnr = vim.api.nvim_get_current_buf()
---   cody_commands.recipes(bufnr, command.line1 - 1, command.line2)
--- end, { range = 2 })
 
 return M

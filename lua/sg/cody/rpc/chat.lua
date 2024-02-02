@@ -1,5 +1,6 @@
 local log = require "sg.log"
 local rpc = require "sg.cody.rpc"
+local shared = require "sg.components.shared"
 
 local CodySpeaker = require("sg.types").CodySpeaker
 local Mark = require "sg.mark"
@@ -7,17 +8,33 @@ local Message = require "sg.cody.message"
 local Transcript = require "sg.cody.transcript"
 local Typewriter = require "sg.components.typewriter"
 
+---@type cody.Chat?
+local last_chat = nil
+
 ---@class cody.ChatOpts
 ---@field id string: ID sent from cody-agent
 ---@field name? string
+---@field model? string: The name of the model to set for the conversation
+---@field window_type? "float" | "split"
+---@field window_opts? { width: number, height: number, split_cmd: string? }
+
+---@class cody.ChatWindows
+---@field prompt_bufnr number
+---@field prompt_win number
+---@field history_bufnr number
+---@field history_win number
+---@field settings_bufnr number?
+---@field settings_win number?
 
 ---@class cody.Chat
 ---@field id string: chat ID (from cody-agent)
 ---@field name string
 ---@field transcript sg.cody.Transcript
 ---@field models cody.ChatModelProvider[]
----@field windows table
+---@field current_model string
+---@field windows cody.ChatWindows
 ---@field config cody.ExtensionMessage.config?
+---@field opts cody.ChatOpts
 local Chat = {}
 Chat.__index = Chat
 
@@ -25,17 +42,36 @@ Chat.__index = Chat
 ---@param opts cody.ChatOpts
 ---@return cody.Chat
 function Chat.init(opts)
-  local windows = Chat._make_windows()
+  opts.window_type = opts.window_type or "float"
+  if opts.window_type == "split" then
+    opts.window_opts = opts.window_opts or { width = 0.4 }
+  else
+    opts.window_opts = opts.window_opts or { width = 0.9, height = 0.8 }
+  end
+
+  local windows = Chat._make_windows(opts)
 
   local self = setmetatable({
     id = assert(opts.id, "[cody.state] must pass an ID"),
     name = opts.name or opts.id,
+    opts = opts,
     windows = windows,
+    current_model = nil,
     transcript = nil,
     config = nil,
   }, Chat)
 
   self:_add_prompt_keymaps()
+
+  return self
+end
+
+function Chat:reopen()
+  local windows = Chat._make_windows(self.opts)
+  self.windows = windows
+
+  self:_add_prompt_keymaps()
+  self:render()
 
   return self
 end
@@ -51,16 +87,21 @@ function Chat:_add_prompt_keymaps()
   -- stylua: ignore end
 
   set("n", "<space>m", function()
-    rpc.request("chat/submitMessage", {
+    rpc.request("webview/receiveMessage", {
       id = self.id,
       message = {
         command = "chatModel",
         model = "openai/gpt-4-1106-preview",
       },
     }, function(err, data)
-      print(vim.inspect { err = err, data = data })
+      self:set_current_model "openai/gpt-4-1106-preview"
+      self:render()
     end)
   end)
+end
+
+function Chat:set_current_model(model)
+  self.current_model = model
 end
 
 function Chat:close()
@@ -114,6 +155,8 @@ function Chat:render()
     return
   end
 
+  last_chat = self
+
   -- Think these are the right ones
   local bufnr = self.windows.history_bufnr
   local win = self.windows.history_win
@@ -126,25 +169,33 @@ function Chat:render()
 
   local lines = {}
   if self.windows.settings_bufnr then
+    local status_fmt = "Status    : %s"
+    local model_fmt = "Chat Model: %s"
+
     if self.transcript then
       if self.transcript:is_message_in_progress() then
-        table.insert(lines, "status: In Progress")
+        table.insert(lines, string.format(status_fmt, "In Progress"))
       else
-        table.insert(lines, "status: Complete")
+        table.insert(lines, string.format(status_fmt, "Complete"))
       end
     else
-      table.insert(lines, "status: Not Started")
+      table.insert(lines, string.format(status_fmt, "Not Started"))
     end
 
-    if self.config then
+    if self.current_model then
+      table.insert(lines, string.format(model_fmt, self.current_model))
+    elseif self.models then
+      ---@type cody.ChatModelProvider
+      local default = vim.tbl_filter(function(model)
+        return model.default
+      end, self.models)[1]
+
+      table.insert(lines, string.format(model_fmt, default.model))
+    elseif self.config then
       table.insert(
         lines,
-        string.format("model: %s", self.config.authStatus.configOverwrites.chatModel)
+        string.format(model_fmt, self.config.authStatus.configOverwrites.chatModel)
       )
-    end
-
-    if self.models then
-      vim.list_extend(lines, vim.split(vim.inspect(self.models), "\n"))
     end
 
     vim.api.nvim_buf_set_lines(self.windows.settings_bufnr, 0, -1, false, lines)
@@ -209,7 +260,7 @@ function Chat:render()
 end
 
 function Chat:set_models(models)
-  self.models = models
+  self.models = models.models
   self:render()
 end
 
@@ -219,89 +270,135 @@ function Chat:set_config(config)
   self:render()
 end
 
-function Chat._make_windows()
-  local width = math.floor(vim.o.columns * 0.9)
-  local height = math.floor(vim.o.lines * 0.8)
+---@param opts cody.ChatOpts
+function Chat._make_windows(opts)
+  local win_opts = opts.window_opts
+  if opts.window_type == "float" then
+    local width = shared.calculate_width(win_opts.width)
+    local height = shared.calculate_height(win_opts.height)
 
-  local col = math.floor((vim.o.columns - width) / 2)
-  local row = math.floor((vim.o.lines - height) / 2) - 2
+    local col = math.floor((vim.o.columns - width) / 2)
+    local row = math.floor((vim.o.lines - height) / 2) - 2
 
-  local prompt_height = 5
-  local history_height = height - prompt_height
+    local prompt_height = 5
+    local history_height = height - prompt_height
 
-  local history_width = width
-  local prompt_width = width
-  local settings_width = 0
+    local history_width = width
+    local prompt_width = width
+    local settings_width = 0
 
-  if width > 50 then
-    settings_width = 50
-    prompt_width = width - settings_width - 2
-    history_width = prompt_width
-  end
+    if width > 50 then
+      settings_width = 50
+      prompt_width = width - settings_width - 2
+      history_width = prompt_width
+    end
 
-  ---@type vim.api.keyset.float_config
-  local history_opts = {
-    relative = "editor",
-    border = "rounded",
-    width = history_width,
-    height = history_height - 2,
-    style = "minimal",
-    row = row,
-    col = col,
-  }
-
-  local history_bufnr = vim.api.nvim_create_buf(false, true)
-  local history_win = vim.api.nvim_open_win(history_bufnr, true, history_opts)
-
-  local prompt_opts = {
-    relative = "editor",
-    border = "rounded",
-    width = prompt_width,
-    height = prompt_height,
-    style = "minimal",
-    row = row + history_height,
-    col = col,
-  }
-
-  local settings_win, settings_bufnr
-  if settings_width > 0 then
-    local settings_opts = {
+    ---@type vim.api.keyset.float_config
+    local history_opts = {
       relative = "editor",
       border = "rounded",
-      width = settings_width,
-      height = prompt_height + history_height,
+      width = history_width,
+      height = history_height - 2,
       style = "minimal",
       row = row,
-      col = col + prompt_width + 2,
+      col = col,
     }
 
-    settings_bufnr = vim.api.nvim_create_buf(false, true)
-    settings_win = vim.api.nvim_open_win(settings_bufnr, true, settings_opts)
+    local history_bufnr = vim.api.nvim_create_buf(false, true)
+    local history_win = vim.api.nvim_open_win(history_bufnr, true, history_opts)
+
+    shared.make_buf_minimal(history_bufnr)
+    shared.make_win_minimal(history_win)
+    vim.bo[history_bufnr].filetype = opts.filetype or "markdown.cody_prompt"
+
+    local prompt_opts = {
+      relative = "editor",
+      border = "rounded",
+      width = prompt_width,
+      height = prompt_height,
+      style = "minimal",
+      row = row + history_height,
+      col = col,
+    }
+
+    local settings_win, settings_bufnr
+    if settings_width > 0 then
+      local settings_opts = {
+        relative = "editor",
+        border = "rounded",
+        width = settings_width,
+        height = prompt_height + history_height,
+        style = "minimal",
+        row = row,
+        col = col + prompt_width + 2,
+      }
+
+      settings_bufnr = vim.api.nvim_create_buf(false, true)
+      settings_win = vim.api.nvim_open_win(settings_bufnr, true, settings_opts)
+
+      shared.make_buf_minimal(settings_bufnr)
+      shared.make_win_minimal(settings_win)
+    end
+
+    local prompt_bufnr = vim.api.nvim_create_buf(false, true)
+    local prompt_win = vim.api.nvim_open_win(prompt_bufnr, true, prompt_opts)
+    shared.make_buf_minimal(prompt_bufnr)
+    shared.make_win_minimal(prompt_win)
+
+    vim.api.nvim_create_autocmd("BufLeave", {
+      buffer = prompt_bufnr,
+      once = true,
+      callback = function()
+        vim.api.nvim_win_close(prompt_win, true)
+        vim.api.nvim_win_close(history_win, true)
+        if settings_win then
+          vim.api.nvim_win_close(settings_win, true)
+        end
+      end,
+    })
+
+    return {
+      prompt_bufnr = prompt_bufnr,
+      prompt_win = prompt_win,
+      history_bufnr = history_bufnr,
+      history_win = history_win,
+      settings_bufnr = settings_bufnr,
+      settings_win = settings_win,
+    }
+  else
+    vim.cmd(win_opts.split_cmd or "botright vnew")
+
+    local history_win = vim.api.nvim_get_current_win()
+    local history_bufnr = vim.api.nvim_get_current_buf()
+
+    local width = shared.calculate_width(win_opts.width)
+    vim.api.nvim_win_set_width(history_win, width)
+
+    shared.make_win_minimal(history_win)
+    shared.make_buf_minimal(history_bufnr)
+    vim.bo[history_bufnr].filetype = opts.filetype or "markdown.cody_prompt"
+
+    vim.wo[history_win].winbar = "%=Cody History%="
+
+    vim.cmd(win_opts.split_cmd or "below new")
+    local prompt_win = vim.api.nvim_get_current_win()
+    local prompt_bufnr = vim.api.nvim_get_current_buf()
+
+    vim.api.nvim_win_set_height(prompt_win, 6)
+    shared.make_win_minimal(prompt_win)
+    shared.make_buf_minimal(prompt_bufnr)
+
+    vim.wo[prompt_win].winbar = "Cody Prompt%=%#Comment#(`?` for help)"
+
+    return {
+      prompt_bufnr = prompt_bufnr,
+      prompt_win = prompt_win,
+      history_bufnr = history_bufnr,
+      history_win = history_win,
+      settings_bufnr = nil,
+      settings_win = nil,
+    }
   end
-
-  local prompt_bufnr = vim.api.nvim_create_buf(false, true)
-  local prompt_win = vim.api.nvim_open_win(prompt_bufnr, true, prompt_opts)
-
-  vim.api.nvim_create_autocmd("BufLeave", {
-    buffer = prompt_bufnr,
-    once = true,
-    callback = function()
-      vim.api.nvim_win_close(prompt_win, true)
-      vim.api.nvim_win_close(history_win, true)
-      if settings_win then
-        vim.api.nvim_win_close(settings_win, true)
-      end
-    end,
-  })
-
-  return {
-    prompt_bufnr = prompt_bufnr,
-    prompt_win = prompt_win,
-    history_bufnr = history_bufnr,
-    history_win = history_win,
-    settings_bufnr = settings_bufnr,
-    settings_win = settings_win,
-  }
 end
 
 ---@class Cody.ExtensionMessage
@@ -369,13 +466,40 @@ handlers.make_chat = function(opts, callback)
   end
 end
 
--- // High-level wrapper around command/execute and  webview/create to start a
--- // new chat session.  Returns a UUID for the chat session.
--- 'chat/new': [null, string]
-handlers.new = function(opts, callback)
-  opts = opts or {}
-  callback = callback or function() end
+handlers.open_or_new = function(opts, callback)
+  if last_chat then
+    last_chat:reopen()
+  else
+    handlers.new(opts, callback)
+  end
+end
 
+handlers.toggle = function()
+  if last_chat then
+    if vim.api.nvim_win_is_valid(last_chat.windows.history_win) then
+      last_chat:close()
+    else
+      last_chat:reopen()
+    end
+  else
+    handlers.new()
+  end
+end
+
+--- High-level wrapper around command/execute and  webview/create to start a
+--- new chat session.  Returns a UUID for the chat session.
+--- 'chat/new': [null, string]
+---@param opts? cody.ChatOpts
+---@param callback? fun(err, data)
+---@return fun(err: any?, id: string?)
+handlers.new = function(opts, callback)
+  callback = callback or function(err)
+    if err then
+      vim.notify(err)
+    end
+  end
+
+  opts = opts or {}
   rpc.request("chat/new", nil, handlers.make_chat(opts, callback))
 end
 
@@ -416,7 +540,7 @@ end
 ---
 ---@param id any
 ---@param message Cody.ChatWebviewMessage.submit
----@param callback fun(err, data: Cody.ExtensionMessage)
+---@param callback? fun(err, data: Cody.ExtensionMessage)
 handlers.submit_message = function(id, message, callback)
   callback = callback or function() end
 
@@ -424,12 +548,6 @@ handlers.submit_message = function(id, message, callback)
   if not layout then
     return
   end
-
-  -- TODO: Couldn't get this to work yet. Need to hook up the IDs properly
-  -- -- Add user and loading message premptively
-  -- layout.state:append(Message.init(Speaker.user, vim.split(message.text or "", "\n"), {}))
-  -- layout.state:append(Message.init(Speaker.cody, { "Loading ..." }, {}))
-  -- layout:render()
 
   rpc.request("chat/submitMessage", { id = id, message = message }, callback)
 end
@@ -447,10 +565,10 @@ handlers.models = function(id, callback)
   rpc.request("chat/models", { id = id }, callback)
 end
 
--- We can't do this yet? it doesn't work with submitMessage
--- M.reset = function(id, callback)
---   callback = callback or function() end
---   rpc.request("chat/submitMessage", { id = id, message = { command = "reset" } }, callback)
--- end
+--- Get the last chat, if available
+---@return cody.Chat?
+handlers.get_last_chat = function()
+  return last_chat
+end
 
 return handlers

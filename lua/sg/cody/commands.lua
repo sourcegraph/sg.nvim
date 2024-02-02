@@ -29,17 +29,18 @@ end
 ---@param start_row number
 ---@param end_row number
 ---@param message string
-commands.ask_range = function(bufnr, start_row, end_row, message)
+commands.ask_range = function(bufnr, start_row, end_row, message, opts)
+  local chat = require "sg.cody.rpc.chat"
   local selection = vim.api.nvim_buf_get_lines(bufnr, start_row, end_row, false)
-  local layout = CodySplit.init {}
-
   local contents = vim.tbl_flatten {
     message,
     "",
     util.format_code(bufnr, selection),
   }
 
-  layout:request_user_message(contents)
+  chat.new(opts, function(_, id)
+    chat.submit_message(id, Message.init(CodySpeaker.human, contents):to_submit_message())
+  end)
 end
 
 --- Send an autocomplete request
@@ -54,41 +55,25 @@ commands.autocomplete = function(request, callback)
 
   local doc = protocol.get_text_document(0)
   require("sg.cody.rpc").notify("textDocument/didChange", doc)
-  require("sg.cody.rpc").execute.autocomplete(request.filename, request.row - 1, request.col, callback)
+  require("sg.cody.rpc").execute.autocomplete(
+    request.filename,
+    request.row - 1,
+    request.col,
+    callback
+  )
 end
 
---- Ask Cody about the selected code
----@param bufnr number
----@param start_line number
----@param end_line number
----@param message string
-commands.float = function(bufnr, start_line, end_line, message)
-  local selection = vim.api.nvim_buf_get_lines(bufnr, start_line, end_line, false)
-  local layout = CodyHover.init { name = message, bufnr = bufnr, start_line = start_line, end_line = end_line }
-
-  local contents = vim.tbl_flatten {
-    message,
-    "",
-    util.format_code(bufnr, selection),
-  }
-
-  layout:request_user_message(contents)
-end
-
---- Start a new CodyChat
----@param name string?
----@param opts { reset: boolean }?
-commands.chat = function(name, opts)
+--- Open a cody chat
+---@param new boolean
+---@param opts cody.ChatOpts
+commands.chat = function(new, opts)
   opts = opts or {}
 
-  require("sg.cody.rpc.chat").new({
-    name = name,
-    reset = opts.reset,
-  }, function(err)
-    if err then
-      vim.notify(err)
-    end
-  end)
+  if new then
+    require("sg.cody.rpc.chat").new(opts)
+  else
+    require("sg.cody.rpc.chat").open_or_new(opts)
+  end
 end
 
 --- Ask Cody to preform a task on the selected code.
@@ -130,10 +115,6 @@ commands.history = function()
   end)
 end
 
-commands.toggle = function()
-  CodySplit:toggle()
-end
-
 --- Focus the currently active history window.
 ---
 --- Can be set to a keymap by:
@@ -143,12 +124,12 @@ end
 ---   end)
 --- </code>
 commands.focus_history = function()
-  local active = CodyBase:get_active()
+  local active = require("sg.cody.rpc.chat").get_last_chat()
   if not active then
     return
   end
 
-  local win = active.history.win
+  local win = active.windows.history_win
   if not vim.api.nvim_win_is_valid(win) then
     return
   end
@@ -165,22 +146,15 @@ end
 ---   end)
 --- </code>
 commands.focus_prompt = function()
-  local active = CodyBase:get_active()
+  local active = require("sg.cody.rpc.chat").get_last_chat()
   if not active then
     return
   end
 
-  if not active.prompt then
-    return
-  end
-
-  local win = active.prompt.win
+  local win = active.windows.prompt_win
   if not vim.api.nvim_win_is_valid(win) then
     return
   end
-
-  -- ??
-  -- vim.cmd [[startinsert]]
 
   return vim.api.nvim_set_current_win(win)
 end
