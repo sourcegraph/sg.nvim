@@ -141,7 +141,28 @@ end, {
 vim.api.nvim_create_user_command("SourcegraphLink", function(args)
   print "requesting link..."
 
-  local region = vim.region(0, "'<", "'>", "v", true)
+  local callback = function(err, link)
+    if err or not link then
+      print("[sourcegraph] Failed to get link:", link)
+      return
+    end
+    print("[sourcegraph] Setting '+' register to:", link)
+    vim.fn.setreg("+", link)
+  end
+
+  local status, region = pcall(function()
+    return vim.region(0, "'<", "'>", "v", true)
+  end)
+
+  if not status then
+    -- vim.region failed defaulting to cursor position
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local row, col = cursor[1], cursor[2]
+    local range = { start_line = row, start_col = col, end_line = row, end_col = col }
+    require("sg.rpc").get_link(vim.api.nvim_buf_get_name(0), range, callback)
+    return
+  end
+
   local keys = vim.tbl_keys(region)
   table.sort(keys)
 
@@ -170,15 +191,7 @@ vim.api.nvim_create_user_command("SourcegraphLink", function(args)
     }
   end
 
-  require("sg.rpc").get_link(vim.api.nvim_buf_get_name(0), range, function(err, link)
-    if err or not link then
-      print("[sourcegraph] Failed to get link:", link)
-      return
-    end
-
-    print("[sourcegraph] Setting '+' register to:", link)
-    vim.fn.setreg("+", link)
-  end)
+  require("sg.rpc").get_link(vim.api.nvim_buf_get_name(0), range, callback)
 end, {
   desc = "Get a sourcegraph link to the current location",
   range = 2,
