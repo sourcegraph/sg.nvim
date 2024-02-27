@@ -2,14 +2,10 @@
 ---@config { module = "sg.cody.commands" }
 
 local auth = require "sg.auth"
+local chat = require "sg.cody.rpc.chat"
 local util = require "sg.utils"
 
-local CodyBase = require "sg.components.layout.base"
-local CodyFloat = require "sg.components.layout.float"
-local CodySplit = require "sg.components.layout.split"
-local CodyHover = require "sg.components.layout.hover"
 local Message = require "sg.cody.message"
-local State = require "sg.cody.state"
 local protocol = require "sg.cody.protocol"
 local CodySpeaker = require("sg.types").CodySpeaker
 
@@ -17,11 +13,13 @@ local commands = {}
 
 --- Ask Cody a question, without any selection
 ---@param message string[]
-commands.ask = function(message)
-  local layout = CodySplit.init {}
-
+---@param opts? cody.ChatOpts
+commands.ask = function(message, opts)
   local contents = vim.tbl_flatten(message)
-  layout:request_user_message(contents)
+
+  chat.new(opts, function(_, id)
+    chat.submit_message(id, Message.init(CodySpeaker.human, contents):to_submit_message())
+  end)
 end
 
 --- Ask Cody about the selected code
@@ -29,8 +27,8 @@ end
 ---@param start_row number
 ---@param end_row number
 ---@param message string
+---@param opts cody.ChatOpts
 commands.ask_range = function(bufnr, start_row, end_row, message, opts)
-  local chat = require "sg.cody.rpc.chat"
   local selection = vim.api.nvim_buf_get_lines(bufnr, start_row, end_row, false)
   local contents = vim.tbl_flatten {
     message,
@@ -100,19 +98,7 @@ end
 
 --- Open a selection to get an existing Cody conversation
 commands.history = function()
-  local states = State.history()
-
-  vim.ui.select(states, {
-    prompt = "Cody History: ",
-    format_item = function(state)
-      return string.format("%s (%d)", state.name, #state.messages)
-    end,
-  }, function(state)
-    vim.schedule(function()
-      local layout = CodyFloat.init { state = state }
-      layout:show()
-    end)
-  end)
+  error "NOT YET IMPLEMENTED. PLEASE REPORT IF YOU WERE USING THIS"
 end
 
 --- Focus the currently active history window.

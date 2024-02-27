@@ -1,6 +1,4 @@
-local config = require "sg.config"
 local debounce = require "sg.vendored.debounce"
-local document = require "sg.document"
 
 local proto = {}
 
@@ -57,7 +55,7 @@ proto.did_open = function(bufnr)
     return
   end
 
-  if not document.is_useful(bufnr) then
+  if not proto.document.is_useful(bufnr) then
     return
   end
 
@@ -90,7 +88,7 @@ proto.did_close = function(bufnr)
     debounce_handles[bufnr] = nil
   end
 
-  if not document.is_useful(bufnr) then
+  if not proto.document.is_useful(bufnr) then
     return
   end
 
@@ -103,11 +101,14 @@ proto.did_close = function(bufnr)
 end
 
 proto.did_focus = function(bufnr)
-  if not document.is_useful(bufnr) then
+  if not proto.document.is_useful(bufnr) then
     return
   end
 
-  require("sg.cody.rpc").notify("textDocument/didFocus", proto.get_text_document(bufnr, { content = false }))
+  require("sg.cody.rpc").notify(
+    "textDocument/didFocus",
+    proto.get_text_document(bufnr, { content = false })
+  )
 end
 
 proto.exit = function()
@@ -120,5 +121,27 @@ proto.exit = function()
   rpc.shutdown()
   rpc.exit()
 end
+
+proto.document = {
+  --- Determines if buffer is useful
+  ---@param bufnr any
+  is_useful = function(bufnr)
+    if not vim.api.nvim_buf_is_valid(bufnr) then
+      return false
+    end
+
+    local bo = vim.bo[bufnr]
+    if not bo.buflisted then
+      return false
+    end
+
+    local name = vim.api.nvim_buf_get_name(bufnr)
+    if not name or name == "" then
+      return false
+    end
+
+    return true
+  end,
+}
 
 return proto

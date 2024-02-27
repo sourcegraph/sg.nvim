@@ -80,4 +80,18 @@ function Transcript:is_message_in_progress() return self._transcript.isMessageIn
 function Transcript:last_message() return self.messages[#self.messages] end
 -- stylua: ignore stop
 
+--- Get context files
+---@return cody.ContextFile[]
+function Transcript:context_files()
+  local context = {}
+  for _, message in ipairs(self._transcript.messages) do
+    local files = message.contextFiles or {}
+    for _, file in ipairs(files) do
+      table.insert(context, file)
+    end
+  end
+
+  return context
+end
+
 return Transcript

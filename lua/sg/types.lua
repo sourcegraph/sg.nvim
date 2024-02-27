@@ -52,6 +52,8 @@ local M = {}
 ---@field codebase string?
 ---@field customHeaders table<string, string>
 ---@field eventProperties CodyEventProperties
+---@field autocompleteAdvancedProvider? string
+---@field autocompleteAdvancedModel? string
 
 ---@class CodyEventProperties
 ---@field anonymousUserID string
@@ -75,7 +77,7 @@ local M = {}
 ---@class CodyTextDocument
 ---@field filePath string
 ---@field content string?
----@field selection CodyRange?
+---@field selection cody.Range?
 
 ---@class CodyPosition
 ---@field line number
@@ -83,16 +85,25 @@ local M = {}
 ---@field character number
 ---  0-indexed
 
----@class CodyRange
+---@class cody.Range
 ---@field start CodyPosition
 ---@field end CodyPosition
 
--- TODO: This is out of date
+---@class cody.URI
+---@field authority string
+---@field fragment string
+---@field path string
+---@field query string
+---@field scheme string
+
 ---@class cody.ContextFile
----@field fileName string
----@field repoName string?
----@field revision string?
----@field source string?
+---@field type string
+---@field uri cody.URI
+---@field range cody.Range
+---@field repoName? string
+---@field revision? string
+---@field source? string
+---@field content? string
 
 ---@class cody.ChatButton
 --[[ TODO
@@ -184,7 +195,7 @@ export interface PreciseContext {
 
 ---@class CodyAutocompleteItem
 ---@field insertText string
----@field range CodyRange
+---@field range cody.Range
 
 ---@class CodyAutocompleteResult
 ---@field items CodyAutocompleteItem[]

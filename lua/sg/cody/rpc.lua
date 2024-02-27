@@ -61,6 +61,9 @@ local get_server_config = function(creds, remote_url)
         -- ["cody.debug.enable"] = true,
         -- ["cody.debug.verbose"] = true,
       },
+      -- TODO: Which should I put here? I cannot get multi-line completions anymore
+      autocompleteAdvancedProvider = "fireworks",
+      autocompleteAdvancedModel = "starcoder-7b",
     },
     capabilities = {
       chat = "streaming",

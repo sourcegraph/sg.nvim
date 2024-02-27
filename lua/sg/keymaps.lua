@@ -31,11 +31,10 @@ M.map = function(bufnr, mode, key, desc, cb)
   })
 end
 
-M.help = function(bufnr)
+M.help_lines = function(bufnr)
   local maps = store[bufnr]
   if not maps then
-    print "no keymaps for this bufnr"
-    return
+    return {}
   end
 
   local sorted_maps = {}
@@ -47,14 +46,24 @@ M.help = function(bufnr)
     table.insert(sorted_maps[map.mode], map)
   end
 
-  local lines = {}
+  local lines = { "mode |   key  | description" }
   for _, map_list in pairs(sorted_maps) do
     for _, map in ipairs(map_list) do
-      local line = string.format(" mode: %s, key: %6s | %s", map.mode, map.key, map.desc)
+      local line = string.format("%s    | %6s | %s", map.mode, map.key, map.desc)
       table.insert(lines, line)
     end
   end
 
+  return lines
+end
+
+M.help = function(bufnr)
+  local maps = store[bufnr]
+  if not maps then
+    return
+  end
+
+  local lines = M.help_lines(bufnr)
   local width = math.floor(vim.o.columns * 0.8)
   local height = math.floor(vim.o.lines * 0.8)
 

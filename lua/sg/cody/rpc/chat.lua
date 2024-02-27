@@ -1,6 +1,8 @@
+local keymaps = require "sg.keymaps"
 local log = require "sg.log"
 local rpc = require "sg.cody.rpc"
 local shared = require "sg.components.shared"
+local util = require "sg.utils"
 
 local CodySpeaker = require("sg.types").CodySpeaker
 local Mark = require "sg.mark"
@@ -77,27 +79,88 @@ function Chat:reopen()
 end
 
 function Chat:_add_prompt_keymaps()
-  local set = function(mode, key, cb)
-    vim.keymap.set(mode, key, cb, { buffer = self.windows.prompt_bufnr })
+  local bufnr = self.windows.prompt_bufnr
+
+  keymaps.map(bufnr, "n", "<CR>", "Submit Message", function()
+    self:complete()
+  end)
+
+  keymaps.map(bufnr, "i", "<C-CR>", "Submit Message", function()
+    self:complete()
+  end)
+
+  keymaps.map(bufnr, { "i", "n" }, "<c-c>", "Quit Chat", function()
+    self:close()
+  end)
+
+  local with_history = function(key, mapped)
+    if not mapped then
+      mapped = key
+    end
+
+    local desc = "Execute '" .. key .. "' in history"
+    keymaps.map(bufnr, { "n", "i" }, key, desc, function()
+      if vim.api.nvim_win_is_valid(self.windows.history_win) then
+        vim.api.nvim_win_call(self.windows.history_win, function()
+          util.execute_keystrokes(mapped)
+        end)
+      end
+    end)
   end
 
-  -- stylua: ignore start
-  set("i", "<CR>", function() self:complete() end)
-  set({"i", "n"}, "<C-C>", function() self:close() end)
-  -- stylua: ignore end
+  with_history "<c-f>"
+  with_history "<c-b>"
+  with_history "<c-e>"
+  with_history "<c-y>"
 
-  set("n", "<space>m", function()
-    rpc.request("webview/receiveMessage", {
-      id = self.id,
-      message = {
-        command = "chatModel",
-        model = "openai/gpt-4-1106-preview",
-      },
-    }, function(err, data)
-      self:set_current_model "openai/gpt-4-1106-preview"
-      self:render()
+  keymaps.map(bufnr, "n", "M", "Select Model", function()
+    require("sg.cody.rpc.chat").models(self.id, function(err, data)
+      if err then
+        return
+      end
+
+      ---@type cody.ChatModelProvider[]
+      local models = data.models or {}
+      vim.ui.select(models, {
+        prompt = "Select a model for conversation",
+
+        --- Format an item
+        ---@param item cody.ChatModelProvider
+        format_item = function(item)
+          return item.model
+        end,
+      }, function(choice)
+        rpc.request("webview/receiveMessage", {
+          id = self.id,
+          message = {
+            command = "chatModel",
+            model = choice.model,
+          },
+        }, function()
+          self:set_current_model(choice.model)
+          self:render()
+        end)
+      end)
     end)
   end)
+
+  keymaps.map(bufnr, "n", "?", "Show Keymaps", function()
+    keymaps.help(bufnr)
+  end)
+
+  -- TODO: Need to write a bit more stuff to manage this
+  -- keymaps.map(bufnr, "n", "<space>m", function()
+  --   rpc.request("webview/receiveMessage", {
+  --     id = self.id,
+  --     message = {
+  --       command = "chatModel",
+  --       model = "openai/gpt-4-1106-preview",
+  --     },
+  --   }, function(err, data)
+  --     self:set_current_model "openai/gpt-4-1106-preview"
+  --     self:render()
+  --   end)
+  -- end)
 end
 
 function Chat:set_current_model(model)
@@ -110,13 +173,14 @@ function Chat:close()
   if self.windows.settings_win then
     pcall(vim.api.nvim_win_close, self.windows.settings_win, true)
   end
+
+  pcall(vim.api.nvim_buf_delete, self.windows.prompt_bufnr)
 end
 
 --- Add a new message and return its id
 ---@param message sg.cody.Message
 function Chat:submit(message, callback)
   callback = callback or function() end
-  -- require("sg.cody.rpc.chat").submit_message(self.id, message:to_submit_message(), callback)
 
   rpc.request(
     "chat/submitMessage",
@@ -197,6 +261,34 @@ function Chat:render()
         string.format(model_fmt, self.config.authStatus.configOverwrites.chatModel)
       )
     end
+
+    if self.transcript then
+      -- Had some weird errors here
+      pcall(function()
+        table.insert(lines, "")
+        table.insert(lines, "Context Files:")
+        table.insert(lines, "")
+        for _, context_file in ipairs(self.transcript:context_files()) do
+          local range = context_file.range
+          local start = range.start
+
+          table.insert(
+            lines,
+            string.format(
+              "%s:%s:%s",
+              vim.fn.fnamemodify(context_file.uri.path, ":."),
+              start.line,
+              start.character
+            )
+          )
+        end
+      end)
+    end
+
+    -- Add keymaps
+    table.insert(lines, "")
+    table.insert(lines, "Cody Keymaps:")
+    vim.list_extend(lines, keymaps.help_lines(self.windows.prompt_bufnr))
 
     vim.api.nvim_buf_set_lines(self.windows.settings_bufnr, 0, -1, false, lines)
   end
@@ -338,6 +430,8 @@ function Chat._make_windows(opts)
 
       shared.make_buf_minimal(settings_bufnr)
       shared.make_win_minimal(settings_win)
+
+      vim.wo[settings_win].wrap = false
     end
 
     local prompt_bufnr = vim.api.nvim_create_buf(false, true)
@@ -345,7 +439,7 @@ function Chat._make_windows(opts)
     shared.make_buf_minimal(prompt_bufnr)
     shared.make_win_minimal(prompt_win)
 
-    vim.api.nvim_create_autocmd("BufLeave", {
+    vim.api.nvim_create_autocmd("BufDelete", {
       buffer = prompt_bufnr,
       once = true,
       callback = function()
