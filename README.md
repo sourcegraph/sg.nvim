@@ -1,6 +1,6 @@
 # sg.nvim
 
-**Status**: Beta
+**Status**: Experimental
 
 ## Table of Contents
 
