@@ -173,21 +173,6 @@ function source:complete(params, callback)
       table.insert(items, completion_item)
     end
 
-    local completion_item = {
-      detail = "hello\nworld\nthis\nis",
-      label = "hello\nworld\nthis\nis",
-
-      cmp = {
-        kind_hl_group = "CmpItemKindCody",
-        kind_text = "Cody",
-      },
-
-      -- Attempt to adjust indentation
-    }
-    if range then
-      table.insert(items, completion_item)
-    end
-
     callback {
       items = items,
       isIncomplete = false,
