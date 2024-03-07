@@ -160,6 +160,11 @@ function State:render(bufnr, win)
     message_state.typewriter:render(bufnr, win, message_state.mark, { interval = interval })
 
     rendered = rendered + 1
+
+    -- /!\ TODO investigate, this is crude fix. 
+    -- Basically, the messages the user type are marked as completed, but the answers from Cody
+    -- are never marked as such even after being displayed. Forcing it to true fixes it.
+    message.completed = true
   end
 
   for _, message_state in ipairs(self.messages) do
