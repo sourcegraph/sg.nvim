@@ -568,7 +568,7 @@ handlers.open_or_new = function(opts, callback)
   end
 end
 
-handlers.toggle = function()
+handlers.toggle = function(_)
   if last_chat then
     if vim.api.nvim_win_is_valid(last_chat.windows.history_win) then
       last_chat:close()

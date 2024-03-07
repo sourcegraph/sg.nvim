@@ -74,6 +74,11 @@ commands.chat = function(new, opts)
   end
 end
 
+--- Toggle a Cody chat
+commands.toggle = function(opts)
+  require("sg.cody.rpc.chat").toggle(opts)
+end
+
 --- Ask Cody to preform a task on the selected code.
 ---@param bufnr number
 ---@param start_line number
