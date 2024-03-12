@@ -104,7 +104,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           submodules: recursive
-      - uses: swatinem/rust-cache@v2
+      - uses: swatinem/rust-cache@23bce251a8cd2ffc3c1075eaa2367cf899916d84 # SECURITY: pin third-party action hashes
       - name: Install cargo-dist
         run: ${{ matrix.install_dist }}
       - name: Add aarch64 target
@@ -259,7 +259,7 @@ jobs:
           # Remove the granular manifests
           rm -f artifacts/*-dist-manifest.json
       - name: Create Github Release
-        uses: ncipollo/release-action@v1
+        uses: ncipollo/release-action@2c591bcc8ecdcd2db72b97d6147f871fcd833ba5 # SECURITY: pin third-party action hashes
         with:
           tag: ${{ needs.plan.outputs.tag }}
           name: ${{ fromJson(needs.host.outputs.val).announcement_title }}
