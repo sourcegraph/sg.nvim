@@ -114,4 +114,14 @@ M.help = function(bufnr)
   end)
 end
 
+M.del = function(bufnr, mode, key)
+  vim.keymap.del(mode, key, { buffer = bufnr })
+
+  store[bufnr].maps = vim.tbl_filter(function(map)
+    return map.mode ~= mode
+      or vim.api.nvim_replace_termcodes(map.key, true, false, true)
+        ~= vim.api.nvim_replace_termcodes(key, true, false, true)
+  end, store[bufnr].maps)
+end
+
 return M
