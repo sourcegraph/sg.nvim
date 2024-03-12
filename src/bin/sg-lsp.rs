@@ -4,8 +4,8 @@ use {
     lsp_server::{Connection, ExtractError, Message, Request, RequestId, Response},
     lsp_types::{
         request::{GotoDefinition, HoverRequest, References},
-        GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams, InitializeParams,
-        ReferenceParams, ServerCapabilities,
+        GotoDefinitionParams, GotoDefinitionResponse, Hover, HoverParams, ReferenceParams,
+        ServerCapabilities,
     },
     serde::{Deserialize, Serialize},
 };
@@ -178,12 +178,6 @@ struct SgInitOptions {
 }
 
 async fn main_loop(connection: Connection, params: serde_json::Value) -> Result<()> {
-    let params: InitializeParams = serde_json::from_value(params)?;
-    if let Some(options) = params.initialization_options.clone() {
-        // let options =
-        let options: SgInitOptions = serde_json::from_value(options).unwrap_or_default();
-    };
-
     // let src_headers = serde_json::valu
     info!("Starting main loop: {:?}", params);
 
