@@ -3,6 +3,18 @@ local M = {}
 local store = {}
 
 M.map = function(bufnr, mode, key, desc, cb)
+  if type(bufnr) == "table" then
+    for _, buf in ipairs(bufnr) do
+      M.map(buf, mode, key, desc, cb)
+    end
+
+    return
+  end
+
+  if not bufnr or not vim.api.nvim_buf_is_valid(bufnr) then
+    return
+  end
+
   if type(mode) == "table" then
     for _, m in ipairs(mode) do
       M.map(bufnr, m, key, desc, cb)

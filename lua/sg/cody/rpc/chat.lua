@@ -14,10 +14,11 @@ local Typewriter = require "sg.components.typewriter"
 local last_chat = nil
 
 ---@class cody.ChatOpts
----@field id string: ID sent from cody-agent
+---@field id? string: ID sent from cody-agent
 ---@field name? string
 ---@field model? string: The name of the model to set for the conversation
----@field window_type? "float" | "split"
+---@field interval? number: The interval (in ms) to send a message
+---@field window_type? "float" | "split" | "hover"
 ---@field window_opts? { width: number, height: number, split_cmd: string? }
 
 ---@class cody.ChatWindows
@@ -80,6 +81,7 @@ end
 
 function Chat:_add_prompt_keymaps()
   local bufnr = self.windows.prompt_bufnr
+  local history = self.windows.history_bufnr
 
   keymaps.map(bufnr, "n", "<CR>", "Submit Message", function()
     self:complete()
@@ -89,8 +91,16 @@ function Chat:_add_prompt_keymaps()
     self:complete()
   end)
 
-  keymaps.map(bufnr, { "i", "n" }, "<c-c>", "Quit Chat", function()
+  keymaps.map({ bufnr, history }, { "i", "n" }, "<c-c>", "Quit Chat", function()
     self:close()
+  end)
+
+  keymaps.map({ bufnr, history }, "n", "<c-t>", "Toggle Focus", function()
+    if vim.api.nvim_get_current_win() == self.windows.history_win then
+      vim.api.nvim_set_current_win(self.windows.prompt_win)
+    else
+      vim.api.nvim_set_current_win(self.windows.history_win)
+    end
   end)
 
   local with_history = function(key, mapped)
@@ -215,7 +225,7 @@ end
 
 --- Render the state to a buffer and window
 function Chat:render()
-  if not self.windows or not self.windows.prompt_bufnr then
+  if not self.windows or not self.windows.history_win then
     return
   end
 
@@ -334,7 +344,7 @@ function Chat:render()
     -- If the message has already been completed, then we can just display it immediately.
     --  This prevents typewriter from typing everything out all the time when you do something like
     --  toggle the previous chat
-    local interval
+    local interval = self.opts.interval
     if not self.transcript:is_message_in_progress() then
       interval = 0
     end
@@ -439,7 +449,7 @@ function Chat._make_windows(opts)
     shared.make_buf_minimal(prompt_bufnr)
     shared.make_win_minimal(prompt_win)
 
-    vim.api.nvim_create_autocmd("BufDelete", {
+    vim.api.nvim_create_autocmd({ "BufDelete", "BufHidden" }, {
       buffer = prompt_bufnr,
       once = true,
       callback = function()
@@ -459,7 +469,7 @@ function Chat._make_windows(opts)
       settings_bufnr = settings_bufnr,
       settings_win = settings_win,
     }
-  else
+  elseif opts.window_type == "split" then
     vim.cmd(win_opts.split_cmd or "botright vnew")
 
     local history_win = vim.api.nvim_get_current_win()
@@ -492,6 +502,52 @@ function Chat._make_windows(opts)
       settings_bufnr = nil,
       settings_win = nil,
     }
+  elseif opts.window_type == "hover" then
+    local width = shared.calculate_width(win_opts.width)
+    local height = shared.calculate_height(win_opts.height)
+
+    local col = math.floor((vim.o.columns - width) / 2)
+    local row = math.floor((vim.o.lines - height) / 2) - 2
+
+    local history_height = height
+    local history_width = width
+
+    ---@type vim.api.keyset.float_config
+    local history_opts = {
+      relative = "editor",
+      border = "rounded",
+      width = history_width,
+      height = history_height - 2,
+      style = "minimal",
+      row = row,
+      col = col,
+    }
+
+    local history_bufnr = vim.api.nvim_create_buf(false, true)
+    local history_win = vim.api.nvim_open_win(history_bufnr, true, history_opts)
+
+    shared.make_buf_minimal(history_bufnr)
+    shared.make_win_minimal(history_win)
+    vim.bo[history_bufnr].filetype = opts.filetype or "markdown.cody_prompt"
+
+    vim.api.nvim_create_autocmd({ "BufDelete", "BufHidden" }, {
+      buffer = history_bufnr,
+      once = true,
+      callback = function()
+        vim.api.nvim_win_close(history_win, true)
+      end,
+    })
+
+    return {
+      prompt_bufnr = nil,
+      prompt_win = nil,
+      history_bufnr = history_bufnr,
+      history_win = history_win,
+      settings_bufnr = nil,
+      settings_win = nil,
+    }
+  else
+    error(string.format("Unknown window type: %s", opts.window_type))
   end
 end
 
@@ -663,6 +719,13 @@ end
 ---@return cody.Chat?
 handlers.get_last_chat = function()
   return last_chat
+end
+
+--- Get a chat
+---@param id string
+---@return cody.Chat?
+handlers.get_chat = function(id)
+  return chats[id]
 end
 
 return handlers

@@ -93,12 +93,23 @@ commands.do_task = function(bufnr, start_line, end_line, message)
   prompt = prompt .. "\nReply only with code, nothing else\n"
   prompt = prompt .. table.concat(formatted, "\n")
 
-  return require("sg.cody.tasks").init {
-    bufnr = bufnr,
-    task = prompt,
-    start_row = start_line,
-    end_row = end_line,
-  }
+  local rpc = require "sg.cody.rpc"
+  rpc.request("chat/new", nil, function(err, id)
+    print("CHAT NEW:", err, id)
+    if err then
+      vim.notify(err)
+      return
+    end
+
+    vim.notify(string.format("Chat ID: %s", id))
+    require("sg.cody.tasks").init {
+      id = id,
+      bufnr = bufnr,
+      task = prompt,
+      start_row = start_line,
+      end_row = end_line,
+    }
+  end)
 end
 
 --- Open a selection to get an existing Cody conversation

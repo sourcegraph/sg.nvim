@@ -1,11 +1,5 @@
-local keymaps = require "sg.keymaps"
-
-local CodyHover = require "sg.components.layout.hover"
 local CodySpeaker = require("sg.types").CodySpeaker
 local Message = require "sg.cody.message"
-local Mark = require "sg.mark"
-
-local ns = vim.api.nvim_create_namespace "sg-nvim-tasks"
 
 ---@class CodyTask
 ---@field bufnr number: buffer where the task was created
@@ -26,83 +20,53 @@ CodyTask.__index = CodyTask
 
 --- Create a new CodyTask
 ---@param opts CodyTaskOptions
----@return CodyTask
 CodyTask.init = function(opts)
-  error "NOT YET READY FOR CODY TASK"
-
   assert(opts.bufnr, "bufnr is required")
 
-  -- A CodyTask should point to a very specific question and answer.
-  local mark = Mark.init {
-    ns = ns,
-    bufnr = opts.bufnr,
-    start_row = opts.start_row,
-    start_col = 0,
-    end_row = opts.end_row,
-    end_col = 0,
-  }
+  local chat = require "sg.cody.rpc.chat"
+  chat.new({
+    interval = 0,
+    window_type = "hover",
+    window_opts = nil,
+  }, function(_, id)
+    local message = Message.init(CodySpeaker.human, opts.task, {
+      hidden = true,
+    })
 
-  local task_bufnr = vim.api.nvim_create_buf(false, true)
+    chat.submit_message(id, message:to_submit_message(), function()
+      local task = chat.get_chat(id)
+      if not task then
+        return
+      end
 
-  ---@type CodyBaseLayout
-  local layout = opts.layout
-    or CodyHover.init {
-      bufnr = task_bufnr,
-      code_only = true,
-      code_ft = vim.bo[opts.bufnr].filetype,
-    }
+      local bufnr = task.windows.history_bufnr
+      vim.keymap.set("n", "<CR>", function()
+        local text = task.transcript:last_message():text()
+        local lines = vim.split(vim.trim(text), "\n")
+        local to_insert = {}
 
-  layout.state:submit(Message.init(CodySpeaker.human, opts.task, {
-    hidden = true,
-  }))
+        local adding = false
+        for _, line in ipairs(lines) do
+          if adding and vim.startswith(line, "```") then
+            break
+          end
 
-  layout:show()
+          if not adding then
+            adding = vim.startswith(line, "```")
+          else
+            table.insert(to_insert, line)
+          end
+        end
 
-  local task = setmetatable({
-    bufnr = opts.bufnr,
-    task_bufnr = task_bufnr,
-    mark = mark,
-    task = opts.task,
-    layout = layout,
-  }, CodyTask)
+        vim.api.nvim_buf_set_lines(opts.bufnr, opts.start_row, opts.end_row, false, to_insert)
 
-  local id = layout:request_completion()
-  task.message_id = id
-  task:show()
+        -- Attempt to indent this code
+        vim.cmd(string.format("%s,%snorm! ==", opts.start_row, opts.end_row))
 
-  return task
-end
-
-function CodyTask:apply()
-  local start_pos = self.mark:start_pos()
-  local end_pos = self.mark:end_pos()
-
-  vim.api.nvim_buf_set_lines(
-    self.bufnr,
-    start_pos.row,
-    end_pos.row,
-    false,
-    vim.api.nvim_buf_get_lines(self.layout.history.bufnr, 0, -1, false)
-  )
-end
-
-function CodyTask:show()
-  -- -- vim.api.nvim_set_current_buf(self.bufnr)
-  -- local start_row = self.mark:start_pos().row
-  -- vim.api.nvim_win_set_cursor(0, { start_row + 1, 0 })
-
-  self.layout:show()
-
-  -- TODO: We should expose these as lua functions and use them here.
-  -- I don't like making the command strings the primary way of interacting
-  keymaps.map(self.layout.history.bufnr, "n", "<CR>", "", function()
-    vim.cmd "CodyTaskAccept"
-  end)
-  keymaps.map(self.layout.history.bufnr, "n", "]", "", function()
-    vim.cmd "CodyTaskNext"
-  end)
-  keymaps.map(self.layout.history.bufnr, "n", "[", "", function()
-    vim.cmd "CodyTaskPrev"
+        -- Closes the task
+        task:close()
+      end, { buffer = bufnr })
+    end)
   end)
 end
 

@@ -19,10 +19,9 @@ Large update relating to new Sourcegraph Authentication Strategies.
 ================================================================================
                                                        *cody.pro-trial-ending*
 
-You saw this message because your Cody Pro Trial is ending soon. 
+You saw this message because your Cody Pro Trial has ended.
 
 Setup your payment information to continue using Cody Pro,
-you won't be charged until February 15.
 
 Vist: https://accounts.sourcegraph.com/cody/subscription?on-trial=true
 
