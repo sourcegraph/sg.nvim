@@ -64,11 +64,15 @@ CodyTask.init = function(opts)
 
         vim.api.nvim_buf_set_lines(opts.bufnr, opts.start_row, opts.end_row, false, to_insert)
 
-        -- Attempt to indent this code
-        vim.cmd(string.format("%s,%snorm! ==", opts.start_row, opts.end_row))
-
         -- Closes the task
         task:close()
+
+        -- Attempt to indent this code.
+        vim.api.nvim_buf_call(opts.bufnr, function()
+          local start = math.max(opts.start_row, 0)
+          local finish = math.min(opts.end_row, vim.api.nvim_buf_line_count(opts.bufnr))
+          vim.cmd(string.format("%s,%snorm! ==", start, finish))
+        end)
       end, { buffer = bufnr })
     end)
   end)
