@@ -12,37 +12,6 @@ function rpc.echo(message, delay, callback)
   req("Echo", { message = message, delay = delay }, callback)
 end
 
---- Complete a single string snippet
----
----@param snippet string: Code to send as the prompt
----@param opts { prefix: string? }
----@return string?: The error
----@return string?: The completion
-function rpc.complete(snippet, opts, callback)
-  opts = opts or {}
-
-  local err, data = req("Complete", { message = snippet, prefix = opts.prefix })
-
-  if not err then
-    callback(nil, data.completion)
-  else
-    callback(err, nil)
-  end
-end
-
---- Get the repository ID for a repo with a name
----@param name string
----@return string?: The error, if any
----@return string?: The repository ID, if found
-function rpc.repository(name, callback)
-  local err, data = req("Repository", { name = name })
-  if not err then
-    return nil, data.repository
-  else
-    return err, nil
-  end
-end
-
 --- Get an SgEntry based on a path
 ---@param path string
 ---@param callback fun(err: string?, entry: SgEntry?)

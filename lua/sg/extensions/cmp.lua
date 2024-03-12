@@ -94,7 +94,7 @@ function source:complete(params, callback)
   -- Delay loading until first complete, this makes sure that
   -- we can handle auth and everything beforehand
   local commands = require "sg.cody.commands"
-  local document = require "sg.document"
+  local document = require("sg.cody.protocol").document
 
   _ = self
   _ = params
@@ -139,8 +139,10 @@ function source:complete(params, callback)
     end
 
     local items = {}
+    local range = nil
     for _, item in ipairs(data.items) do
       local trimmed = vim.trim(item.insertText)
+      range = item.range
 
       ---@type lsp.CompletionItem
       local completion_item = {

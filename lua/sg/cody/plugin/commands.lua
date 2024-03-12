@@ -59,6 +59,41 @@ commands.CodyAsk = {
   { range = 2, nargs = 1 },
 }
 
+---@command :CodyExplain [[
+--- Ask a question about the current selection.
+---
+--- Use from visual mode to pass the current selection
+---@command ]]
+commands.CodyExplain = {
+  function(command)
+    local proto = require "sg.cody.protocol"
+
+    if command.range == 0 then
+      cody_commands.ask(command.args)
+    else
+      local bufnr = vim.api.nvim_get_current_buf()
+      require("sg.cody.rpc").notify(
+        "textDocument/didChange",
+        proto.get_text_document(bufnr, {
+          content = true,
+          selection = {
+            start = {
+              line = command.line1 - 1,
+              character = 0,
+            },
+            ["end"] = {
+              line = command.line2,
+              character = 0,
+            },
+          },
+        })
+      )
+      cody_commands.ask_range(bufnr, command.line1 - 1, command.line2, command.args)
+    end
+  end,
+  { range = 2 },
+}
+
 ---@command :CodyChat{!} {title} [[
 --- State a new cody chat, with an optional {title}
 ---
@@ -71,7 +106,7 @@ commands.CodyChat = {
       name = table.concat(command.fargs, " ")
     end
 
-    cody_commands.chat(name, { reset = command.bang })
+    cody_commands.chat(command.bang, { name = name })
   end,
   { nargs = "*", bang = true },
 }
@@ -92,87 +127,10 @@ commands.CodyToggle = {
 commands.CodyTask = {
   function(command)
     local bufnr = vim.api.nvim_get_current_buf()
-    local task = cody_commands.do_task(bufnr, command.line1 - 1, command.line2, command.args)
-    table.insert(M.tasks, task)
-    M.active_task_index = #M.tasks
+    cody_commands.do_task(bufnr, command.line1 - 1, command.line2, command.args)
   end,
   { range = 2, nargs = 1 },
 }
-
----@command :CodyTaskView [[
---- Opens the last active CodyTask.
----@command ]]
-commands.CodyTaskView = {
-  function()
-    if #M.tasks == 0 then
-      print "No pending tasks"
-      return
-    end
-
-    if #M.tasks < M.active_task_index then
-      M.active_task_index = #M.tasks
-    end
-
-    if M.active_task_index > 0 then
-      M.tasks[M.active_task_index].layout:show()
-    end
-  end,
-  {},
-}
-
----@command :CodyTaskAccept [[
---- Accepts the current CodyTask, removing it from the pending tasks list and applying
---- it to the selection the task was performed on.
---- Can also be triggered by pressing <CR> while a task is open.
----@command ]]
-commands.CodyTaskAccept = {
-  function()
-    if #M.tasks == 0 then
-      print "No pending tasks"
-      return
-    end
-
-    if M.tasks[M.active_task_index] then
-      M.tasks[M.active_task_index]:apply()
-      M.tasks[M.active_task_index].layout:hide()
-      table.remove(M.tasks, M.active_task_index)
-    end
-  end,
-  {},
-}
-
-local cody_task_move = function(direction)
-  return function()
-    if #M.tasks == 0 then
-      print "No pending tasks"
-      return
-    end
-
-    if M.tasks[M.active_task_index] then
-      M.tasks[M.active_task_index].layout:hide()
-    end
-    M.active_task_index = M.active_task_index + direction
-
-    if M.active_task_index < 1 then
-      M.active_task_index = #M.tasks
-    end
-    if M.active_task_index > #M.tasks then
-      M.active_task_index = 1
-    end
-
-    M.tasks[M.active_task_index]:show()
-  end
-end
-
----@command :CodyTaskPrev [[
---- Cycles to the previous CodyTask. Navigates to the appropriate buffer location.
----@command ]]
-commands.CodyTaskPrev = { cody_task_move(-1), {} }
-
----@command :CodyTaskNext [[
---- Cycles to the next CodyTask. Navigates to the appropriate buffer location.
----@command ]]
-commands.CodyTaskNext = { cody_task_move(1), {} }
 
 ---@command :CodyRestart [[
 --- Restarts Cody and Sourcegraph, clearing all state.
@@ -231,14 +189,5 @@ M.setup = function(config)
 end
 
 M.tasks = {}
-
--- TODO: This isn't ready yet, but we should explore how to expose this
--- ---@command CodyRecipes [[
--- --- Use cody recipes on a selection
--- ---@command ]]
--- vim.api.nvim_create_user_command("CodyRecipes", function(command)
---   local bufnr = vim.api.nvim_get_current_buf()
---   cody_commands.recipes(bufnr, command.line1 - 1, command.line2)
--- end, { range = 2 })
 
 return M

@@ -26,4 +26,20 @@ M.INVALID_NODE = function(reason)
   return nil
 end
 
+M.PRO_ENDING_SOON = function()
+  local data = require("sg.private.data").get_cody_data()
+  if data.ignored_notifications["cody.pro-trial-ending"] then
+    return
+  end
+
+  vim.notify_once [[
+[sg-cody] Your Cody Pro Trial is ending soon. 
+
+Setup your payment information to continue using Cody Pro, you won't be charged until February 15.
+
+For information to fix or ignore this warning see:
+  :help cody.pro-trial-ending
+]]
+end
+
 return M

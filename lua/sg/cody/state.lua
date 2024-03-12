@@ -1,9 +1,8 @@
 local log = require "sg.log"
 
-local Speaker = require "sg.cody.speaker"
-local Message = require "sg.cody.message"
-local Typewriter = require "sg.components.typewriter"
 local Mark = require "sg.mark"
+local Transcript = require "sg.cody.transcript"
+local Typewriter = require "sg.components.typewriter"
 
 local state_history = {}
 
@@ -12,27 +11,31 @@ local set_last_state = function(state)
   last_state = state
 end
 
----@class CodyMessageState
----@field message CodyMessage
----@field mark CodyMarkWrapper
----@field typewriter CodyTypewriter?
+---@class cody.StateOpts
+---@field id string: ID sent from cody-agent
+---@field name? string
+---@field code_only? boolean
 
----@class CodyStateOpts
----@field name string?
----@field code_only boolean?
-
----@class CodyState
+---@class cody.State
+---@field id string: chat ID (from cody-agent)
 ---@field name string
----@field code_only boolean
----@field messages CodyMessageState[]
+---@field transcript sg.cody.Transcript
+---@field models cody.ChatModelProvider[]
+---@field code_only boolean: TODO: think about how we could do this better...
 local State = {}
 State.__index = State
 
+--- Create a new state
+---@param opts cody.StateOpts
+---@return cody.State
 function State.init(opts)
   local self = setmetatable({
+    id = assert(opts.id, "[cody.state] must pass an ID"),
     name = opts.name or tostring(#state_history),
+    transcript = nil,
+
+    -- TODO: delete?
     code_only = opts.code_only,
-    messages = {},
   }, State)
 
   table.insert(state_history, self)
@@ -50,80 +53,93 @@ function State.last()
 end
 
 --- Add a new message and return its id
----@param message CodyMessage
----@return number
-function State:append(message)
+---@param message sg.cody.Message
+function State:submit(message, callback)
   set_last_state(self)
 
-  -- If the message is from the user, then we want to type it out very quickly
-  local interval
-  if message.speaker == Speaker.user then
-    interval = 1
+  callback = callback or function() end
+  require("sg.cody.rpc.chat").submit_message(self.id, message:to_submit_message(), callback)
+end
+
+--- Update the transcript
+---@param transcript cody.ExtensionTranscriptMessage
+function State:update_transcript(transcript)
+  if not self.transcript then
+    self.transcript = Transcript.of_agent_transcript(transcript)
+  else
+    self.transcript:update(transcript)
   end
-
-  table.insert(self.messages, {
-    message = message,
-    extmark = nil,
-    typewriter = Typewriter.init {
-      interval = interval,
-    },
-  })
-
-  return #self.messages
-end
-
---- Replace the message with the provided id with the new message
----@param id number
----@param message CodyMessage
-function State:update_message(id, message)
-  set_last_state(self)
-
-  self.messages[id].message = message
-end
-
-function State:mark_message_complete(id)
-  self.messages[id].message:mark_complete()
 end
 
 --- Get a new completion, based on the state
 ---@param bufnr number
 ---@param win number
----@param callback CodyChatCallbackHandler
----@return number: message ID where completion will happen
 function State:complete(bufnr, win, callback)
   set_last_state(self)
-
-  local snippet = table.concat(self.messages[#self.messages].message.msg, "\n") .. "\n"
+  callback = callback or function() end
 
   self:render(bufnr, win)
   vim.cmd [[mode]]
 
-  -- Draw the "Loading" before sending a request
-  local id = self:append(Message.init(Speaker.cody, { "Loading ..." }, {}))
-  self:render(bufnr, win)
+  self:submit(self.transcript:last_message(), function(err, data)
+    -- TODO: UPDATE TRANSCRIPT HERE!
+    print("MESS COMPLETED:", vim.inspect(err), vim.inspect(data))
+    callback()
+  end)
 
   -- Execute chat question. Will be completed async
   if self.code_only then
-    require("sg.cody.rpc").execute.code_question(snippet, callback(id))
+    -- require("sg.cody.rpc").execute.code_question(snippet, callback(id))
+    -- return function(msg)
+    --   if not msg then
+    --     return
+    --   end
+    --
+    --   local lines = vim.split(msg.text or "", "\n")
+    --   if self.code_only then
+    --     -- Only get the lines between ```
+    --     local render_lines = {}
+    --     for _, line in ipairs(lines) do
+    --       if vim.trim(line) == "```" then
+    --         require("sg.cody.rpc").message_callbacks[msg.data.id] = nil
+    --       elseif not vim.startswith(line, "```") then
+    --         table.insert(render_lines, line)
+    --       end
+    --     end
+    --
+    --     self.state:update_message(id, Message.init(Speaker.cody, render_lines))
+    --   else
+    --     self.state:update_message(id, Message.init(Speaker.cody, lines))
+    --   end
+    --   self:render()
+    -- end
+    error "got to code only"
   else
-    require("sg.cody.rpc").execute.chat_question(snippet, callback(id))
   end
-
-  return id
 end
 
 --- Render the state to a buffer and window
 ---@param bufnr number
 ---@param win number
 function State:render(bufnr, win)
-  log.debug "state:render"
+  log.trace "state:render"
+
+  if not self.transcript then
+    log.debug "state:no-transcript"
+    return
+  end
+
+  if self.models then
+    -- vim.notify "YO THIS ONE HAS MODELS"
+  end
 
   -- Keep track of how many messages have been renderd
   local rendered = 0
 
   --- Render a message
-  ---@param message_state CodyMessageState
-  local render_one_message = function(message_state)
+  ---@param idx number
+  ---@param message_state sg.cody.transcript.MessageWrapper
+  local render_one_message = function(idx, message_state)
     local message = message_state.message
     if message.hidden then
       return
@@ -137,21 +153,24 @@ function State:render(bufnr, win)
 
       -- Create a new extmark associated in the last line
       local last_line = vim.api.nvim_buf_line_count(bufnr) - 1
-      message_state.mark = Mark.init {
-        ns = Typewriter.ns,
-        bufnr = bufnr,
-        start_row = last_line,
-        start_col = 0,
-        end_row = last_line,
-        end_col = 0,
-      }
+      message_state = self.transcript:set_mark(
+        idx,
+        Mark.init {
+          ns = Typewriter.ns,
+          bufnr = bufnr,
+          start_row = last_line,
+          start_col = 0,
+          end_row = last_line,
+          end_col = 0,
+        }
+      )
     end
 
     -- If the message has already been completed, then we can just display it immediately.
     --  This prevents typewriter from typing everything out all the time when you do something like
     --  toggle the previous chat
     local interval
-    if message.completed then
+    if not self.transcript:is_message_in_progress() then
       interval = 0
     end
 
@@ -167,9 +186,13 @@ function State:render(bufnr, win)
     message.completed = true
   end
 
-  for _, message_state in ipairs(self.messages) do
-    render_one_message(message_state)
+  for i = 1, self.transcript:length() do
+    render_one_message(i, self.transcript:get_message(i))
   end
+end
+
+function State:set_models(models)
+  self.models = models
 end
 
 return State

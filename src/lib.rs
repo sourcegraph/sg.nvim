@@ -166,10 +166,6 @@ pub async fn get_hover(uri: String, line: i64, character: i64) -> Result<String>
     )
 }
 
-pub async fn get_repository_id(name: String) -> Result<String> {
-    wrap_request!(sg_gql::repository_id, Variables { name })
-}
-
 pub async fn get_cody_completions(
     text: String,
     prefix: Option<String>,

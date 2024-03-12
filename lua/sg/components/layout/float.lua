@@ -1,6 +1,3 @@
-local Message = require "sg.cody.message"
-local Speaker = require "sg.cody.speaker"
-
 local shared = require "sg.components.shared"
 local keymaps = require "sg.keymaps"
 local util = require "sg.utils"
@@ -9,7 +6,7 @@ local Base = require "sg.components.layout.base"
 
 ---@class CodyLayoutFloatOpts : CodyBaseLayoutOpts
 ---@field width number?
----@field state CodyState?
+---@field state cody.State?
 ---@field on_submit function?
 
 ---@class CodyLayoutFloat : CodyBaseLayout
@@ -124,26 +121,6 @@ function CodyFloat:set_keymaps()
 
   keymaps.map(self.prompt.bufnr, "n", "?", "[cody] show keymaps", function()
     keymaps.help(self.prompt.bufnr)
-  end)
-end
-
---- Requests a completion and returns the message id where the completion will happen
----@return number
-function CodyFloat:request_completion()
-  self:render()
-  vim.api.nvim_buf_set_lines(self.prompt.bufnr, 0, -1, false, {})
-
-  -- TODO: I find this indirection really hard to track since we're generate a closure here.
-  -- I wonder if we can change this or just parameterize in a new way.
-  return self.state:complete(self.history.bufnr, self.history.win, function(id)
-    return function(msg)
-      if not msg then
-        return
-      end
-
-      self.state:update_message(id, Message.init(Speaker.cody, vim.split(msg.text or "", "\n"), {}))
-      self:render()
-    end
   end)
 end
 

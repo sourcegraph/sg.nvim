@@ -31,6 +31,7 @@ end
 ---@field index number
 ---@field text string
 ---@field interval number: The average ms between characters
+---@field parent_transcript sg.cody.Transcript
 local Typewriter = {}
 
 Typewriter.ns = ns
@@ -45,6 +46,7 @@ Typewriter.init = function(opts)
     index = 0,
     text = "",
     interval = opts.interval or 10,
+    parent_transcript = assert(opts.transcript, "must be associated with a transcript"),
   }, { __index = Typewriter })
 end
 

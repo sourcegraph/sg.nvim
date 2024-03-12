@@ -34,8 +34,8 @@ M.setup = function(opts)
     end
   end
 
-  require("sg.lsp").setup()
   require("sg.request").start()
+  require("sg.lsp").setup()
   require("sg.cody.plugin.agent").setup(config)
   require("sg.cody.plugin.commands").setup(config)
 

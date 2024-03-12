@@ -19,7 +19,10 @@ vim.api.nvim_create_autocmd("BufReadCmd", {
   group = vim.api.nvim_create_augroup("sourcegraph-bufread", { clear = true }),
   pattern = { "sg://*", "https://sourcegraph.com/*" },
   callback = function(event)
-    bufread.edit(event.buf or vim.api.nvim_get_current_buf(), vim.fn.expand "<amatch>" --[[@as string]])
+    bufread.edit(
+      event.buf or vim.api.nvim_get_current_buf(),
+      vim.fn.expand "<amatch>" --[[@as string]]
+    )
   end,
   desc = "Sourcegraph link and protocol handler",
 })
@@ -52,6 +55,9 @@ vim.api.nvim_create_user_command("SourcegraphLogin", function(command)
         token = token,
         clear = token == "",
       }, function(err)
+        -- Update auth for this session
+        require("sg.auth").set(endpoint, token)
+
         if err then
           vim.notify(string.format("[cody] Failed to update auth: %s", vim.inspect(err)))
         else
@@ -64,7 +70,8 @@ vim.api.nvim_create_user_command("SourcegraphLogin", function(command)
   if endpoint == "https://sourcegraph.com/" then
     local port = 52068
     local editor = "NEOVIM"
-    local redirect = string.format("user/settings/tokens/new/callback?requestFrom=%s-%s", editor, port)
+    local redirect =
+      string.format("user/settings/tokens/new/callback?requestFrom=%s-%s", editor, port)
 
     require("sg.rpc").dotcom_login(port, function(err, _)
       if err then
@@ -209,4 +216,16 @@ vim.api.nvim_create_user_command("SourcegraphSearch", function(args)
   require("sg.extensions.telescope").fuzzy_search_results { input = input }
 end, {
   desc = "Run a search on your connected Sourcegraph instance",
+})
+
+---@command CodyIgnoreNotification [[
+--- Ingore particular notifications
+---@command ]]
+vim.api.nvim_create_user_command("CodyIgnoreNotification", function(args)
+  local data = require("sg.private.data").get_cody_data()
+  data.ignored_notifications[args.args] = true
+  require("sg.private.data").set_cody_data(data)
+end, {
+  desc = "Ignore cody notification of particular types",
+  nargs = 1,
 })

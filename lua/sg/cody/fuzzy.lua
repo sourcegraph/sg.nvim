@@ -7,7 +7,7 @@ local Previewer = require "telescope.previewers.previewer"
 local M = {}
 
 --- Fuzzy find the messages
----@param state CodyState
+---@param state cody.State
 M.messages = function(state)
   local previewer = Previewer:new {
     setup = function() end,

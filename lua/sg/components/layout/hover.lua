@@ -1,6 +1,3 @@
-local Message = require "sg.cody.message"
-local Speaker = require "sg.cody.speaker"
-
 local shared = require "sg.components.shared"
 local keymaps = require "sg.keymaps"
 local util = require "sg.utils"
@@ -9,7 +6,7 @@ local Base = require "sg.components.layout.base"
 
 ---@class CodyLayoutHoverOpts : CodyBaseLayoutOpts
 ---@field width number?
----@field state CodyState?
+---@field state cody.State?
 ---@field bufnr number?
 ---@field start_line number?
 ---@field end_line number?
@@ -110,39 +107,6 @@ function CodyHover:set_keymaps()
 
   keymaps.map(bufnr, "n", "?", "[cody] show keymaps", function()
     keymaps.help(bufnr)
-  end)
-end
-
----Returns the id of the message where the completion will be.
----@return number
-function CodyHover:request_completion()
-  self:render()
-
-  return self.state:complete(self.history.bufnr, self.history.win, function(id)
-    return function(msg)
-      if not msg then
-        self.state:mark_message_complete(id)
-        return
-      end
-
-      local lines = vim.split(msg.text or "", "\n")
-      if self.code_only then
-        -- Only get the lines between ```
-        local render_lines = {}
-        for _, line in ipairs(lines) do
-          if vim.trim(line) == "```" then
-            require("sg.cody.rpc").message_callbacks[msg.data.id] = nil
-          elseif not vim.startswith(line, "```") then
-            table.insert(render_lines, line)
-          end
-        end
-
-        self.state:update_message(id, Message.init(Speaker.cody, render_lines))
-      else
-        self.state:update_message(id, Message.init(Speaker.cody, lines))
-      end
-      self:render()
-    end
   end)
 end
 

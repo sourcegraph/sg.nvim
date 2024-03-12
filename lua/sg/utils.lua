@@ -175,4 +175,10 @@ utils.blocking = function(req, timeout)
   return unpack(results or {})
 end
 
+utils.replace_markdown_link = function(str)
+  return str:gsub("%[([^%]]+)%]%([^%)]+%)", function(text)
+    return string.format("[%s]()", text)
+  end)
+end
+
 return utils

@@ -16,7 +16,6 @@ pub mod hover;
 pub mod list_files;
 pub mod path_info;
 pub mod references;
-pub mod repository_id;
 pub mod search;
 pub mod sourcegraph_version;
 

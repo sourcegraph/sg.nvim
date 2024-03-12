@@ -43,6 +43,7 @@ M.get_client_id = function()
     return
   end
 
+  ---@diagnostic disable-next-line: missing-fields
   M._client = vim.lsp.start_client {
     name = "sourcegraph",
     cmd = { cmd },
