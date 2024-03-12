@@ -492,4 +492,8 @@ M.command.explain = function(callback)
   return M.request("commands/explain", {}, require("sg.cody.rpc.chat").make_chat({}, callback))
 end
 
+M.graphql_currentUserIsPro = function(callback)
+  return M.request("graphql/currentUserIsPro", {}, callback)
+end
+
 return M
