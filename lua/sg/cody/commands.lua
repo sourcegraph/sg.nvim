@@ -90,18 +90,16 @@ commands.do_task = function(bufnr, start_line, end_line, message)
   local formatted = util.format_code(bufnr, selection)
 
   local prompt = message
-  prompt = prompt .. "\nReply only with code, nothing else\n"
+  prompt = prompt .. "\nReply only with code, nothing else. Enclose it in a markdown style block.\n"
   prompt = prompt .. table.concat(formatted, "\n")
 
   local rpc = require "sg.cody.rpc"
   rpc.request("chat/new", nil, function(err, id)
-    print("CHAT NEW:", err, id)
     if err then
       vim.notify(err)
       return
     end
 
-    vim.notify(string.format("Chat ID: %s", id))
     require("sg.cody.tasks").init {
       id = id,
       bufnr = bufnr,

@@ -58,6 +58,10 @@ CodyTask.init = function(opts)
           end
         end
 
+        if #to_insert == 0 then
+          to_insert = lines
+        end
+
         vim.api.nvim_buf_set_lines(opts.bufnr, opts.start_row, opts.end_row, false, to_insert)
 
         -- Attempt to indent this code
