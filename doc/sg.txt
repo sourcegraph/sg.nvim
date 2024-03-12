@@ -47,15 +47,22 @@ sg.config                                                          *sg.config*
 
 
   Configuration Options: ~
-    {enable_cody}       (boolean?)   Enable/disable cody integration
-    {accept_tos}        (boolean?)   Accept the TOS without being prompted
-    {download_binaries} (boolean?)   Default true, download latest release
-                                     from Github
-    {node_executable}   (string?)    path to node executable
-    {skip_node_check}   (boolean?)   Useful if using other js runtime
-    {cody_agent}        (string?)    path to the cody-agent js bundle
-    {on_attach}         (function?)  function to run when attaching to
-                                     sg://<file> buffers
+    {enable_cody}       (boolean?)               Enable/disable cody
+                                                 integration
+    {accept_tos}        (boolean?)               Accept the TOS without being
+                                                 prompted
+    {download_binaries} (boolean?)               Default true, download latest
+                                                 release from Github
+    {node_executable}   (string?)                path to node executable
+    {skip_node_check}   (boolean?)               Useful if using other js
+                                                 runtime
+    {cody_agent}        (string?)                path to the cody-agent js
+                                                 bundle
+    {on_attach}         (function?)              function to run when
+                                                 attaching to sg://<file>
+                                                 buffers
+    {src_headers}       (table<string, string>)  Headers to be sent with each
+                                                 sg request
 
 
 
@@ -123,11 +130,19 @@ Default commands for interacting with Cody
 
     Use from visual mode to pass the current selection
 
+                                                                *:CodyExplain*
+:CodyExplain ~
+    Ask a question about the current selection.
+
+    Use from visual mode to pass the current selection
+
                                                                 *:CodyChat{!}*
 :CodyChat{!} {title} ~
     State a new cody chat, with an optional {title}
 
     If {!} is passed, will reset the chat and start a new chat conversation.
+
+    For more configuation options, see: `:help sg.cody.commands.chat`
 
                                                                  *:CodyToggle*
 :CodyToggle ~
@@ -136,25 +151,6 @@ Default commands for interacting with Cody
                                                                    *:CodyTask*
 :CodyTask {task_description} ~
     Instruct Cody to perform a task on selected text.
-
-                                                               *:CodyTaskView*
-:CodyTaskView ~
-    Opens the last active CodyTask.
-
-                                                             *:CodyTaskAccept*
-:CodyTaskAccept ~
-    Accepts the current CodyTask, removing it from the pending tasks list and
-    applying it to the selection the task was performed on. Can also be
-    triggered by pressing <CR> while a task is open.
-
-                                                               *:CodyTaskPrev*
-:CodyTaskPrev ~
-    Cycles to the previous CodyTask. Navigates to the appropriate buffer
-    location.
-
-                                                               *:CodyTaskNext*
-:CodyTaskNext ~
-    Cycles to the next CodyTask. Navigates to the appropriate buffer location.
 
                                                                 *:CodyRestart*
 :CodyRestart ~
@@ -176,15 +172,7 @@ M.setup({config})                                               *cody.setup()*
 ================================================================================
 LUA-COMMANDS                                                 *cody.lua-commands*
 
-commands.ask({message})                               *sg.cody.commands.ask()*
-    Ask Cody a question, without any selection
-
-
-    Parameters: ~
-        {message} (string[])
-
-
-commands.ask_range({bufnr}, {start_row}, {end_row}, {message}) *sg.cody.commands.ask_range()*
+commands.ask_range({bufnr}, {start_row}, {end_row}, {message}, {opts}) *sg.cody.commands.ask_range()*
     Ask Cody about the selected code
 
 
@@ -193,6 +181,7 @@ commands.ask_range({bufnr}, {start_row}, {end_row}, {message}) *sg.cody.commands
         {start_row} (number)
         {end_row}   (number)
         {message}   (string)
+        {opts}      (cody.ChatOpts)
 
 
 commands.autocomplete({request}, {callback}) *sg.cody.commands.autocomplete()*
@@ -204,27 +193,45 @@ commands.autocomplete({request}, {callback}) *sg.cody.commands.autocomplete()*
         {callback} (function(err: table, data: CodyAutocompleteResult))
 
 
-commands.float({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands.float()*
-    Ask Cody about the selected code
+commands.chat({new}, {opts})                         *sg.cody.commands.chat()*
+    Open a cody chat
+
+    To configure keymaps, you can do something like:
+
+    This will disable <c-c> in insert mode from getting mapped by Cody.
+
+    >lua
+      require("sg.cody.commands").chat(true, {
+        keymaps = {
+          i = {
+            ["<c-c>"] = false,
+          },
+        },
+      })
+<
+
+    Additionally, you can map more functionality like so:
+
+    >lua
+      require("sg.cody.commands").chat(true, {
+        keymaps = {
+          i = {
+            ["hello"] = { "Says Hello", function(chat) print("hello") end },
+          },
+        },
+      })
+<
+
 
 
     Parameters: ~
-        {bufnr}      (number)
-        {start_line} (number)
-        {end_line}   (number)
-        {message}    (string)
+        {new}  (boolean)
+        {opts} (cody.ChatOpts)
 
 
-commands.chat({name}, {opts})                        *sg.cody.commands.chat()*
-    Start a new CodyChat
+commands.toggle()                                  *sg.cody.commands.toggle()*
+    Toggle a Cody chat
 
-
-    Parameters: ~
-        {name} (string?)
-        {opts} ({ reset: boolean }?)
-
-    Return: ~
-        CodyLayoutSplit
 
 
 commands.do_task({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands.do_task()*
@@ -241,16 +248,6 @@ commands.do_task({bufnr}, {start_line}, {end_line}, {message}) *sg.cody.commands
 commands.history()                                *sg.cody.commands.history()*
     Open a selection to get an existing Cody conversation
 
-
-
-commands.add_context({start_line}, {end_line}, {state}) *sg.cody.commands.add_context()*
-    Add context to an existing state
-
-
-    Parameters: ~
-        {start_line} (any)
-        {end_line}   (any)
-        {state}      (CodyState?)
 
 
 commands.focus_history()                    *sg.cody.commands.focus_history()*
@@ -319,37 +316,15 @@ Default commands for interacting with Sourcegraph
     Run a search. For more sourcegraph search syntax, refer to online
     documentation
 
+                                                     *:CodyIgnoreNotification*
+:CodyIgnoreNotification ~
+    Ingore particular notifications
+
 
 
 
 ================================================================================
 RPC                                                                     *sg.rpc*
-
-rpc.complete({snippet}, {opts})                            *sg.rpc.complete()*
-    Complete a single string snippet
-
-
-
-    Parameters: ~
-        {snippet} (string)               Code to send as the prompt
-        {opts}    ({ prefix: string? })
-
-    Return: ~
-        string?: The error
-        string?: The completion
-
-
-rpc.repository({name})                                   *sg.rpc.repository()*
-    Get the repository ID for a repo with a name
-
-
-    Parameters: ~
-        {name} (string)
-
-    Return: ~
-        string?: The error, if any
-        string?: The repository ID, if found
-
 
 rpc.get_entry({path}, {callback})                         *sg.rpc.get_entry()*
     Get an SgEntry based on a path

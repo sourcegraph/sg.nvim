@@ -13,11 +13,15 @@ local Typewriter = require "sg.components.typewriter"
 ---@type cody.Chat?
 local last_chat = nil
 
+---@alias cody.ChatKeymap fun(self: cody.Chat): nil
+---@alias cody.ChatMapping { [1]: string, [2]: cody.ChatKeymap } | false
+
 ---@class cody.ChatOpts
 ---@field id? string: ID sent from cody-agent
 ---@field name? string
 ---@field model? string: The name of the model to set for the conversation
 ---@field interval? number: The interval (in ms) to send a message
+---@field keymaps? table<string, table<string, cody.ChatMapping>>: Table of mode, key -> function
 ---@field window_type? "float" | "split" | "hover"
 ---@field window_opts? { width: number, height: number, split_cmd: string? }
 
@@ -157,6 +161,20 @@ function Chat:_add_prompt_keymaps()
   keymaps.map(bufnr, "n", "?", "Show Keymaps", function()
     keymaps.help(bufnr)
   end)
+
+  local keymap_overrides = self.opts.keymaps or {}
+  for mode, overrides in pairs(keymap_overrides) do
+    for key, value in pairs(overrides) do
+      if value then
+        local desc, func = unpack(value)
+        keymaps.map(bufnr, mode, key, desc, function()
+          func(self)
+        end)
+      else
+        keymaps.del(bufnr, mode, key)
+      end
+    end
+  end
 
   -- TODO: Need to write a bit more stuff to manage this
   -- keymaps.map(bufnr, "n", "<space>m", function()

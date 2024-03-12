@@ -98,6 +98,8 @@ commands.CodyExplain = {
 --- State a new cody chat, with an optional {title}
 ---
 --- If {!} is passed, will reset the chat and start a new chat conversation.
+---
+--- For more configuation options, see: `:help sg.cody.commands.chat`
 ---@command ]]
 commands.CodyChat = {
   function(command)

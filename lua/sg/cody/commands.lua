@@ -62,6 +62,34 @@ commands.autocomplete = function(request, callback)
 end
 
 --- Open a cody chat
+---
+--- To configure keymaps, you can do something like:
+---
+--- This will disable <c-c> in insert mode from getting
+--- mapped by Cody.
+---
+--- <code=lua>
+---   require("sg.cody.commands").chat(true, {
+---     keymaps = {
+---       i = {
+---         ["<c-c>"] = false,
+---       },
+---     },
+---   })
+--- </code>
+---
+--- Additionally, you can map more functionality like so:
+---
+--- <code=lua>
+---   require("sg.cody.commands").chat(true, {
+---     keymaps = {
+---       i = {
+---         ["hello"] = { "Says Hello", function(chat) print("hello") end },
+---       },
+---     },
+---   })
+--- </code>
+---
 ---@param new boolean
 ---@param opts cody.ChatOpts
 commands.chat = function(new, opts)
