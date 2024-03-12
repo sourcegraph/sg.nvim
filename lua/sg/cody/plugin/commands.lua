@@ -168,7 +168,7 @@ local create_command = function(name)
 end
 
 local delete_command = function(name)
-  vim.api.nvim_del_user_command(name)
+  pcall(vim.api.nvim_del_user_command, name)
 end
 
 --- Setup Cody
