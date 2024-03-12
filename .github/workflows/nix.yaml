@@ -18,7 +18,7 @@ jobs:
     name: nix-build (${{ matrix.os }})
     steps:
       - uses: actions/checkout@v3
-      - uses: cachix/install-nix-action@v22
+      - uses: cachix/install-nix-action@8887e596b4ee1134dae06b98d573bd674693f47c # SECURITY: pin third-party action hashes
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
       - run: nix build
