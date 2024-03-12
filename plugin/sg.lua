@@ -216,6 +216,7 @@ vim.api.nvim_create_user_command("SourcegraphSearch", function(args)
   require("sg.extensions.telescope").fuzzy_search_results { input = input }
 end, {
   desc = "Run a search on your connected Sourcegraph instance",
+  nargs = "*",
 })
 
 ---@command CodyIgnoreNotification [[
