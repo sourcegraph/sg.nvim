@@ -170,7 +170,9 @@ M.start = function(opts, callback)
     ["textDocument/openUntitledDocument"] = protocol.handle_open_untitled_document,
 
     -- 'textDocument/show': [{ uri: string; options?: vscode.TextDocumentShowOptions }, boolean]
+
     -- 'workspace/edit': [WorkspaceEditParams, boolean]
+    ["workspace/edit"] = protocol.handle_workspace_edit,
   }
 
   -- Clear old information before restarting the client
