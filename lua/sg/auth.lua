@@ -77,6 +77,25 @@ M.set = function(new_endpoint, new_token, opts)
   else
     require("sg.cody.rpc").config_did_change()
   end
+
+  vim.schedule(function()
+    require("sg.cody.rpc").graphql_currentUserIsPro(function(err, data)
+      if err then
+        return
+      end
+
+      M._is_pro = data
+    end)
+  end)
+end
+
+M.is_pro = function()
+  if M._is_pro == nil then
+    -- TODO: Probably want to check a bit more than that.
+    vim.wait(100)
+  end
+
+  return M._is_pro
 end
 
 return M

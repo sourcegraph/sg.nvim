@@ -1,3 +1,4 @@
+local auth = require "sg.auth"
 local keymaps = require "sg.keymaps"
 local log = require "sg.log"
 local rpc = require "sg.cody.rpc"
@@ -135,15 +136,33 @@ function Chat:_add_prompt_keymaps()
 
       ---@type cody.ChatModelProvider[]
       local models = data.models or {}
+
+      -- Filter out models that are pro only if the user is not pro
+      --    TODO: Need to check on how this works for enterprise?
+      local is_pro = auth.is_pro()
+      if not is_pro then
+        models = vim.tbl_filter(function(model)
+          return not model.codyProOnly
+        end, models)
+      end
+
       vim.ui.select(models, {
         prompt = "Select a model for conversation",
 
         --- Format an item
         ---@param item cody.ChatModelProvider
         format_item = function(item)
-          return item.model
+          if item.codyProOnly then
+            return string.format("%s [Pro]", item.model)
+          else
+            return item.model
+          end
         end,
       }, function(choice)
+        if not choice then
+          return
+        end
+
         rpc.request("webview/receiveMessage", {
           id = self.id,
           message = {
