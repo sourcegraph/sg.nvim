@@ -29,6 +29,7 @@
 ---@type sg.config
 local config = {
   enable_cody = true,
+  accept_tos = false,
   download_binaries = true,
   node_executable = "node",
   skip_node_check = false,
