@@ -143,6 +143,10 @@ M.start = function(opts, callback)
         notification_callback(noti)
       end
     end,
+
+    ["editTaskState/didChange"] = function(...)
+      require("sg.cody.rpc.edit_task").did_change(...)
+    end,
   }
 
   local server_handlers = {
