@@ -163,8 +163,12 @@ M.start = function(opts, callback)
     --   end
     -- end,
 
+    -- 'textDocument/edit': [TextDocumentEditParams, boolean]
     ["textDocument/edit"] = protocol.handle_text_document_edit,
+
     -- 'textDocument/openUntitledDocument': [UntitledTextDocument, boolean]
+    ["textDocument/openUntitledDocument"] = protocol.handle_open_untitled_document,
+
     -- 'textDocument/show': [{ uri: string; options?: vscode.TextDocumentShowOptions }, boolean]
     -- 'workspace/edit': [WorkspaceEditParams, boolean]
   }

@@ -153,7 +153,7 @@ proto.document = {
 
 ---@class cody.ReplaceTextEdit
 ---@field type 'replace'
----@field range Range
+---@field range cody.Range
 ---@field value string
 ---unsupported field metadata? vscode.WorkspaceEditEntryMetadata
 
@@ -171,8 +171,69 @@ proto.document = {
 --- Handle text document edits
 ---@param _ any
 ---@param params cody.TextDocumentEditParams
-M.handle_text_document_edit = function(_, params)
-  return
+proto.handle_text_document_edit = function(_, params)
+  local bufnr = vim.uri_to_bufnr(params.uri)
+  for _, edit in ipairs(params.edits) do
+    if edit.type == "replace" then
+      local replace = edit ---@as cody.ReplaceTextEdit
+
+      local range = replace.range
+      local start = range.start
+      local finish = range["end"]
+
+      vim.api.nvim_buf_set_text(
+        bufnr,
+        start.line,
+        start.character,
+        finish.line,
+        finish.character,
+        vim.split(replace.value, "\n")
+      )
+    elseif edit.type == "insert" then
+      local insert = edit ---@as cody.InsertTextEdit
+
+      local line = insert.position.line
+      local character = insert.position.character
+      vim.api.nvim_buf_set_text(
+        bufnr,
+        line,
+        character,
+        line,
+        character,
+        vim.split(insert.value, "\n")
+      )
+    elseif edit.type == "delete" then
+      local delete = edit ---@as cody.DeleteTextEdit
+      local range = delete.range
+      local start = range.start
+      local finish = range["end"]
+
+      vim.api.nvim_buf_set_text(
+        bufnr,
+        start.line,
+        start.character,
+        finish.line,
+        finish.character,
+        {}
+      )
+    else
+      error("Unknown edit type: " .. edit.type)
+    end
+  end
+
+  return true
+end
+
+---@class cody.UntitledTextDocument
+---@field uri string
+---@field content? string
+---@field language? string
+
+--- Open an untitled document
+---@param _ any
+---@param params cody.UntitledTextDocument
+proto.handle_text_document_open_untitled_document = function(_, params)
+  _ = params
 end
 
 return proto
