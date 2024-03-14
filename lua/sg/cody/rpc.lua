@@ -143,6 +143,10 @@ M.start = function(opts, callback)
         notification_callback(noti)
       end
     end,
+
+    ["editTaskState/didChange"] = function(...)
+      require("sg.cody.rpc.edit_task").did_change(...)
+    end,
   }
 
   local server_handlers = {
@@ -150,13 +154,25 @@ M.start = function(opts, callback)
       vim.notify(string.format("WEBVIEW CREATE: %s", vim.inspect(params)))
     end,
 
-    ["showQuickPick"] = function(_, params)
-      return function(respond)
-        vim.ui.select(params, nil, function(selected)
-          respond(selected)
-        end)
-      end
-    end,
+    -- TODO: Don't think we ever merged this
+    -- ["showQuickPick"] = function(_, params)
+    --   return function(respond)
+    --     vim.ui.select(params, nil, function(selected)
+    --       respond(selected)
+    --     end)
+    --   end
+    -- end,
+
+    -- 'textDocument/edit': [TextDocumentEditParams, boolean]
+    ["textDocument/edit"] = protocol.handle_text_document_edit,
+
+    -- 'textDocument/openUntitledDocument': [UntitledTextDocument, boolean]
+    ["textDocument/openUntitledDocument"] = protocol.handle_open_untitled_document,
+
+    -- 'textDocument/show': [{ uri: string; options?: vscode.TextDocumentShowOptions }, boolean]
+
+    -- 'workspace/edit': [WorkspaceEditParams, boolean]
+    ["workspace/edit"] = protocol.handle_workspace_edit,
   }
 
   -- Clear old information before restarting the client

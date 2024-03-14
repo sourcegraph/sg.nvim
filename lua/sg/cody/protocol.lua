@@ -144,4 +144,183 @@ proto.document = {
   end,
 }
 
+---@class cody.TextDocumentEditParams
+---@field uri string
+---@field edits cody.TextEdit[]
+---@field options? { undoStopBefore: boolean, undoStopAfter: boolean }
+
+---@alias cody.TextEdit cody.ReplaceTextEdit | cody.InsertTextEdit | cody.DeleteTextEdit
+
+---@class cody.ReplaceTextEdit
+---@field type 'replace'
+---@field range cody.Range
+---@field value string
+---unsupported field metadata? vscode.WorkspaceEditEntryMetadata
+
+---@class cody.InsertTextEdit
+---@field type 'insert'
+---@field position cody.Position
+---@field value string
+---unsupported metadata?: vscode.WorkspaceEditEntryMetadata
+
+---@class cody.DeleteTextEdit
+---@field type 'delete'
+---@field range cody.Range
+---unsupported metadata? vscode.WorkspaceEditEntryMetadata
+
+--- Apply a single text edit to a buffer
+---@param bufnr number
+---@param edit cody.TextEdit
+proto.apply_text_edit = function(bufnr, edit)
+  if edit.type == "replace" then
+    local replace = edit ---@as cody.ReplaceTextEdit
+
+    local range = replace.range
+    local start = range.start
+    local finish = range["end"]
+
+    vim.api.nvim_buf_set_text(
+      bufnr,
+      start.line,
+      start.character,
+      finish.line,
+      finish.character,
+      vim.split(replace.value, "\n")
+    )
+  elseif edit.type == "insert" then
+    local insert = edit ---@as cody.InsertTextEdit
+
+    local line = insert.position.line
+    local character = insert.position.character
+    vim.api.nvim_buf_set_text(
+      bufnr,
+      line,
+      character,
+      line,
+      character,
+      vim.split(insert.value, "\n")
+    )
+  elseif edit.type == "delete" then
+    local delete = edit ---@as cody.DeleteTextEdit
+    local range = delete.range
+    local start = range.start
+    local finish = range["end"]
+
+    vim.api.nvim_buf_set_text(bufnr, start.line, start.character, finish.line, finish.character, {})
+  else
+    error("Unknown edit type: " .. edit.type)
+  end
+end
+
+--- Handle text document edits
+---@param _ any
+---@param params cody.TextDocumentEditParams
+proto.handle_text_document_edit = function(_, params)
+  local bufnr = vim.uri_to_bufnr(params.uri)
+  for _, edit in ipairs(params.edits) do
+    proto.apply_text_edit(bufnr, edit)
+  end
+
+  return true
+end
+
+---@class cody.UntitledTextDocument
+---@field uri string
+---@field content? string
+---@field language? string
+
+--- Open an untitled document
+---@param _ any
+---@param params cody.UntitledTextDocument
+proto.handle_text_document_open_untitled_document = function(_, params)
+  vim.cmd.edit(params.uri)
+  if params.content then
+    vim.api.nvim_buf_set_lines(0, 0, -1, false, vim.split(params.content, "\n"))
+  end
+end
+
+---@class cody.WorkspaceEditParams
+---@field operations cody.WorkspaceEditOperation[]
+---@field metadata? cody.vscode.WorkspaceEditMetadata
+
+---@alias cody.WorkspaceEditOperation  cody.CreateFileOperation | cody.RenameFileOperation | cody.DeleteFileOperation | cody.EditFileOperation
+
+---@class cody.WriteFileOptions
+---@field overwrite? boolean
+---@field ignoreIfExists? boolean
+
+---@class cody.CreateFileOperation
+---@field type 'create-file'
+---@field uri string
+---@field options? cody.WriteFileOptions
+---@field textContents string
+---@field metadata? cody.vscode.WorkspaceEditEntryMetadata
+
+---@class cody.RenameFileOperation
+---@field type 'rename-file'
+---@field oldUri string
+---@field newUri string
+---@field options? cody.WriteFileOptions
+---@field metadata? cody.vscode.WorkspaceEditEntryMetadata
+
+---@class cody.DeleteFileOperation
+---@field type 'delete-file'
+---@field uri string
+---@field deleteOptions? { recursive:  boolean, ignoreIfNotExists: boolean }
+---@field metadata? cody.vscode.WorkspaceEditEntryMetadata
+
+---@class cody.EditFileOperation
+---@field type 'edit-file'
+---@field uri string
+---@field edits cody.TextEdit[]
+
+---@class cody.vscode.WorkspaceEditMetadata
+---@field isRefactoring? boolean
+
+---@class cody.vscode.WorkspaceEditEntryMetadata
+---@field needsConfirmation boolean
+---@field label string
+---@field description? string
+
+--- Handle a workspace edit
+---@param _ any
+---@param params cody.WorkspaceEditParams
+proto.handle_workspace_edit = function(_, params)
+  for _, operation in ipairs(params.operations) do
+    print("operation: ", vim.inspect(operation))
+    if operation.type == "create-file" then
+      local create = operation ---@as cody.CreateFileOperation
+      --- uri string
+      --- options? cody.WriteFileOptions
+      --- textContents string
+      --- metadata? cody.vscode.WorkspaceEditEntryMetadata
+
+      local filename = vim.uri_to_fname(create.uri)
+
+      -- TODO: create.options -> flags
+      local flags = nil
+      vim.fn.writefile(vim.split(create.textContents, "\n"), filename, flags)
+    elseif operation.type == "rename-file" then
+      local rename = operation ---@as cody.RenameFileOperation
+
+      -- TODO: handle options
+      vim.fn.rename(vim.uri_to_fname(rename.oldUri), vim.uri_to_fname(rename.newUri))
+    elseif operation.type == "delete-file" then
+      local delete = operation ---@as cody.DeleteFileOperation
+
+      -- TODO: delete.deleteOptions
+      vim.fn.delete(vim.uri_to_fname(delete.uri))
+    elseif operation.type == "edit-file" then
+      local edit = operation ---@as cody.EditFileOperation
+
+      local bufnr = vim.uri_to_bufnr(edit.uri)
+      for _, text_edit in ipairs(edit.edits) do
+        proto.apply_text_edit(bufnr, text_edit)
+      end
+    else
+      error("Unknown workspace edit operation: " .. operation.type)
+    end
+  end
+end
+
 return proto

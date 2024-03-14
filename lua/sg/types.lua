@@ -79,15 +79,15 @@ local M = {}
 ---@field content string?
 ---@field selection cody.Range?
 
----@class CodyPosition
+---@class cody.Position
 ---@field line number
 --- 0-indexed
 ---@field character number
 ---  0-indexed
 
 ---@class cody.Range
----@field start CodyPosition
----@field end CodyPosition
+---@field start cody.Position
+---@field end cody.Position
 
 ---@class cody.URI
 ---@field authority string
