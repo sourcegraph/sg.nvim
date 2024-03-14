@@ -154,13 +154,19 @@ M.start = function(opts, callback)
       vim.notify(string.format("WEBVIEW CREATE: %s", vim.inspect(params)))
     end,
 
-    ["showQuickPick"] = function(_, params)
-      return function(respond)
-        vim.ui.select(params, nil, function(selected)
-          respond(selected)
-        end)
-      end
-    end,
+    -- TODO: Don't think we ever merged this
+    -- ["showQuickPick"] = function(_, params)
+    --   return function(respond)
+    --     vim.ui.select(params, nil, function(selected)
+    --       respond(selected)
+    --     end)
+    --   end
+    -- end,
+
+    ["textDocument/edit"] = protocol.handle_text_document_edit,
+    -- 'textDocument/openUntitledDocument': [UntitledTextDocument, boolean]
+    -- 'textDocument/show': [{ uri: string; options?: vscode.TextDocumentShowOptions }, boolean]
+    -- 'workspace/edit': [WorkspaceEditParams, boolean]
   }
 
   -- Clear old information before restarting the client

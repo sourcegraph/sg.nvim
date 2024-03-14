@@ -144,4 +144,35 @@ proto.document = {
   end,
 }
 
+---@class cody.TextDocumentEditParams
+---@field uri string
+---@field edits cody.TextEdit[]
+---@field options? { undoStopBefore: boolean, undoStopAfter: boolean }
+
+---@alias cody.TextEdit cody.ReplaceTextEdit | cody.InsertTextEdit | cody.DeleteTextEdit
+
+---@class cody.ReplaceTextEdit
+---@field type 'replace'
+---@field range Range
+---@field value string
+---unsupported field metadata? vscode.WorkspaceEditEntryMetadata
+
+---@class cody.InsertTextEdit
+---@field type 'insert'
+---@field position cody.Position
+---@field value string
+---unsupported metadata?: vscode.WorkspaceEditEntryMetadata
+
+---@class cody.DeleteTextEdit
+---@field type 'delete'
+---@field range cody.Range
+---unsupported metadata? vscode.WorkspaceEditEntryMetadata
+
+--- Handle text document edits
+---@param _ any
+---@param params cody.TextDocumentEditParams
+M.handle_text_document_edit = function(_, params)
+  return
+end
+
 return proto
