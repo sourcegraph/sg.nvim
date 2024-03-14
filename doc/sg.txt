@@ -453,4 +453,25 @@ See |cmp-config.sources| for more information
 
 
 
+================================================================================
+BUILTIN_COMPLETE                                         *cody.builtin_complete*
+
+Builtin Completion options for using Cody without any external completion
+plugins.
+
+M.builtin_complete()                                    *M.builtin_complete()*
+    Accepts a completion item and inserts it into the buffer. Uses the builtin
+    complete method, so you have to do something like this:
+
+    >lua
+      vim.keymap.set(
+        "i",
+        "<c-space>",
+        "<C-R>=v:lua.require'sg.cody.complete'.builtin_complete()<CR>"
+      )
+<
+
+
+
+
  vim:tw=78:ts=8:ft=help:norl:
