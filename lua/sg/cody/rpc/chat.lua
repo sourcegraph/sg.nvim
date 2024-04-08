@@ -748,8 +748,8 @@ handlers.config = function(id, config)
   chat:set_config(config)
 end
 
-handlers.models = function(id, callback)
-  rpc.request("chat/models", { id = id }, callback)
+handlers.models = function(_, callback)
+  rpc.request("chat/models", { modelUsage = "chat" }, callback)
 end
 
 --- Get the last chat, if available

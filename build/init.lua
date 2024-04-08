@@ -15,7 +15,7 @@ config.accept_tos = true
 
 -- This is the default path of downloading binaries
 if config.download_binaries or config.download_binaries == nil then
-  return require("sg.build").download()
+  return require("sg.build").download_sync()
 else
   -- This is the path to build these manually.
 

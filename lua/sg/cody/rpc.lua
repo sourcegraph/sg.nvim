@@ -63,7 +63,7 @@ local get_server_config = function(creds, remote_url)
       },
       customConfiguration = {
         -- ["cody.useContext"] = "keyword",
-        ["cody.experimental.symfContext"] = true,
+        -- ["cody.experimental.symfContext"] = true,
         -- ["cody.debug.enable"] = true,
         -- ["cody.debug.verbose"] = true,
       },
@@ -163,7 +163,7 @@ M.start = function(opts, callback)
   M.messages = {}
   M.server_info = {}
 
-  M.client = vendored_rpc.start(config.node_executable, cody_args, {
+  M.client = vendored_rpc.start(require("sg.build")._cody_agent_bin, { "jsonrpc" }, {
     notification = function(method, data)
       if notification_handlers[method] then
         notification_handlers[method](data)
