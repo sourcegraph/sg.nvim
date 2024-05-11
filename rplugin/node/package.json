@@ -1,0 +1,14 @@
+{
+    "name": "sg.nvim",
+    "version": "0.0.1",
+    "description": "sg.nvim remote plugin for neovim",
+    "main": "dist/index.js",
+    "scripts": {
+        "build": "tsc",
+        "build:watch": "tsc --watch"
+    },
+    "dependencies": {
+        "neovim": "^5.1.0",
+        "typescript": "^5.4.5"
+    }
+}

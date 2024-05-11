@@ -19,4 +19,4 @@ data.db
 data.db*
 
 .luarc.json
-dist/
+/dist/
