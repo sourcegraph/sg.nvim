@@ -45,7 +45,7 @@ Typewriter.init = function(opts)
     timer = nil,
     index = 0,
     text = "",
-    interval = opts.interval or 10,
+    interval = opts.interval or 6,
     parent_transcript = assert(opts.transcript, "must be associated with a transcript"),
   }, { __index = Typewriter })
 end
@@ -73,7 +73,14 @@ function Typewriter:render(bufnr, win, mark, opts)
     local details = mark:details()
     local start_pos = mark:start_pos(details)
     local end_pos = mark:end_pos(details)
-    vim.api.nvim_buf_set_text(bufnr, start_pos.row, start_pos.col, end_pos.row, end_pos.col, vim.split(self.text, "\n"))
+    vim.api.nvim_buf_set_text(
+      bufnr,
+      start_pos.row,
+      start_pos.col,
+      end_pos.row,
+      end_pos.col,
+      vim.split(self.text, "\n")
+    )
     return
   end
 
@@ -93,7 +100,17 @@ function Typewriter:render(bufnr, win, mark, opts)
     end
 
     local interval_jitter = math.floor(interval * 0.8)
-    self.timer:set_repeat(interval + math.random(-1 * interval_jitter, interval_jitter))
+
+    local repeat_time = interval
+
+    -- Add a touch of jitter
+    repeat_time = repeat_time + math.random(-1 * interval_jitter, interval_jitter)
+
+    -- Make it so that if we haved a lot of characters to add, we send them more quickly
+    repeat_time = repeat_time * (10 / (#chars_to_insert + 10))
+
+    -- Set repeat time
+    self.timer:set_repeat(repeat_time)
 
     local details = mark:details()
     local start_pos = mark:start_pos(details)
@@ -120,10 +137,18 @@ function Typewriter:render(bufnr, win, mark, opts)
       -- Sometimes we access out of the buffer range, but I think it's fine to just pcall in that case...
       --    We should probably double check this later though
       local end_pos = mark:end_pos(details)
-      pcall(vim.api.nvim_buf_set_text, bufnr, start_pos.row + shared_rows, shared_col, end_pos.row, end_pos.col, {})
+      pcall(
+        vim.api.nvim_buf_set_text,
+        bufnr,
+        start_pos.row + shared_rows,
+        shared_col,
+        end_pos.row,
+        end_pos.col,
+        {}
+      )
     end
 
-    if self.index > #self.text then
+    if self.index >= #self.text then
       log.trace("done", self.text)
       return self:stop()
     end

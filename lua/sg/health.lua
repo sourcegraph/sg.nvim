@@ -6,11 +6,27 @@ local M = {}
 local blocking = require("sg.utils").blocking
 
 local report_nvim = function()
-  if vim.version.cmp(vim.version(), { 0, 9, 4 }) >= 0 then
+  local version = vim.version()
+  local version_tuple = { version[1], version[2], version[3] }
+
+  if vim.version.cmp(version_tuple, { 0, 10, 0 }) >= 0 then
     vim.health.ok(string.format("Valid nvim version: %s", tostring(vim.version())))
     return true
+  elseif vim.version.cmp(version_tuple, { 0, 9, 4 }) >= 0 then
+    vim.health.ok(
+      string.format(
+        "Currently supported version, but should update to nvim 0.10: %s",
+        tostring(vim.version())
+      )
+    )
+    return true
   else
-    vim.health.error "Invalid nvim version. Upgrade to at least 0.9.4"
+    vim.health.error(
+      string.format(
+        "Invalid nvim version. Upgrade to at least 0.10.0. Current version: %s",
+        tostring(vim.version())
+      )
+    )
     return false
   end
 end
@@ -75,7 +91,9 @@ local report_env = function()
     ok = false
   elseif expected_cargo_version ~= info.sg_nvim_version then
     vim.health.error "Mismatched cargo and expected version. Update using :SourcegraphDownloadBinaries or :SourcegraphBuild"
-    vim.health.error(string.format("Exptected: %s | Found: %s", expected_cargo_version, info.sg_nvim_version))
+    vim.health.error(
+      string.format("Exptected: %s | Found: %s", expected_cargo_version, info.sg_nvim_version)
+    )
 
     ok = false
   else
@@ -105,15 +123,25 @@ local report_agent = function()
   else
     local ok, reason = require("sg.utils").valid_node_executable(config.node_executable)
     if not ok then
-      vim.health.error(string.format("Invalid node executable (%s): %s", config.node_executable, vim.inspect(reason)))
+      vim.health.error(
+        string.format(
+          "Invalid node executable (%s): %s",
+          config.node_executable,
+          vim.inspect(reason)
+        )
+      )
       return false
     end
 
     if 1 ~= vim.fn.executable(config.node_executable) then
-      vim.health.error(string.format("config.node_executable (%s) not executable", config.node_executable))
+      vim.health.error(
+        string.format("config.node_executable (%s) not executable", config.node_executable)
+      )
       return false
     else
-      local result = require("sg.utils").system({ config.node_executable, "--version" }, { text = true }):wait()
+      local result = require("sg.utils")
+        .system({ config.node_executable, "--version" }, { text = true })
+        :wait()
       if result.code ~= 0 then
         vim.health.error(
           string.format(

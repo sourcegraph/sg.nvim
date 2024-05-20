@@ -1,5 +1,6 @@
+local rpc = vim.lsp.rpc
+
 local log = require "sg.log"
-local lsp = require "sg.vendored.vim-lsp-rpc"
 
 local bin_sg_nvim = require("sg.config").get_nvim_agent()
 
@@ -21,7 +22,7 @@ local server_handlers = {}
 
 --- Start the server
 ---@param opts { force: boolean? }?
----@return VendoredPublicClient?
+---@return vim.lsp.rpc.PublicClient?
 M.start = function(opts)
   if not bin_sg_nvim then
     -- Try and check for the bin again
@@ -44,9 +45,13 @@ M.start = function(opts)
   end
 
   local src_headers = require("sg.config").src_headers
+  local SRC_HEADERS
+  if src_headers then
+    SRC_HEADERS = vim.json.encode(src_headers)
+  end
 
   -- Verify that the environment is properly configured
-  M.client = lsp.start(bin_sg_nvim, {}, {
+  M.client = rpc.start({ bin_sg_nvim }, {
     notification = function(method, data)
       log.info("got notification", method, data)
       if notification_handlers[method] then
@@ -63,12 +68,14 @@ M.start = function(opts)
         log.error("[cody-agent] unhandled server request:", method)
       end
     end,
+    on_exit = function() end,
+    on_error = function() end,
   }, {
     env = {
       PATH = vim.env.PATH,
       SRC_ACCESS_TOKEN = vim.env.SRC_ACCESS_TOKEN,
       SRC_ENDPOINT = vim.env.SRC_ENDPOINT,
-      SRC_HEADERS = src_headers and vim.json.encode(src_headers) or nil,
+      SRC_HEADERS = SRC_HEADERS,
     },
   })
 
