@@ -1,9 +1,9 @@
-local rpc = vim.lsp.rpc
-
 local auth = require "sg.auth"
 local config = require "sg.config"
 local log = require "sg.log"
 local protocol = require "sg.cody.protocol"
+
+local rpc_start = require("sg.utils").rpc_start
 
 local M = {}
 
@@ -151,7 +151,7 @@ M.start = function(opts, callback)
   M.messages = {}
   M.server_info = {}
 
-  M.client = rpc.start(cody_args, {
+  M.client = rpc_start(cody_args, {
     notification = function(method, data)
       if notification_handlers[method] then
         notification_handlers[method](data)

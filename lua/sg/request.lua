@@ -1,7 +1,6 @@
-local rpc = vim.lsp.rpc
-
 local log = require "sg.log"
 
+local rpc_start = require("sg.utils").rpc_start
 local bin_sg_nvim = require("sg.config").get_nvim_agent()
 
 local M = {}
@@ -51,7 +50,7 @@ M.start = function(opts)
   end
 
   -- Verify that the environment is properly configured
-  M.client = rpc.start({ bin_sg_nvim }, {
+  M.client = rpc_start({ bin_sg_nvim }, {
     notification = function(method, data)
       log.info("got notification", method, data)
       if notification_handlers[method] then
