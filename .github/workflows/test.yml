@@ -17,6 +17,8 @@ jobs:
             rev: nightly/nvim-linux64.tar.gz
           - os: ubuntu-22.04
             rev: v0.9.5/nvim-linux64.tar.gz
+          - os: ubuntu-22.04
+            rev: v0.10.0/nvim-linux64.tar.gz
           - os: macos-latest
             rev: nightly/nvim-macos-x86_64.tar.gz
     steps:
