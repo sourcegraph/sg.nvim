@@ -120,7 +120,35 @@ local client_errors = {
   SERVER_RESULT_CALLBACK_ERROR = 7,
 }
 
-client_errors = vim.tbl_add_reverse_lookup(client_errors)
+--- Add the reverse lookup values to an existing table.
+--- For example:
+--- `tbl_add_reverse_lookup { A = 1 } == { [1] = 'A', A = 1 }`
+---
+--- Note that this *modifies* the input.
+---@deprecated
+---@param o table Table to add the reverse to
+---@return table o
+function tbl_add_reverse_lookup(o)
+  --- @cast o table<any,any>
+  --- @type any[]
+  local keys = vim.tbl_keys(o)
+  for _, k in ipairs(keys) do
+    local v = o[k]
+    if o[v] then
+      error(
+        string.format(
+          "The reverse lookup found an existing value for %q while processing key %q",
+          tostring(v),
+          tostring(k)
+        )
+      )
+    end
+    o[v] = k
+  end
+  return o
+end
+
+client_errors = tbl_add_reverse_lookup(client_errors)
 
 --- Constructs an error message from an LSP error object.
 ---
