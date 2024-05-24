@@ -370,7 +370,7 @@ M.execute = {}
 M.execute.autocomplete = function(file, line, character, callback)
   return M.request(
     "autocomplete/execute",
-    { filePath = file, position = { line = line, character = character } },
+    { uri = file, position = { line = line, character = character } },
     callback
   )
 end
