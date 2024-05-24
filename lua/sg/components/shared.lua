@@ -25,7 +25,7 @@ end
 
 shared.win_del = function(win)
   if vim.api.nvim_win_is_valid(win) then
-    vim.api.nvim_win_close(win, true)
+    pcall(vim.api.nvim_win_close, win, true)
   end
 
   return -1

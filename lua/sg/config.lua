@@ -19,6 +19,7 @@
 ---@class sg.config
 ---@field enable_cody boolean?: Enable/disable cody integration
 ---@field accept_tos boolean?: Accept the TOS without being prompted
+---@field chat sg.config.chat?: Chat configuration
 ---@field download_binaries boolean?: Default true, download latest release from Github
 ---@field node_executable string?: path to node executable
 ---@field skip_node_check boolean?: Useful if using other js runtime
@@ -26,10 +27,18 @@
 ---@field on_attach function?: function to run when attaching to sg://<file> buffers
 ---@field src_headers? table<string, string>: Headers to be sent with each sg request
 
+---@class sg.config.chat
+---@field default_model? string: The name of the default model to use
+
 ---@type sg.config
 local config = {
   enable_cody = true,
   accept_tos = false,
+
+  chat = {
+    default_model = nil,
+  },
+
   download_binaries = true,
   node_executable = "node",
   skip_node_check = false,

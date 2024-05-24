@@ -99,22 +99,24 @@ function Typewriter:render(bufnr, win, mark, opts)
       return
     end
 
-    local interval_jitter = math.floor(interval * 0.8)
+    local details = mark:details()
+    local start_pos = mark:start_pos(details)
+    local buffer_text = mark:text(details)
+
+    if buffer_text == self.text then
+      return
+    end
 
     local repeat_time = interval
 
     -- Add a touch of jitter
+    local interval_jitter = math.floor(interval * 0.8)
     repeat_time = repeat_time + math.random(-1 * interval_jitter, interval_jitter)
 
     -- Make it so that if we haved a lot of characters to add, we send them more quickly
-    repeat_time = repeat_time * (10 / (#chars_to_insert + 10))
+    repeat_time = repeat_time * (1 / (#chars_to_insert + 1))
 
-    -- Set repeat time
     self.timer:set_repeat(repeat_time)
-
-    local details = mark:details()
-    local start_pos = mark:start_pos(details)
-    local buffer_text = mark:text(details)
 
     if buffer_text ~= string.sub(self.text, 1, self.index) then
       local shared_rows = 0
