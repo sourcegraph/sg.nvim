@@ -140,6 +140,7 @@ function Chat:_add_prompt_keymaps()
       -- Filter out models that are pro only if the user is not pro
       --    TODO: Need to check on how this works for enterprise?
       local is_pro = auth.is_pro()
+      print("is_pro", is_pro, vim.inspect(models))
       if not is_pro then
         models = vim.tbl_filter(function(model)
           return not model.codyProOnly
@@ -748,8 +749,8 @@ handlers.config = function(id, config)
   chat:set_config(config)
 end
 
-handlers.models = function(id, callback)
-  rpc.request("chat/models", { id = id }, callback)
+handlers.models = function(_, callback)
+  rpc.request("chat/models", { modelUsage = "chat" }, callback)
 end
 
 --- Get the last chat, if available

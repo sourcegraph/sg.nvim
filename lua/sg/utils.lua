@@ -48,9 +48,10 @@ utils.execute_keystrokes = function(keys)
 end
 
 -- COMPAT(0.10.0)
-utils.joinpath = vim.fs.joinpath or function(...)
-  return (table.concat({ ... }, "/"):gsub("//+", "/"))
-end
+utils.joinpath = vim.fs.joinpath
+  or function(...)
+    return (table.concat({ ... }, "/"):gsub("//+", "/"))
+  end
 
 -- COMPAT(0.10.0)
 -- So far only handle stdout, no other items are handled.
@@ -152,7 +153,8 @@ utils._validate_node_output = function(output)
     if version then
       local min_node_version = assert(vim.version.parse "v18")
       if not vim.version.gt(version, min_node_version) then
-        return false, string.format("node version must be >= %s. Got: %s", min_node_version, version)
+        return false,
+          string.format("node version must be >= %s. Got: %s", min_node_version, version)
       end
 
       return true, version
@@ -179,6 +181,24 @@ utils.replace_markdown_link = function(str)
   return str:gsub("%[([^%]]+)%]%([^%)]+%)", function(text)
     return string.format("[%s]()", text)
   end)
+end
+
+--- Start the LSP server, compatible with nvim 0.9 still
+---@param cmd string[]: Command to start the LSP server.
+---@param dispatchers? vim.lsp.rpc.Dispatchers
+---@param extra_spawn_params? vim.lsp.rpc.ExtraSpawnParams
+---@return vim.lsp.rpc.PublicClient
+utils.rpc_start = function(cmd, dispatchers, extra_spawn_params)
+  local version = vim.version()
+  if version.major == 0 and version.minor >= 10 then
+    return vim.lsp.rpc.start(cmd, dispatchers, extra_spawn_params)
+  else
+    local executable = table.remove(cmd, 1)
+
+    -- Compatbility line
+    ---@diagnostic disable-next-line: redundant-parameter, param-type-mismatch
+    return vim.lsp.rpc.start(executable, cmd, dispatchers, extra_spawn_params)
+  end
 end
 
 return utils

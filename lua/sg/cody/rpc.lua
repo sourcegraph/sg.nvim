@@ -1,9 +1,9 @@
-local protocol = require "sg.cody.protocol"
-local log = require "sg.log"
-local config = require "sg.config"
 local auth = require "sg.auth"
-local vendored_rpc = require "sg.vendored.vim-lsp-rpc"
-local utils = require "sg.utils"
+local config = require "sg.config"
+local log = require "sg.log"
+local protocol = require "sg.cody.protocol"
+
+local rpc_start = require("sg.utils").rpc_start
 
 local M = {}
 
@@ -68,8 +68,8 @@ local get_server_config = function(creds, remote_url)
         -- ["cody.debug.verbose"] = true,
       },
       -- TODO: Which should I put here? I cannot get multi-line completions anymore
-      autocompleteAdvancedProvider = "fireworks",
-      autocompleteAdvancedModel = "starcoder-7b",
+      -- autocompleteAdvancedProvider = "fireworks",
+      -- autocompleteAdvancedModel = "starcoder-7b",
     },
     capabilities = {
       chat = "streaming",
@@ -77,16 +77,18 @@ local get_server_config = function(creds, remote_url)
   }
 end
 
-local cody_args = { config.cody_agent }
+local cody_args = { config.node_executable, config.cody_agent }
 -- We can insert node breakpoint to debug the agent if needed
 -- table.insert(cody_args, 1, "--insert-brk")
 
----@type table<string, CodyMessageHandler?>
+---@alias cody.MessageHandler function(err: string, data: any)
+
+---@type table<string, cody.MessageHandler>
 M.message_callbacks = {}
 
 --- Start the server
 ---@param opts { force: boolean? }?
----@param callback fun(client: VendoredPublicClient?)
+---@param callback fun(client: vim.lsp.rpc.PublicClient?)
 ---@return nil
 M.start = function(opts, callback)
   assert(callback, "Must pass a callback")
@@ -145,25 +147,11 @@ M.start = function(opts, callback)
     end,
   }
 
-  local server_handlers = {
-    ["webview/create"] = function(_, params)
-      vim.notify(string.format("WEBVIEW CREATE: %s", vim.inspect(params)))
-    end,
-
-    ["showQuickPick"] = function(_, params)
-      return function(respond)
-        vim.ui.select(params, nil, function(selected)
-          respond(selected)
-        end)
-      end
-    end,
-  }
-
   -- Clear old information before restarting the client
   M.messages = {}
   M.server_info = {}
 
-  M.client = vendored_rpc.start(config.node_executable, cody_args, {
+  M.client = rpc_start(cody_args, {
     notification = function(method, data)
       if notification_handlers[method] then
         notification_handlers[method](data)
@@ -172,23 +160,16 @@ M.start = function(opts, callback)
       end
     end,
     server_request = function(method, params)
-      track {
-        type = "server_request",
-        method = method,
-        params = params,
-      }
-
-      local handler = server_handlers[method]
-      if handler then
-        return handler(method, params)
-      else
-        log.warn("[cody-agent] unhandled server request:", method)
-      end
+      track { type = "server_request", method = method, params = params }
+      log.warn("[cody-agent] unhandled server request:", method)
     end,
     on_exit = function(code, signal)
       if code ~= 0 then
         log.warn("[cody-agent] closed cody agent", code, signal)
       end
+    end,
+    on_error = function(code, err)
+      log.warn("[cody-agent] error:", code, err)
     end,
   })
 
@@ -298,7 +279,7 @@ M.request = function(method, params, callback)
       return
     end
 
-    return client.request(method, params, function(err, result)
+    client.request(method, params, function(err, result)
       track {
         type = "response",
         method = method,
@@ -385,76 +366,6 @@ _SG_CODY_RPC_MESSAGES = _SG_CODY_RPC_MESSAGES or {}
 M.messages = _SG_CODY_RPC_MESSAGES
 
 M.execute = {}
-
---- Execute a chat question and get a streaming response
----@param message string
----@param callback CodyMessageHandler
----@return table | nil
----@return table | nil
-M.execute.chat_question = function(message, callback)
-  error "DO NOT USE CHAT QUESTION"
-
-  local message_id = utils.uuid()
-  M.message_callbacks[message_id] = callback
-
-  return M.request(
-    "recipes/execute",
-    { id = "chat-question", humanChatInput = message, data = { id = message_id } },
-    function(err, _)
-      local ratelimit = require "sg.ratelimit"
-      if ratelimit.is_ratelimit_err(err) then
-        -- Notify user of error message
-        callback {
-          speaker = "cody",
-          text = err.message,
-          data = { id = message_id },
-        }
-
-        -- Mark callback as "completed"
-        ---@diagnostic disable-next-line: param-type-mismatch
-        callback(nil)
-
-        -- Set notification
-        return ratelimit.notify_ratelimit "chat"
-      end
-    end
-  )
-end
-
---- Execute a code question and get a streaming response
---- Returns only code (hopefully)
----@param message string
----@return table | nil
----@return table | nil
-M.execute.code_question = function(message)
-  error "code_question"
-
-  local message_id = utils.uuid()
-  -- M.message_callbacks[message_id] = callback
-
-  return M.request(
-    "recipes/execute",
-    { id = "code-question", humanChatInput = message, data = { id = message_id } },
-    function(err, _)
-      local ratelimit = require "sg.ratelimit"
-      if ratelimit.is_ratelimit_err(err) then
-        -- Notify user of error message
-        -- callback {
-        --   speaker = "cody",
-        --   text = err.message,
-        --   data = { id = message_id },
-        -- }
-
-        -- Mark callback as "completed"
-        ---@diagnostic disable-next-line: param-type-mismatch
-        -- callback(nil)
-
-        -- Set notification
-        return ratelimit.notify_ratelimit "chat"
-      end
-    end
-  )
-end
 
 M.execute.autocomplete = function(file, line, character, callback)
   return M.request(
