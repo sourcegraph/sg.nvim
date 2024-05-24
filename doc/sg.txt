@@ -51,6 +51,7 @@ sg.config                                                          *sg.config*
                                                  integration
     {accept_tos}        (boolean?)               Accept the TOS without being
                                                  prompted
+    {chat}              (sg.config.chat?)        Chat configuration
     {download_binaries} (boolean?)               Default true, download latest
                                                  release from Github
     {node_executable}   (string?)                path to node executable
@@ -63,6 +64,13 @@ sg.config                                                          *sg.config*
                                                  buffers
     {src_headers}       (table<string, string>)  Headers to be sent with each
                                                  sg request
+
+
+sg.config.chat                                                *sg.config.chat*
+
+
+  Configuration Options: ~
+    {default_model} (string)  The name of the default model to use
 
 
 

@@ -4,12 +4,15 @@ local log = require "sg.log"
 local rpc = require "sg.cody.rpc"
 local shared = require "sg.components.shared"
 local util = require "sg.utils"
+local config = require "sg.config"
 
 local CodySpeaker = require("sg.types").CodySpeaker
 local Mark = require "sg.mark"
 local Message = require "sg.cody.message"
 local Transcript = require "sg.cody.transcript"
 local Typewriter = require "sg.components.typewriter"
+
+local handlers = {}
 
 ---@type cody.Chat?
 local last_chat = nil
@@ -164,16 +167,7 @@ function Chat:_add_prompt_keymaps()
           return
         end
 
-        rpc.request("webview/receiveMessage", {
-          id = self.id,
-          message = {
-            command = "chatModel",
-            model = choice.model,
-          },
-        }, function()
-          self:set_current_model(choice.model)
-          self:render()
-        end)
+        handlers.set_current_model(self.id, choice.model)
       end)
     end)
   end)
@@ -405,14 +399,14 @@ function Chat:set_models(models)
 end
 
 --- Set the config
-function Chat:set_config(config)
-  self.config = config
+function Chat:set_config(c)
+  self.config = c
   self:render()
 end
 
 ---@param opts cody.ChatOpts
 function Chat._make_windows(opts)
-  local win_opts = opts.window_opts
+  local win_opts = opts.window_opts or {}
   if opts.window_type == "float" then
     local width = shared.calculate_width(win_opts.width)
     local height = shared.calculate_height(win_opts.height)
@@ -433,7 +427,7 @@ function Chat._make_windows(opts)
       history_width = prompt_width
     end
 
-    ---@type vim.api.keyset.float_config
+    ---@type vim.api.keyset.win_config
     local history_opts = {
       relative = "editor",
       border = "rounded",
@@ -449,7 +443,7 @@ function Chat._make_windows(opts)
 
     shared.make_buf_minimal(history_bufnr)
     shared.make_win_minimal(history_win)
-    vim.bo[history_bufnr].filetype = opts.filetype or "markdown.cody_prompt"
+    vim.bo[history_bufnr].filetype = "markdown.cody_prompt"
 
     local prompt_opts = {
       relative = "editor",
@@ -491,10 +485,10 @@ function Chat._make_windows(opts)
       buffer = prompt_bufnr,
       once = true,
       callback = function()
-        vim.api.nvim_win_close(prompt_win, true)
-        vim.api.nvim_win_close(history_win, true)
+        pcall(vim.api.nvim_win_close, prompt_win, true)
+        pcall(vim.api.nvim_win_close, history_win, true)
         if settings_win then
-          vim.api.nvim_win_close(settings_win, true)
+          pcall(vim.api.nvim_win_close, settings_win, true)
         end
       end,
     })
@@ -518,7 +512,7 @@ function Chat._make_windows(opts)
 
     shared.make_win_minimal(history_win)
     shared.make_buf_minimal(history_bufnr)
-    vim.bo[history_bufnr].filetype = opts.filetype or "markdown.cody_prompt"
+    vim.bo[history_bufnr].filetype = "markdown.cody_prompt"
 
     vim.wo[history_win].winbar = "%=Cody History%="
 
@@ -550,7 +544,7 @@ function Chat._make_windows(opts)
     local history_height = height
     local history_width = width
 
-    ---@type vim.api.keyset.float_config
+    ---@type vim.api.keyset.win_config
     local history_opts = {
       relative = "editor",
       border = "rounded",
@@ -566,13 +560,13 @@ function Chat._make_windows(opts)
 
     shared.make_buf_minimal(history_bufnr)
     shared.make_win_minimal(history_win)
-    vim.bo[history_bufnr].filetype = opts.filetype or "markdown.cody_prompt"
+    vim.bo[history_bufnr].filetype = "markdown.cody_prompt"
 
     vim.api.nvim_create_autocmd({ "BufDelete", "BufHidden" }, {
       buffer = history_bufnr,
       once = true,
       callback = function()
-        vim.api.nvim_win_close(history_win, true)
+        pcall(vim.api.nvim_win_close, history_win, true)
       end,
     })
 
@@ -601,8 +595,6 @@ end
 ---@field submitType Cody.ChatSubmitType
 ---@field addEnhancedContext? boolean
 ---@field contextFiles? cody.ContextFile[]
-
-local handlers = {}
 
 -- export type ExtensionMessage =
 --     | { type: 'config'; config: ConfigurationSubsetForWebview & LocalEnv; authStatus: AuthStatus }
@@ -650,6 +642,10 @@ handlers.make_chat = function(opts, callback)
 
     chats[id] = chat
 
+    if vim.tbl_get(config, "chat", "default_model") then
+      handlers.set_current_model(id, config.chat.default_model)
+    end
+
     callback(err, id)
   end
 end
@@ -679,7 +675,6 @@ end
 --- 'chat/new': [null, string]
 ---@param opts? cody.ChatOpts
 ---@param callback? fun(err, data)
----@return fun(err: any?, id: string?)
 handlers.new = function(opts, callback)
   callback = callback or function(err)
     if err then
@@ -764,6 +759,32 @@ end
 ---@return cody.Chat?
 handlers.get_chat = function(id)
   return chats[id]
+end
+
+--- Set the current model for a chat
+---@param id any
+---@param model any
+handlers.set_current_model = function(id, model)
+  local chat = chats[id]
+  if not chat then
+    return
+  end
+
+  rpc.request("webview/receiveMessage", {
+    message = {
+      command = "chatModel",
+      model = model,
+    },
+  }, function(err)
+    -- I think technically we can't get the error back right now,
+    -- but we can provide a proper receiveMessage for this later in the agent.
+    if err then
+      return
+    end
+
+    chat:set_current_model(model)
+    chat:render()
+  end)
 end
 
 return handlers
