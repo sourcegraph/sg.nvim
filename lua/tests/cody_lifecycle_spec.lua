@@ -44,7 +44,7 @@ describe("Cody Lifecycle", function()
         end, vim.api.nvim_list_bufs()))
       )
     )
-    assert(string.find(opened.params.filePath, "README.md"), "Did not send correct filename")
+    assert(string.find(opened.params.uri, "README.md"), "Did not send correct filename")
 
     local readme_bufnr = vim.api.nvim_get_current_buf()
 
@@ -59,7 +59,7 @@ describe("Cody Lifecycle", function()
     end)[1]
 
     assert(deleted, "Did not close readme")
-    assert(string.find(deleted.params.filePath, "README.md"), "Did not close correct filename")
+    assert(string.find(deleted.params.uri, "README.md"), "Did not close correct filename")
 
     -- Update the buffer
     vim.wait(10)
@@ -71,7 +71,7 @@ describe("Cody Lifecycle", function()
       local changed = filter_msg(function(msg)
         return msg.type == "notify"
           and msg.method == "textDocument/didChange"
-          and string.find(msg.params.filePath, "Cargo.toml")
+          and string.find(msg.params.uri, "Cargo.toml")
       end)[1]
 
       return changed ~= nil
@@ -81,14 +81,14 @@ describe("Cody Lifecycle", function()
     local changed = filter_msg(function(msg)
       return msg.type == "notify"
         and msg.method == "textDocument/didChange"
-        and string.find(msg.params.filePath, "Cargo.toml")
+        and string.find(msg.params.uri, "Cargo.toml")
     end)[1]
 
     assert(changed, "Did not receive didChange notification: " .. vim.inspect(rpc.messages))
 
     eq({ "inserted" }, vim.api.nvim_buf_get_lines(0, 0, 1, false))
     assert(
-      string.find(changed.params.filePath, "Cargo.toml"),
+      string.find(changed.params.uri, "Cargo.toml"),
       "Did not update correct filename: " .. vim.inspect(changed)
     )
   end)

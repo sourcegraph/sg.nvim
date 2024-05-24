@@ -32,7 +32,7 @@ proto.get_text_document = function(bufnr, opts)
   end
 
   local text_document = {
-    filePath = name,
+    uri = name,
   }
 
   if opts.content then
@@ -93,7 +93,7 @@ proto.did_close = function(bufnr)
   end
 
   local doc = proto.get_text_document(bufnr, { content = false })
-  if not doc.filePath then
+  if not doc.uri then
     return
   end
 

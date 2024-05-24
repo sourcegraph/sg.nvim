@@ -75,7 +75,7 @@ local M = {}
 ---@class CodyServerCapabilities
 
 ---@class CodyTextDocument
----@field filePath string
+---@field uri string
 ---@field content string?
 ---@field selection cody.Range?
 
@@ -171,23 +171,10 @@ M.CodySpeaker = { human = "human", assistant = "assistant" }
 ---@field error? cody.ChatError
 
 ---@class CodyChatMessageData
+--- TODO
 
 ---@class cody.PreciseContext
---[[
-export interface PreciseContext {
-    symbol: {
-        fuzzyName?: string
-    }
-    hoverText: string[]
-    definitionSnippet: string
-    filePath: string
-    range?: {
-        startLine: number
-        startCharacter: number
-        endLine: number
-        endCharacter: number
-    }
-} ]]
+--- TODO
 
 ---@class CodyChatUpdateMessageInProgressNoti: cody.ChatMessage
 ---@field text string?
