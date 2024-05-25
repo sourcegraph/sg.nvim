@@ -391,6 +391,9 @@ function Chat:render()
   for i = 1, self.transcript:length() do
     render_one_message(i, self.transcript:get_message(i))
   end
+
+  -- Attempt to put cursor on the last line of the window.
+  pcall(vim.api.nvim_win_set_cursor, win, { vim.api.nvim_buf_line_count(bufnr), 0 })
 end
 
 function Chat:set_models(models)
