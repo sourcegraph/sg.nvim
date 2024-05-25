@@ -129,9 +129,20 @@ commands.CodyToggle = {
 commands.CodyTask = {
   function(command)
     local bufnr = vim.api.nvim_get_current_buf()
-    cody_commands.do_task(bufnr, command.line1 - 1, command.line2, command.args)
+
+    if command.args == "" then
+      vim.ui.input({ prompt = "Cody Task: " }, function(input)
+        if not input or input == "" then
+          return
+        end
+
+        cody_commands.do_task(bufnr, command.line1 - 1, command.line2, input)
+      end)
+    else
+      cody_commands.do_task(bufnr, command.line1 - 1, command.line2, command.args)
+    end
   end,
-  { range = 2, nargs = 1 },
+  { range = 2, nargs = "*" },
 }
 
 ---@command :CodyRestart [[

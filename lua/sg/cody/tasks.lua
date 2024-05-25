@@ -41,7 +41,7 @@ CodyTask.init = function(opts)
 
       local bufnr = task.windows.history_bufnr
       vim.keymap.set("n", "<CR>", function()
-        local text = task.transcript:last_message():text()
+        local text = task.transcript:last_message():text() or ""
         local lines = vim.split(vim.trim(text), "\n")
         local to_insert = {}
 
