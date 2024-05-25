@@ -474,7 +474,7 @@ At this time, it's not published to npm, but you can load the plugin by adding
 For example, if you're using Plug, you can do:
 
 >vim
-    Plug 'sourcegraph/sg.nvim', { 'do': 'nvim -l build/init.lua --coc.nvim' }
+    Plug 'sourcegraph/sg.nvim', { 'do': 'nvim -l build/init.lua --install-coc-nvim' }
 <
 
 
