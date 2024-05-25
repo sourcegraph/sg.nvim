@@ -394,7 +394,7 @@ rpc.get_link({path}, {position}, {callback})               *sg.rpc.get_link()*
 
 
 ================================================================================
-COMPLETE                                                         *cody.complete*
+CMP                                                                   *cody.cmp*
 
 Completion source for nvim-cmp.
 
@@ -458,6 +458,25 @@ here's how you could configure if you're using `lspkind`:
 <
 
 See |cmp-config.sources| for more information
+
+
+
+================================================================================
+COC                                                                   *cody.coc*
+
+Completion source for coc.nvim
+
+To enable, you need to install coc.nvim.
+
+At this time, it's not published to npm, but you can load the plugin by adding
+`npm run build` to your installattion.
+
+For example, if you're using Plug, you can do:
+
+>vim
+    Plug 'sourcegraph/sg.nvim', { 'do': 'nvim -l build/init.lua --coc.nvim' }
+<
+
 
 
 
