@@ -139,10 +139,8 @@ function source:complete(params, callback)
     end
 
     local items = {}
-    local range = nil
     for _, item in ipairs(data.items) do
       local trimmed = vim.trim(item.insertText)
-      range = item.range
 
       ---@type lsp.CompletionItem
       local completion_item = {
