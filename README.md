@@ -76,7 +76,7 @@ use { 'sourcegraph/sg.nvim', run = 'nvim -l build/init.lua' }
 use { 'nvim-lua/plenary.nvim' }
 
 -- And optionally, you can install telescope for some search functionality
---  "nvim-lua/plenary.nvim", --[[ "nvim-telescope/telescope.nvim ]] 
+--  "nvim-lua/plenary.nvim", --[[ "nvim-telescope/telescope.nvim ]]
 ```
 </details>
 
@@ -162,7 +162,7 @@ Sourcegraph Browsing:
 The project is packaged as a [Nix Flake][nix-flakes]. Consume it as you normally would.
 For reference, see:
 
-- [Neovim guide on NixOS wiki](https://nixos.wiki/wiki/Neovim)
+- [Neovim guide on NixOS wiki](https://wiki.nixos.org/wiki/Neovim)
 - [gh:willruggiano/neovim.drv](https://github.com/willruggiano/neovim.drv)
 
 ```nix
@@ -188,5 +188,4 @@ For Nix contributors and maintainers:
 - [ ] Minimal `sg.nvim`-integrated neovim package for testing and example
 - [ ] Integrate `sg.nvim` + Cody onto [nixpkgs:vimPlugins](https://github.com/NixOS/nixpkgs/tree/fe2fb24a00ec510d29ccd4e36af72a0c55d81ec0/pkgs/applications/editors/vim/plugins)
 
-[nix-flakes]: https://nixos.wiki/wiki/Flakes
-
+[nix-flakes]: https://wiki.nixos.org/wiki/Flakes
