@@ -1,6 +1,7 @@
 # sg.nvim
 
-**Status**: Experimental. Not in active development. 
+> [!IMPORTANT]  
+> This plugin is currently experimental and is not actively being maintained. 
 
 ## Table of Contents
 
