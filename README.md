@@ -76,7 +76,7 @@ use { 'sourcegraph/sg.nvim', run = 'nvim -l build/init.lua' }
 use { 'nvim-lua/plenary.nvim' }
 
 -- And optionally, you can install telescope for some search functionality
---  "nvim-lua/plenary.nvim", --[[ "nvim-telescope/telescope.nvim ]] 
+--  "nvim-lua/plenary.nvim", --[[ "nvim-telescope/telescope.nvim ]]
 ```
 </details>
 
@@ -190,3 +190,56 @@ For Nix contributors and maintainers:
 
 [nix-flakes]: https://nixos.wiki/wiki/Flakes
 
+## Development
+
+### Loading the plugin
+To be able to test our changes we need to tell our favourite plugin manager to load the plugin locally rather than clone it from GitHub. Below is a snippet on how to do it with `lazy.nvim`
+
+```lua
+{
+  --- The dir specified here is the absolute path to the sg.nvim repository
+  dir = "~/code/path-to-sg-nvim-repo",
+  dependencies = { "nvim-lua/plenary.nvim" }
+}
+```
+
+### Dynamically switch to loading the plugin from the repository
+
+For ease for development it can be useful to automatically switch to loading the plugin from this repository if we enter this directory. We can do this by doing the following:
+
+1. In your plugin manager configuration, create the following function
+
+```lua
+local function load_sg()
+  if vim.env.SG_NVIM_DEV then
+    return { dir = vim.fn.getcwd(), dependencies = { "nvim-lua/plenary.nvim" } }
+  else
+    --- This is the configuration that lazy.nvim expects, but you can change it to whatever configuration your plugin manager expects
+    return {
+      "sourcegraph/sg.nvim",
+      dependencies = { "nvim-lua/plenary.nvim" },
+    }
+  end
+end
+```
+2. Update your configuration - example (lazy.nvim):
+
+```lua
+require("lazy").setup({
+  "example/other-plugin",
+  load_sg(),
+}
+```
+3. Finally, we need the `SG_NVIM_DEV` variable to exist in our environment as soon as we enter the repository. We can do that by using [direnv](https://direnv.net/) which automatically loads `.envrc` if it exists. Let's edit the current `.envrc`
+
+```bash
+export SG_NVIM_DEV="true"
+# If nix-shell available, then nix is installed. We're going to use nix-direnv.
+# for automatic devshell injection after opt-in `direnv allow`
+if command -v nix-shell &> /dev/null
+then
+    use flake
+fi
+```
+
+With the above changes, as soon as we enter this repository directory `direnv` will run `.envrc` which exports our `SG_NVIM_DEV` variable. Once we open Neovim and our plugins are loaded our `load_sg` function will get executed and see the `SG_NVIM_DEV` varialbe in the environment and rather load the `sg.nvim` plugin from the current working directory!
