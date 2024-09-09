@@ -1,6 +1,6 @@
 # sg.nvim
 
-**Status**: Experimental
+**Status**: Experimental. Not in active development. 
 
 ## Table of Contents
 
