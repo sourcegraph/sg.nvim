@@ -230,7 +230,7 @@ require("lazy").setup({
   load_sg(),
 }
 ```
-3. Finally, we need the `SG_NVIM_DEV` variable to exist in our environment as soon as we enter the repository. We can do that by using [direnv](https://direnv.net/) which automatically loads `.envrc` is it exists. Let's edit the present `.envrc`
+3. Finally, we need the `SG_NVIM_DEV` variable to exist in our environment as soon as we enter the repository. We can do that by using [direnv](https://direnv.net/) which automatically loads `.envrc` if it exists. Let's edit the current `.envrc`
 
 ```bash
 export SG_NVIM_DEV="true"
