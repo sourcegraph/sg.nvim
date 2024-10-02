@@ -40,7 +40,7 @@ local token = vim.env.SRC_ACCESS_TOKEN
 ---
 ---@return SourcegraphAuthConfig?
 M.get = function()
-  if valid(endpoint) and valid(endpoint) then
+  if valid(endpoint) and valid(token) then
     return { endpoint = endpoint, token = token }
   end
 
