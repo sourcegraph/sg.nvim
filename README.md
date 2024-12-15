@@ -39,7 +39,7 @@ Requires:
 - nvim 0.9 or nvim nightly
 - Node.js >= 18.17.0 (LTS) at runtime for [`cody-agent.js`](https://github.com/sourcegraph/cody)
 
-(By default, sg.nvim downloads released binaries from Github. If you prefer to build the plugin yourself, you'll need `cargo` to build)
+(By default, sg.nvim downloads released binaries from GitHub. If you prefer to build the plugin yourself, you'll need `cargo` to build)
 
 - Currently uses plenary.nvim and telescope.nvim for some features.
   - If you would like to use something else for search functionality, please make an issue and I can look into adding support.
