@@ -1,3 +1,5 @@
+node_modules/
+
 .direnv
 .env
 .pre-commit-config.yaml

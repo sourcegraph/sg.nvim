@@ -1,0 +1,17 @@
+{
+  "name": "sg.nvim",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "nvim": "npm run build",
+    "build": "npm run build:coc-cody",
+    "build:coc-cody": "cd packages/coc-cody && npm install && npm run build"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "typescript": "^5.4.5"
+  }
+}

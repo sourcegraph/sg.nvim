@@ -1,4 +1,4 @@
----@tag cody.complete
+---@tag cody.cmp
 ---@brief [[
 --- Completion source for nvim-cmp.
 ---
