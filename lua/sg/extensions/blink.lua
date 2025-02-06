@@ -1,3 +1,30 @@
+---@tag cody.complete
+---@brief [[
+--- Completion source for blink.cmp.
+---
+--- To enable, add the Cody source to your blink.cmp configuration:
+--- <code=lua>
+---     require("blink.cmp").setup {
+---       sources = {
+---         default = { 'lsp', 'path', 'snippets', 'buffer', 'cody' },
+---         cody = {
+---           name = "cody",
+---           module = "sg.extensions.blink",
+---           async = true,
+---           transform_items = function(_, items)
+---             local CompletionItemKind = require("blink.cmp.types").CompletionItemKind
+---             local kind_idx = #CompletionItemKind + 1
+---             CompletionItemKind[kind_idx] = "Cody"
+---             for _, item in ipairs(items) do
+---               item.kind = kind_idx
+---             end
+---             return items
+---           end,
+---         }
+---       },
+---     }
+--- </code>
+---@brief ]]
 ---@module 'blink.cmp'
 
 local config = require "sg.config"
