@@ -11,9 +11,6 @@ end
 -- Check if blink cmp is installed.
 local blink_ok, _ = pcall(require, "blink.cmp")
 if blink_ok then
-  -- Set a default color for Cody
-  vim.api.nvim_set_hl(0, "BlinkItemKindCody", { link = "Include", default = true })
-
   -- Load the source, make it available to users
   require "sg.extensions.blink"
 end

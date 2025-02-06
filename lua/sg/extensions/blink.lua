@@ -71,7 +71,7 @@ function M:get_trigger_characters()
   return { "@", ".", "(", "{", " " }
 end
 
-function M:get_completions(context, callback)
+function M:get_completions(_, callback)
   log.trace "entering nvim-cmp complete"
 
   local commands = require "sg.cody.commands"
@@ -104,7 +104,7 @@ function M:get_completions(context, callback)
           range = item.range,
         },
 
-        -- Store completeion ID for later
+        -- Store completion ID for later
         data = {
           id = item.id,
         },
@@ -131,7 +131,7 @@ function M:resolve(item, callback)
   callback(item)
 end
 
-function M:execute(context, item, callback)
+function M:execute(_, item, callback)
   if is_valid_item(item) then
     require("sg.cody.rpc").execute.autocomplete_accepted(item.data.id)
   end
