@@ -10,6 +10,36 @@ function M.new()
   return setmetatable({}, { __index = M })
 end
 
+function M:enabled()
+  local document = require("sg.cody.protocol").document
+
+  -- Don't trigger completions on useless buffers
+  -- This messes up the state of the agent.
+  local bufnr = vim.api.nvim_get_current_buf()
+  if not document.is_useful(bufnr) then
+    log.trace "  skipping blink complete. not useful"
+    return false
+  end
+
+  -- Don't trigger completions when cody is disabled or if we have invalid auth
+  if not config.enable_cody then
+    log.trace "  skipping blink complete. not enabled"
+    return false
+  end
+
+  if not require("sg.auth").get() then
+    log.trace "  skipping blink complete. not authed"
+    return false
+  end
+
+  if not require("sg.cody.rpc").client then
+    log.trace "  skipping blink complete. no client started"
+    return false
+  end
+
+  return true
+end
+
 function M:get_trigger_characters()
   return { "@", ".", "(", "{", " " }
 end
@@ -18,31 +48,6 @@ function M:get_completions(context, callback)
   log.trace "entering nvim-cmp complete"
 
   local commands = require "sg.cody.commands"
-  local document = require("sg.cody.protocol").document
-
-  -- Don't trigger completions on useless buffers
-  -- This messes up the state of the agent.
-  local bufnr = vim.api.nvim_get_current_buf()
-  if not document.is_useful(bufnr) then
-    log.trace "  skipping blink complete. not useful"
-    return callback {}
-  end
-
-  -- Don't trigger completions when cody is disabled or if we have invalid auth
-  if not config.enable_cody then
-    log.trace "  skipping blink complete. not enabled"
-    return callback {}
-  end
-
-  if not require("sg.auth").get() then
-    log.trace "  skipping blink complete. not authed"
-    return callback {}
-  end
-
-  if not require("sg.cody.rpc").client then
-    log.trace "  skipping blink complete. no client started"
-    return callback {}
-  end
 
   commands.autocomplete(nil, function(err, data)
     if err then
