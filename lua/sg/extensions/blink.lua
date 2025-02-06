@@ -85,7 +85,10 @@ function M:get_completions(context, callback)
       table.insert(items, completion_item)
     end
 
-    callback(items)
+    callback {
+      items = items,
+      isIncomplete = false,
+    }
   end)
 end
 
