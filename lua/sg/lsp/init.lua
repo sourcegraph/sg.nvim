@@ -50,7 +50,7 @@ M.get_client_id = function()
 
   ---@diagnostic disable-next-line: missing-fields
   local headers = require("sg.config").src_headers
-  M._client = vim.lsp.start_client {
+  M._client = vim.lsp.start {
     name = "sourcegraph",
     cmd = { cmd },
     cmd_env = {
