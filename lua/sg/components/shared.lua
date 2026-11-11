@@ -10,7 +10,7 @@ shared.create = function(bufnr, win, popup_options)
   end
 
   vim.wo[win].wrap = true
-  vim.wo[win].winhighlight = "Normal:Normal,FloatBorder:Normal"
+  vim.wo[win].winhighlight = "Normal:Normal,FloatBorder:FloatBorder"
 
   return bufnr, win
 end
@@ -68,7 +68,7 @@ shared.make_win_minimal = function(win)
     list = false,
     signcolumn = "auto",
     wrap = true,
-    winhighlight = "Normal:Normal,FloatBorder:Normal",
+    winhighlight = "Normal:Normal,FloatBorder:FloatBorder",
   }
 
   for key, value in pairs(options) do
