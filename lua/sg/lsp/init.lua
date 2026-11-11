@@ -63,7 +63,19 @@ M.get_client_id = function()
       -- have an error when we try to navigate synchronously to the location
       -- via the normal way LSPs navigate
       ["textDocument/definition"] = function(_, result, ctx, config_)
+        -- No location returned, so just quit
+        if not result then
+          return
+        end
+
         if vim.tbl_islist(result) then
+          -- Don't do anything we have empty results, that's weird
+          for _, res in ipairs(result) do
+            if not res then
+              return
+            end
+          end
+
           -- Wait for all to complete
           local count = 0
           for _, res in ipairs(result) do
