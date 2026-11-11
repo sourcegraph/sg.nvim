@@ -18,6 +18,7 @@ local input_files = {
   "./plugin/sg.lua",
   "./lua/sg/rpc.lua",
   "./lua/sg/extensions/cmp.lua",
+  "./lua/sg/cody/complete.lua",
 }
 
 local output_file = "./doc/sg.txt"
