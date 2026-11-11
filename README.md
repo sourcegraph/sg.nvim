@@ -26,7 +26,7 @@ You can check that you're logged in by then running `:checkhealth sg`
 
 ## Autocomplete
 
-Currently, sg.nvim only supports nvim-cmp. For setup information, see: `:help cody.complete`.
+Currently, sg.nvim only supports nvim-cmp and blink.cmp. For setup information, see: `:help cody.complete`.
 
 If you have other completion sources you would like added, please let me know in the issue tracker!
 
