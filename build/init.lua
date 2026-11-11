@@ -1,3 +1,11 @@
+---@diagnostic disable-next-line: undefined-field
+local args = _G.arg or {}
+args[0] = nil
+print(vim.inspect(args))
+
+local install_coc_nvim = vim.iter(args):find "--install-coc-nvim"
+print("install_coc_nvim:", install_coc_nvim)
+
 local sourced_filename = (function()
   return vim.fn.fnamemodify(vim.fs.normalize(debug.getinfo(2, "S").source:sub(2)), ":p")
 end)()
@@ -15,7 +23,7 @@ config.accept_tos = true
 
 -- This is the default path of downloading binaries
 if config.download_binaries or config.download_binaries == nil then
-  return require("sg.build").download()
+  require("sg.build").download()
 else
   -- This is the path to build these manually.
 
@@ -70,4 +78,14 @@ else
   end
 
   print "success\n"
+end
+
+if install_coc_nvim then
+  print "installing coc nvim extension..."
+  local npm = vim.system({ "npm", "run", "nvim" }):wait()
+  if npm.code ~= 0 then
+    print("npm failed with:", vim.inspect(npm))
+  else
+    print "success"
+  end
 end

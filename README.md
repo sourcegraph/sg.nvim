@@ -30,13 +30,18 @@ Currently, sg.nvim only supports nvim-cmp. For setup information, see: `:help co
 
 If you have other completion sources you would like added, please let me know in the issue tracker!
 
+
+Supported Autocomplete:
+- nvim-cmp, see `:help cody.cmp`
+- coc.nvim, see `:help cody.coc`
+
 ## Installation
 
 ### Requirements
 
 Requires:
 
-- nvim 0.9 or nvim nightly
+- nvim 0.10 or nvim nightly
 - Node.js >= 18.17.0 (LTS) at runtime for [`cody-agent.js`](https://github.com/sourcegraph/cody)
 
 (By default, sg.nvim downloads released binaries from GitHub. If you prefer to build the plugin yourself, you'll need `cargo` to build)
